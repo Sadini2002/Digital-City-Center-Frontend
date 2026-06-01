@@ -1,17 +1,22 @@
-import { api } from '../services/api'
+import HeroSection from '../components/home/HeroSection'
+import CategoriesSection from '../components/home/CategoriesSection'
+import FlashDealsCard from '../components/home/FlashDealsCard'
+import TopShopsCard from '../components/home/TopShopsCard'
+import ValuePropositionBar from '../components/home/ValuePropositionBar'
 
 function HomePage() {
   return (
-    <section className="space-y-4">
-      <h1 className="text-3xl font-bold tracking-tight">Frontend Initialized</h1>
-      <p className="text-slate-600">
-        This React + Vite client is ready with routing, page layout, and an API service layer built on Axios.
-      </p>
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-500">Configured API base URL</p>
-        <code className="mt-1 block text-sm">{api.defaults.baseURL}</code>
-      </div>
-    </section>
+    <div className="min-w-0 overflow-x-hidden bg-white">
+      <HeroSection />
+      <CategoriesSection />
+      <section className="bg-white py-8 sm:py-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-stretch gap-5 px-3 sm:gap-6 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8">
+          <FlashDealsCard />
+          <TopShopsCard />
+        </div>
+      </section>
+      <ValuePropositionBar />
+    </div>
   )
 }
 

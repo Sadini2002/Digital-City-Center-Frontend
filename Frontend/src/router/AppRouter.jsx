@@ -1,26 +1,35 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import AboutPage from '../pages/AboutPage'
+import ForgotPassword from '../pages/ForgotPassword'
 import HomePage from '../pages/HomePage'
+import Login from '../pages/Login'
 import NotFoundPage from '../pages/NotFoundPage'
 import PlaceholderPage from '../pages/PlaceholderPage'
+import CategoryPage from '../pages/CategoryPage'
+import ProductDetailPage from '../pages/ProductDetailPage'
+import Register from '../pages/Register'
+import SearchResultsPage from '../pages/SearchResultsPage'
 
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<PlaceholderPage title="Contact" description="Support contacts and inquiry form." />} />
-          <Route path="/category/:slug" element={<PlaceholderPage title="Category Page" description="Listings filtered by selected category." />} />
-          <Route path="/search" element={<PlaceholderPage title="Search Results" description="Keyword search with filtering and sorting controls." />} />
+          <Route path="/shops" element={<PlaceholderPage title="Shops" description="Browse all marketplace shops." />} />
+          <Route path="/deals" element={<PlaceholderPage title="Deals" description="Flash deals and limited-time offers." />} />
+          <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/shop/:shopname" element={<PlaceholderPage title="Shop Page" description="Seller storefront with all listings." />} />
-          <Route path="/product/:id" element={<PlaceholderPage title="Product Detail" description="Product gallery, variants, reviews, and related items." />} />
-          <Route path="/register" element={<PlaceholderPage title="Buyer Registration" description="Buyer sign-up form." />} />
+          <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/register/seller" element={<PlaceholderPage title="Seller Registration" description="Seller onboarding flow." />} />
-          <Route path="/login" element={<PlaceholderPage title="Login" description="Buyer and seller login page." />} />
           <Route path="/account" element={<PlaceholderPage title="Buyer Account" description="Profile, addresses, and order history." />} />
           <Route path="/cart" element={<PlaceholderPage title="Cart" description="Items from multiple sellers with quantity controls." />} />
           <Route path="/checkout" element={<PlaceholderPage title="Checkout" description="Address, delivery option, and payment selection." />} />
