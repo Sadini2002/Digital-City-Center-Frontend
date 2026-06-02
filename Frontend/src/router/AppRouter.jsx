@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import AboutPage from '../pages/AboutPage'
+import ContactPage from '../pages/ContactPage'
 import HomePage from '../pages/HomePage'
 import NotFoundPage from '../pages/NotFoundPage'
 import PlaceholderPage from '../pages/PlaceholderPage'
@@ -13,7 +14,15 @@ function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<PlaceholderPage title="Contact" description="Support contacts and inquiry form." />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/help" element={<PlaceholderPage title="Help Center" description="Support articles and help topics." />} />
+          <Route path="/categories" element={<PlaceholderPage title="Categories" description="Browse all marketplace categories." />} />
+          <Route path="/categories/:slug" element={<PlaceholderPage title="Category Page" description="Listings filtered by selected category." />} />
+          <Route path="/shops" element={<PlaceholderPage title="Shops" description="Browse all seller shops." />} />
+          <Route path="/shops/:slug" element={<PlaceholderPage title="Shop Page" description="Seller storefront with all listings." />} />
+          <Route path="/deals" element={<PlaceholderPage title="Deals" description="Hot deals and promotions." />} />
+          <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" description="Privacy policy document." />} />
+          <Route path="/terms" element={<PlaceholderPage title="Terms of Service" description="Terms of service document." />} />
           <Route path="/category/:slug" element={<PlaceholderPage title="Category Page" description="Listings filtered by selected category." />} />
           <Route path="/search" element={<PlaceholderPage title="Search Results" description="Keyword search with filtering and sorting controls." />} />
           <Route path="/shop/:shopname" element={<PlaceholderPage title="Shop Page" description="Seller storefront with all listings." />} />
