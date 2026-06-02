@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Heart, Menu, ShoppingCart, X } from 'lucide-react'
+import { useShop } from '../../buyer'
 import UtilityTopBar from './UtilityTopBar'
 import BrandLogo from './BrandLogo'
 import HeaderSearch from './HeaderSearch'
@@ -57,6 +58,7 @@ function NavItem({ item, onClick }) {
 
 export default function SiteHeader({ activeAuth = null, showUtilityBar = true }) {
   const location = useLocation()
+  const { cartCount, wishlistCount } = useShop()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -89,10 +91,15 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Link
               to="/wishlist"
-              className="touch-target rounded-lg p-2 text-slate-600 hover:bg-slate-50"
+              className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5" strokeWidth={1.75} />
+              {wishlistCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
             </Link>
             <Link
               to="/cart"
@@ -100,9 +107,11 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
-              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-dcc-primary px-1 text-[10px] font-bold text-white">
-                2
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-dcc-primary px-1 text-[10px] font-bold text-white">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
             </Link>
 
             <Link

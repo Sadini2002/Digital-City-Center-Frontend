@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom'
 import { MapPin, ShoppingCart, Star } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
+import WishlistButton from '../common/WishlistButton'
+import { useShop } from '../../buyer'
 import { formatLkr } from './searchData'
 
 export default function SearchBestMatch({ product }) {
+  const { addToCart } = useShop()
+
   return (
     <div className="mb-6 overflow-hidden rounded-2xl border border-violet-100 bg-violet-50/70 p-4 sm:p-5">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -26,12 +30,16 @@ export default function SearchBestMatch({ product }) {
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
             <span className="text-2xl font-bold text-dcc-primary">{formatLkr(product.price)}</span>
-            <span className="text-base text-slate-400 line-through">
-              {formatLkr(product.originalPrice)}
-            </span>
-            <span className="rounded-md bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-              -{product.discount}%
-            </span>
+            {product.originalPrice != null && product.originalPrice > product.price && (
+              <span className="text-base text-slate-400 line-through">
+                {formatLkr(product.originalPrice)}
+              </span>
+            )}
+            {product.discount != null && product.discount > 0 && (
+              <span className="rounded-md bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                -{product.discount}%
+              </span>
+            )}
           </div>
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-600 sm:justify-start">
@@ -59,6 +67,7 @@ export default function SearchBestMatch({ product }) {
           <div className="mt-4 flex flex-wrap justify-center gap-3 sm:justify-start">
             <button
               type="button"
+              onClick={() => addToCart(product, 1)}
               className="inline-flex items-center gap-2 rounded-lg bg-dcc-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
             >
               <ShoppingCart className="h-4 w-4" />
@@ -70,6 +79,18 @@ export default function SearchBestMatch({ product }) {
             >
               View Details
             </Link>
+            <WishlistButton
+              product={{
+                id: product.id,
+                name: product.title,
+                brand: product.title?.split(' ')[0],
+                price: product.price,
+                originalPrice: product.originalPrice,
+                image: product.image,
+              }}
+              size="lg"
+              className="rounded-lg"
+            />
           </div>
         </div>
       </div>

@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom'
 import { BadgeCheck, ChevronRight, Star } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
-import { categoryShops } from './categoryData'
 
-export default function CategoryTopShops() {
-  const { featured, standard } = categoryShops
+export default function CategoryTopShops({ shops, sectionTitle = 'Top Rated Shops' }) {
+  if (!shops) return null
+
+  const { featured, standard } = shops
 
   return (
     <section className="mt-0 bg-violet-50/90 py-12 sm:py-14">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Top Rated Tech Shops</h2>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">{sectionTitle}</h2>
           <Link
             to="/shops"
             className="inline-flex items-center gap-0.5 text-sm font-semibold text-dcc-primary hover:underline"

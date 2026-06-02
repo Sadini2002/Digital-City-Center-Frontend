@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Grid3x3, List, SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
@@ -8,21 +8,24 @@ import CategoryProductCard from '../components/category/CategoryProductCard'
 import CategoryPagination from '../components/category/CategoryPagination'
 import CategoryTopShops from '../components/category/CategoryTopShops'
 import {
-  categoryProducts,
   getCategoryBreadcrumbs,
   getCategoryMeta,
+  getCategoryProducts,
+  getCategoryShops,
   sortOptions,
 } from '../components/category/categoryData'
 
 const PER_PAGE = 6
-const DEFAULT_SUBS = ['smartphones']
 
 export default function CategoryPage() {
   const { slug = 'electronics' } = useParams()
   const meta = getCategoryMeta(slug)
   const breadcrumbs = getCategoryBreadcrumbs(slug, meta.title)
+  const categoryProducts = useMemo(() => getCategoryProducts(slug), [slug])
+  const categoryShops = getCategoryShops(slug)
+  const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
 
-  const [selectedSubs, setSelectedSubs] = useState(DEFAULT_SUBS)
+  const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
   const [priceMin, setPriceMin] = useState(0)
   const [priceMax, setPriceMax] = useState(100)
   const [location, setLocation] = useState('All Locations')
@@ -31,6 +34,13 @@ export default function CategoryPage() {
   const [view, setView] = useState('grid')
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  useEffect(() => {
+    setPage(1)
+    setSelectedSubs(meta.subCategories[0] ? [meta.subCategories[0].id] : [])
+    setFiltersOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset filters when category slug changes
+  }, [slug])
 
   const filteredProducts = useMemo(() => {
     let list = [...categoryProducts]
@@ -63,7 +73,7 @@ export default function CategoryPage() {
     }
 
     return list
-  }, [minRating, priceMin, priceMax, sort])
+  }, [categoryProducts, minRating, priceMin, priceMax, sort])
 
   const start = (page - 1) * PER_PAGE
   const pageProducts = filteredProducts.slice(start, start + PER_PAGE)
@@ -77,7 +87,7 @@ export default function CategoryPage() {
   }
 
   const clearFilters = () => {
-    setSelectedSubs([...DEFAULT_SUBS])
+    setSelectedSubs([...defaultSubs])
     setPriceMin(0)
     setPriceMax(100)
     setLocation('All Locations')
@@ -86,7 +96,7 @@ export default function CategoryPage() {
     setPage(1)
   }
 
-  const showTopShops = slug === 'electronics' || slug === 'all'
+  const showTopShops = Boolean(categoryShops) && slug !== 'all'
 
   return (
     <div className="min-w-0 bg-white">
@@ -197,7 +207,7 @@ export default function CategoryPage() {
         </PageContainer>
       </div>
 
-      {showTopShops && <CategoryTopShops />}
+      {showTopShops && <CategoryTopShops shops={categoryShops} />}
     </div>
   )
 }

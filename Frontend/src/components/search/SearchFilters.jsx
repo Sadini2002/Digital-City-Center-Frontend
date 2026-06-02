@@ -122,19 +122,25 @@ export default function SearchFilters({
                     onChange={() => onMinRatingChange(filter.stars)}
                     className="h-4 w-4 border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
                   />
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-3.5 w-3.5 ${
-                          i < filter.stars
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'text-slate-200'
-                        }`}
-                      />
-                    ))}
-                  </span>
-                  <span className="text-slate-600">{filter.label}</span>
+                  {filter.stars > 0 ? (
+                    <>
+                      <span className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${
+                              i < filter.stars
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </span>
+                      <span className="text-slate-600">{filter.label}</span>
+                    </>
+                  ) : (
+                    <span className="text-slate-600">{filter.label}</span>
+                  )}
                 </label>
               </li>
             ))}

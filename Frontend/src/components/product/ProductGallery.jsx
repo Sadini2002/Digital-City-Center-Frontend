@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { ZoomIn } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
+import WishlistButton from '../common/WishlistButton'
 
-export default function ProductGallery({ images, badges }) {
+export default function ProductGallery({ images, badges, product }) {
   const galleryImages = images.filter(Boolean)
   const [activeIndex, setActiveIndex] = useState(0)
   const activeSrc = galleryImages[activeIndex]
@@ -41,6 +42,11 @@ export default function ProductGallery({ images, badges }) {
           <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover" />
         ) : (
           <div className="aspect-square w-full bg-slate-100" aria-hidden />
+        )}
+        {product && (
+          <div className="absolute right-3 top-3 z-10">
+            <WishlistButton product={product} size="md" className="shadow-sm" />
+          </div>
         )}
         <button
           type="button"

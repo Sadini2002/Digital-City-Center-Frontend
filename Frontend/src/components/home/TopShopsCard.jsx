@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight, Star } from 'lucide-react'
 import { topShops } from './homeData'
+import { slugifyShopName } from '../../data/shopsData'
 
 export default function TopShopsCard() {
   return (
@@ -25,7 +26,7 @@ export default function TopShopsCard() {
         {topShops.slice(0, 2).map((shop) => (
           <Link
             key={shop.id}
-            to={`/shop/${shop.name.toLowerCase().replace(/\s/g, '-')}`}
+            to={`/shop/${slugifyShopName(shop.name)}`}
             className="block overflow-hidden rounded-xl border border-slate-200/90 bg-white transition hover:shadow-md"
           >
             <div className={`h-28 bg-gradient-to-br sm:h-32 ${shop.hue}`} />

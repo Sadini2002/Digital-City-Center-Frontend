@@ -64,16 +64,25 @@ export default function FlashDealsCard() {
             className="group flex flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white transition hover:shadow-md"
           >
             <div className={`relative aspect-[4/3] bg-gradient-to-br ${deal.hue}`}>
-              <span className="absolute left-2 top-2 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                -{deal.discount}%
-              </span>
+              {deal.discount != null && (
+                <span className="absolute left-2 top-2 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  -{deal.discount}%
+                </span>
+              )}
+              {deal.discount == null && (
+                <span className="absolute left-2 top-2 rounded-md bg-teal-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  NEW
+                </span>
+              )}
             </div>
             <div className="flex flex-1 flex-col p-2.5 sm:p-3">
               <p className="text-xs font-bold leading-snug text-slate-900 sm:text-[13px]">
                 {deal.name}
               </p>
               <p className="mt-1.5 text-sm font-bold text-dcc-primary">LKR {deal.price}</p>
-              <p className="text-[11px] text-slate-400 line-through">LKR {deal.oldPrice}</p>
+              {deal.oldPrice && (
+                <p className="text-[11px] text-slate-400 line-through">LKR {deal.oldPrice}</p>
+              )}
             </div>
           </Link>
         ))}

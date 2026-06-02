@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import AboutPage from '../pages/AboutPage'
+import ContactPage from '../pages/ContactPage'
 import ForgotPassword from '../pages/ForgotPassword'
 import HomePage from '../pages/HomePage'
 import Login from '../pages/Login'
@@ -10,6 +11,22 @@ import CategoryPage from '../pages/CategoryPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import Register from '../pages/Register'
 import SearchResultsPage from '../pages/SearchResultsPage'
+import ShopPage from '../pages/ShopPage'
+import ShopsPage from '../pages/ShopsPage'
+import {
+  AccountPage,
+  CartPage,
+  CheckoutPage,
+  OrderFailedPage,
+  OrderReviewsPage,
+  OrderSuccessPage,
+  OrderTrackingPage,
+  PaymentGatewayPage,
+  WishlistPage,
+} from '../buyer'
+import { SellerRegisterPage, SellerRegisterSuccessPage } from '../seller'
+
+// Buyer pages: ../buyer · Seller registration: ../seller · Public/marketplace: ../pages
 
 function AppRouter() {
   return (
@@ -17,25 +34,29 @@ function AppRouter() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/register/seller" element={<SellerRegisterPage />} />
+        <Route path="/register/seller/success" element={<SellerRegisterSuccessPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/payment/gateway/:orderId" element={<PaymentGatewayPage />} />
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<PlaceholderPage title="Contact" description="Support contacts and inquiry form." />} />
-          <Route path="/shops" element={<PlaceholderPage title="Shops" description="Browse all marketplace shops." />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/shops" element={<ShopsPage />} />
           <Route path="/deals" element={<PlaceholderPage title="Deals" description="Flash deals and limited-time offers." />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
-          <Route path="/shop/:shopname" element={<PlaceholderPage title="Shop Page" description="Seller storefront with all listings." />} />
+          <Route path="/shop/:shopname" element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
-          <Route path="/register/seller" element={<PlaceholderPage title="Seller Registration" description="Seller onboarding flow." />} />
-          <Route path="/account" element={<PlaceholderPage title="Buyer Account" description="Profile, addresses, and order history." />} />
-          <Route path="/cart" element={<PlaceholderPage title="Cart" description="Items from multiple sellers with quantity controls." />} />
-          <Route path="/checkout" element={<PlaceholderPage title="Checkout" description="Address, delivery option, and payment selection." />} />
-          <Route path="/order/:id/success" element={<PlaceholderPage title="Order Success" description="Order confirmation after checkout." />} />
-          <Route path="/order/:id" element={<PlaceholderPage title="Order Tracking" description="Status timeline for a specific order." />} />
-          <Route path="/wishlist" element={<PlaceholderPage title="Wishlist" description="Saved products for later purchase." />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order/:id/success" element={<OrderSuccessPage />} />
+          <Route path="/order/:id/failed" element={<OrderFailedPage />} />
+          <Route path="/order/:id/reviews" element={<OrderReviewsPage />} />
+          <Route path="/order/:id" element={<OrderTrackingPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/seller/dashboard" element={<PlaceholderPage title="Seller Dashboard" description="Seller summary with orders, earnings, and listings." />} />
           <Route path="/seller/listings" element={<PlaceholderPage title="Seller Listings" description="Manage all seller listings." />} />
           <Route path="/seller/listings/new" element={<PlaceholderPage title="Add or Edit Listing" description="Create or update seller listing details." />} />

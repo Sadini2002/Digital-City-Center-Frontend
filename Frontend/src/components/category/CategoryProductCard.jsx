@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Heart, ShoppingCart, Star } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
+import { useShop } from '../../buyer'
 import { formatLkr } from './categoryData'
 
 function StarRow({ rating }) {
@@ -25,6 +26,21 @@ function badgeStyles(badge) {
 }
 
 export default function CategoryProductCard({ product, view = 'grid' }) {
+  const { addToCart, toggleWishlist, isInWishlist } = useShop()
+  const saved = isInWishlist(product.id)
+
+  const handleAddToCart = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    addToCart(product, 1)
+  }
+
+  const handleToggleWishlist = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleWishlist(product)
+  }
+
   if (view === 'list') {
     return (
       <Link
@@ -61,14 +77,26 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={(e) => e.preventDefault()}
-          className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-lg bg-dcc-primary text-white hover:bg-dcc-primary-hover"
-          aria-label="Add to cart"
-        >
-          <ShoppingCart className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 flex-col gap-2 self-end">
+          <button
+            type="button"
+            onClick={handleToggleWishlist}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg border ${
+              saved ? 'border-pink-200 bg-pink-50 text-pink-500' : 'border-slate-200 text-slate-500'
+            }`}
+            aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-dcc-primary text-white hover:bg-dcc-primary-hover"
+            aria-label="Add to cart"
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </button>
+        </div>
       </Link>
     )
   }
@@ -88,11 +116,13 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
         )}
         <button
           type="button"
-          onClick={(e) => e.preventDefault()}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm transition hover:text-red-500"
-          aria-label="Add to wishlist"
+          onClick={handleToggleWishlist}
+          className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm transition ${
+            saved ? 'text-pink-500' : 'text-slate-400 hover:text-red-500'
+          }`}
+          aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className="h-4 w-4" strokeWidth={1.75} />
+          <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} strokeWidth={1.75} />
         </button>
         <CdnImage
           src={product.image}
@@ -124,7 +154,7 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
         </div>
         <button
           type="button"
-          onClick={(e) => e.preventDefault()}
+          onClick={handleAddToCart}
           className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg bg-dcc-primary text-white shadow-sm hover:bg-dcc-primary-hover"
           aria-label="Add to cart"
         >

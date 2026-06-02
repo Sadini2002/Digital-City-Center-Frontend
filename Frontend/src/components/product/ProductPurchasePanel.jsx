@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useShop } from '../../buyer'
 import {
   BadgeCheck,
   Box,
@@ -10,7 +11,8 @@ import {
   Star,
   Truck,
 } from 'lucide-react'
-import { formatLkr } from './productDetailData'
+import WishlistButton from '../common/WishlistButton'
+import { formatLkr } from '../../data/productsCatalog'
 
 function StarRating({ rating }) {
   return (
@@ -28,11 +30,35 @@ function StarRating({ rating }) {
 }
 
 export default function ProductPurchasePanel({ product }) {
-  const [colorId, setColorId] = useState(product.defaultColorId)
-  const [size, setSize] = useState(product.defaultSize)
+  const navigate = useNavigate()
+  const { addToCart } = useShop()
+  const hasColors = product.colors?.length > 0
+  const hasSizes = product.sizes?.length > 0
+  const [colorId, setColorId] = useState(product.defaultColorId ?? product.colors?.[0]?.id)
+  const [size, setSize] = useState(product.defaultSize ?? product.sizes?.[0])
   const [quantity, setQuantity] = useState(1)
 
-  const selectedColor = product.colors.find((c) => c.id === colorId)
+  const handleAddToCart = () => {
+    addToCart(
+      {
+        id: product.id,
+        title: product.title,
+        brand: product.brand,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        image: product.images?.[0],
+        seller: product.seller,
+      },
+      quantity,
+    )
+  }
+
+  const handleBuyNow = () => {
+    handleAddToCart()
+    navigate('/cart')
+  }
+
+  const selectedColor = product.colors?.find((c) => c.id === colorId)
 
   return (
     <div className="min-w-0">
@@ -69,9 +95,11 @@ export default function ProductPurchasePanel({ product }) {
         <span className="text-2xl font-bold text-slate-900 sm:text-3xl">
           {formatLkr(product.price)}
         </span>
-        <span className="text-lg text-slate-400 line-through">
-          {formatLkr(product.originalPrice)}
-        </span>
+        {product.originalPrice != null && product.originalPrice > product.price && (
+          <span className="text-lg text-slate-400 line-through">
+            {formatLkr(product.originalPrice)}
+          </span>
+        )}
       </div>
 
       <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-green-600">
@@ -79,45 +107,52 @@ export default function ProductPurchasePanel({ product }) {
         IN STOCK ({product.stock} UNITS REMAINING)
       </p>
 
-      <div className="mt-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Select color: {selectedColor?.name}
-        </p>
-        <div className="mt-2 flex gap-3">
-          {product.colors.map((color) => (
-            <button
-              key={color.id}
-              type="button"
-              onClick={() => setColorId(color.id)}
-              className={`h-9 w-9 rounded-full border-2 ${
-                colorId === color.id ? 'border-dcc-primary ring-2 ring-dcc-primary/30' : 'border-slate-200'
-              }`}
-              style={{ backgroundColor: color.swatch }}
-              aria-label={color.name}
-            />
-          ))}
+      {hasColors && (
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {product.colorLabel ?? 'Select color'}
+            {selectedColor?.name ? `: ${selectedColor.name}` : ''}
+          </p>
+          <div className="mt-2 flex gap-3">
+            {product.colors.map((color) => (
+              <button
+                key={color.id}
+                type="button"
+                onClick={() => setColorId(color.id)}
+                className={`h-9 w-9 rounded-full border-2 ${
+                  colorId === color.id ? 'border-dcc-primary ring-2 ring-dcc-primary/30' : 'border-slate-200'
+                }`}
+                style={{ backgroundColor: color.swatch }}
+                aria-label={color.name}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mt-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Strap size</p>
-        <div className="mt-2 flex gap-2">
-          {product.sizes.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSize(option)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
-                size === option
-                  ? 'bg-dcc-primary text-white'
-                  : 'border border-slate-300 bg-white text-slate-700 hover:border-dcc-primary'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+      {hasSizes && (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {product.sizeLabel ?? 'Size'}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {product.sizes.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setSize(option)}
+                className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
+                  size === option
+                    ? 'bg-dcc-primary text-white'
+                    : 'border border-slate-300 bg-white text-slate-700 hover:border-dcc-primary'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center rounded-lg border border-slate-200">
@@ -140,9 +175,10 @@ export default function ProductPurchasePanel({ product }) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
           <button
             type="button"
+            onClick={handleAddToCart}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dcc-primary px-6 py-3 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
           >
             <ShoppingCart className="h-4 w-4" />
@@ -150,10 +186,24 @@ export default function ProductPurchasePanel({ product }) {
           </button>
           <button
             type="button"
+            onClick={handleBuyNow}
             className="flex-1 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800"
           >
             Buy Now
           </button>
+          <WishlistButton
+            product={{
+              id: product.id,
+              title: product.title,
+              brand: product.brand,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              image: product.images?.[0],
+              seller: product.seller,
+            }}
+            showLabel
+            className="shrink-0 rounded-xl sm:rounded-full"
+          />
         </div>
       </div>
 

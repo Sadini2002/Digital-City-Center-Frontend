@@ -1,4 +1,4 @@
-import { IMG } from '../../config/images'
+import { electronicsProducts, productsByCategorySlug } from '../../data/categoryProductsBySlug'
 
 export const sortOptions = [
   { value: 'newest', label: 'Newest Arrivals' },
@@ -42,8 +42,60 @@ const categoryMeta = {
     subCategories: [
       { id: 'men', label: "Men's Wear", count: 320 },
       { id: 'women', label: "Women's Wear", count: 410 },
-      { id: 'kids', label: 'Kids', count: 180 },
+      { id: 'kids-wear', label: 'Kids Wear', count: 180 },
       { id: 'shoes', label: 'Shoes', count: 290 },
+    ],
+  },
+  groceries: {
+    title: 'Groceries',
+    totalProducts: 2000,
+    subCategories: [
+      { id: 'rice-grains', label: 'Rice & Grains', count: 420 },
+      { id: 'dairy', label: 'Dairy & Eggs', count: 310 },
+      { id: 'snacks', label: 'Snacks & Biscuits', count: 580 },
+      { id: 'beverages', label: 'Tea & Beverages', count: 290 },
+      { id: 'spices', label: 'Spices & Cooking', count: 400 },
+    ],
+  },
+  home: {
+    title: 'Home & Living',
+    totalProducts: 640,
+    subCategories: [
+      { id: 'bedding', label: 'Bedding', count: 120 },
+      { id: 'kitchen', label: 'Kitchen', count: 180 },
+      { id: 'decor', label: 'Decor', count: 95 },
+      { id: 'furniture', label: 'Furniture', count: 145 },
+      { id: 'cleaning', label: 'Cleaning', count: 100 },
+    ],
+  },
+  beauty: {
+    title: 'Beauty',
+    totalProducts: 430,
+    subCategories: [
+      { id: 'skincare', label: 'Skincare', count: 140 },
+      { id: 'makeup', label: 'Makeup', count: 110 },
+      { id: 'haircare', label: 'Hair Care', count: 90 },
+      { id: 'fragrance', label: 'Fragrance', count: 90 },
+    ],
+  },
+  sports: {
+    title: 'Sports',
+    totalProducts: 310,
+    subCategories: [
+      { id: 'fitness', label: 'Fitness', count: 95 },
+      { id: 'outdoor', label: 'Outdoor', count: 70 },
+      { id: 'team-sports', label: 'Team Sports', count: 85 },
+      { id: 'accessories-sport', label: 'Accessories', count: 60 },
+    ],
+  },
+  kids: {
+    title: 'Kids & Toys',
+    totalProducts: 520,
+    subCategories: [
+      { id: 'toys', label: 'Toys', count: 220 },
+      { id: 'books', label: 'Books', count: 110 },
+      { id: 'baby', label: 'Baby', count: 95 },
+      { id: 'school', label: 'School', count: 95 },
     ],
   },
   all: {
@@ -53,6 +105,10 @@ const categoryMeta = {
       { id: 'electronics', label: 'Electronics', count: 642 },
       { id: 'fashion', label: 'Fashion', count: 1200 },
       { id: 'groceries', label: 'Groceries', count: 2000 },
+      { id: 'home', label: 'Home & Living', count: 640 },
+      { id: 'beauty', label: 'Beauty', count: 430 },
+      { id: 'sports', label: 'Sports', count: 310 },
+      { id: 'kids', label: 'Kids & Toys', count: 520 },
     ],
   },
 }
@@ -74,175 +130,136 @@ export function getCategoryBreadcrumbs(slug, title) {
   ]
 }
 
-export const categoryProducts = [
-  {
-    id: 'sony-wh-1000xm5',
-    brand: 'SONY',
-    name: 'WH-1000XM5 Wireless Headphones',
-    price: 97750,
-    originalPrice: 115000,
-    discount: 15,
-    rating: 4.8,
-    reviews: 342,
-    badge: { label: '-16%', type: 'sale' },
-    image: IMG.products.headphones,
-  },
-  {
-    id: 'apple-airpods-pro',
-    brand: 'APPLE',
-    name: 'AirPods Pro (2nd Generation)',
-    price: 64990,
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 512,
-    badge: { label: 'NEW', type: 'new' },
-    image: IMG.products.airpods,
-  },
-  {
-    id: 'samsung-galaxy-s24',
-    brand: 'SAMSUNG',
-    name: 'Galaxy S24 Ultra 256GB',
-    price: 289990,
-    originalPrice: 319990,
-    discount: 9,
-    rating: 4.7,
-    reviews: 128,
-    badge: { label: '-9%', type: 'sale' },
-    image: IMG.products.smartphone,
-  },
-  {
-    id: 'ultra-smart-watch-pro-10',
-    brand: 'APPLE',
-    name: 'Ultra-Smart Watch Pro Series 10',
-    price: 45990,
-    originalPrice: 57500,
-    discount: 20,
-    rating: 4.8,
-    reviews: 128,
-    badge: { label: '-20%', type: 'sale' },
-    image: IMG.products.smartwatch,
-  },
-  {
-    id: 'macbook-air-m3',
-    brand: 'APPLE',
-    name: 'MacBook Air 13" M3 Chip',
-    price: 324990,
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 89,
-    badge: { label: 'NEW', type: 'new' },
-    image: IMG.products.macbook,
-  },
-  {
-    id: 'logitech-mx-master',
-    brand: 'LOGITECH',
-    name: 'MX Master 3S Wireless Mouse',
-    price: 28500,
-    originalPrice: 32000,
-    discount: 11,
-    rating: 4.6,
-    reviews: 76,
-    badge: { label: '-11%', type: 'sale' },
-    image: IMG.products.mouse,
-  },
-  {
-    id: 'jbl-flip-6',
-    brand: 'JBL',
-    name: 'Flip 6 Portable Bluetooth Speaker',
-    price: 34990,
-    originalPrice: null,
-    rating: 4.5,
-    reviews: 203,
-    image: IMG.products.speaker,
-  },
-  {
-    id: 'canon-eos-r50',
-    brand: 'CANON',
-    name: 'EOS R50 Mirrorless Camera Kit',
-    price: 198990,
-    originalPrice: 215000,
-    discount: 7,
-    rating: 4.7,
-    reviews: 45,
-    badge: { label: '-7%', type: 'sale' },
-    image: IMG.products.camera,
-  },
-  {
-    id: 'ipad-air',
-    brand: 'APPLE',
-    name: 'iPad Air 11" Wi-Fi 128GB',
-    price: 174990,
-    originalPrice: null,
-    rating: 4.8,
-    reviews: 167,
-    badge: { label: 'NEW', type: 'new' },
-    image: IMG.products.ipad,
-  },
-  {
-    id: 'dell-xps-15',
-    brand: 'DELL',
-    name: 'XPS 15 OLED Laptop',
-    price: 425000,
-    originalPrice: 459000,
-    discount: 7,
-    rating: 4.6,
-    reviews: 34,
-    badge: { label: '-7%', type: 'sale' },
-    image: IMG.products.laptop,
-  },
-  {
-    id: 'anker-powerbank',
-    brand: 'ANKER',
-    name: '737 Power Bank 24,000mAh',
-    price: 24990,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 291,
-    image: IMG.products.powerbank,
-  },
-  {
-    id: 'lg-oled-tv',
-    brand: 'LG',
-    name: '55" C3 OLED 4K Smart TV',
-    price: 389990,
-    originalPrice: 425000,
-    discount: 8,
-    rating: 4.9,
-    reviews: 58,
-    badge: { label: '-8%', type: 'sale' },
-    image: IMG.products.tv,
-  },
-]
+/** @deprecated use getCategoryProducts(slug) */
+export const categoryProducts = electronicsProducts
 
-export const categoryShops = {
-  featured: {
-    id: 'tech-world-lk',
-    name: 'Tech World LK',
-    rating: 5,
-    verified: true,
-    description: 'Sri Lanka\'s leading electronics retailer with islandwide delivery and official warranties.',
-    image: IMG.shops.techWorld,
-    logo: 'TW',
-  },
-  standard: [
-    {
-      id: 'gadget-master',
-      name: 'Gadget Master',
-      rating: 4.8,
-      products: '180+ products',
-      logo: 'GM',
-      hue: 'from-sky-200 to-sky-300',
-    },
-    {
-      id: 'mobile-hub',
-      name: 'Mobile Hub',
-      rating: 4.7,
-      products: '95+ products',
-      logo: 'MH',
-      hue: 'from-violet-200 to-violet-300',
-    },
-  ],
+export function getCategoryProducts(slug) {
+  if (slug === 'all') {
+    return Object.values(productsByCategorySlug).flat()
+  }
+  return productsByCategorySlug[slug] ?? electronicsProducts
 }
+
+export function getAllCategoryListings() {
+  return Object.values(productsByCategorySlug).flat()
+}
+
+export const categoryShopsBySlug = {
+  electronics: {
+    featured: {
+      id: 'tech-world-lk',
+      name: 'Tech World LK',
+      rating: 5,
+      verified: true,
+      description:
+        "Sri Lanka's leading electronics retailer with islandwide delivery and official warranties.",
+      image: '',
+      logo: 'TW',
+    },
+    standard: [
+      { id: 'gadget-master', name: 'Gadget Master', rating: 4.8, products: '180+ products', logo: 'GM', hue: 'from-sky-200 to-sky-300' },
+      { id: 'mobile-hub', name: 'Mobile Hub', rating: 4.7, products: '95+ products', logo: 'MH', hue: 'from-violet-200 to-violet-300' },
+    ],
+  },
+  fashion: {
+    featured: {
+      id: 'fashion-hub',
+      name: 'Fashion Hub',
+      rating: 4.9,
+      verified: true,
+      description: 'Trending styles for men, women, and kids with islandwide delivery.',
+      image: '',
+      logo: 'FH',
+    },
+    standard: [
+      { id: 'style-street', name: 'Style Street', rating: 4.7, products: '220+ products', logo: 'SS', hue: 'from-pink-200 to-pink-300' },
+      { id: 'urban-wear', name: 'Urban Wear', rating: 4.6, products: '150+ products', logo: 'UW', hue: 'from-rose-200 to-rose-300' },
+    ],
+  },
+  groceries: {
+    featured: {
+      id: 'green-grocer',
+      name: 'Green Grocer',
+      rating: 4.8,
+      verified: true,
+      description: 'Fresh groceries and pantry staples delivered across Sri Lanka.',
+      image: '',
+      logo: 'GG',
+    },
+    standard: [
+      { id: 'daily-mart', name: 'Daily Mart', rating: 4.6, products: '400+ products', logo: 'DM', hue: 'from-green-200 to-green-300' },
+      { id: 'ceylon-foods', name: 'Ceylon Foods', rating: 4.7, products: '280+ products', logo: 'CF', hue: 'from-emerald-200 to-emerald-300' },
+    ],
+  },
+  home: {
+    featured: {
+      id: 'home-essentials',
+      name: 'Home Essentials',
+      rating: 4.8,
+      verified: true,
+      description: 'Quality home, kitchen, and living products for every room.',
+      image: '',
+      logo: 'HE',
+    },
+    standard: [
+      { id: 'cozy-living', name: 'Cozy Living', rating: 4.7, products: '120+ products', logo: 'CL', hue: 'from-amber-200 to-amber-300' },
+      { id: 'kitchen-pro', name: 'Kitchen Pro', rating: 4.6, products: '90+ products', logo: 'KP', hue: 'from-orange-200 to-orange-300' },
+    ],
+  },
+  beauty: {
+    featured: {
+      id: 'glow-beauty',
+      name: 'Glow Beauty',
+      rating: 4.9,
+      verified: true,
+      description: 'Skincare, makeup, and fragrance from trusted global brands.',
+      image: '',
+      logo: 'GB',
+    },
+    standard: [
+      { id: 'pure-skin', name: 'Pure Skin', rating: 4.7, products: '110+ products', logo: 'PS', hue: 'from-purple-200 to-purple-300' },
+      { id: 'glam-studio', name: 'Glam Studio', rating: 4.8, products: '85+ products', logo: 'GS', hue: 'from-violet-200 to-violet-300' },
+    ],
+  },
+  sports: {
+    featured: {
+      id: 'active-zone',
+      name: 'Active Zone',
+      rating: 4.7,
+      verified: true,
+      description: 'Gear for fitness, outdoor adventure, and team sports.',
+      image: '',
+      logo: 'AZ',
+    },
+    standard: [
+      { id: 'fit-life', name: 'Fit Life', rating: 4.6, products: '75+ products', logo: 'FL', hue: 'from-orange-200 to-orange-300' },
+      { id: 'sport-max', name: 'Sport Max', rating: 4.5, products: '60+ products', logo: 'SM', hue: 'from-red-200 to-red-300' },
+    ],
+  },
+  kids: {
+    featured: {
+      id: 'little-joy',
+      name: 'Little Joy Toys',
+      rating: 4.9,
+      verified: true,
+      description: 'Safe, fun toys and books for babies, kids, and teens.',
+      image: '',
+      logo: 'LJ',
+    },
+    standard: [
+      { id: 'playtime', name: 'Playtime Store', rating: 4.7, products: '130+ products', logo: 'PT', hue: 'from-yellow-200 to-yellow-300' },
+      { id: 'bookworms', name: 'Bookworms Kids', rating: 4.8, products: '95+ products', logo: 'BW', hue: 'from-amber-200 to-amber-300' },
+    ],
+  },
+}
+
+export function getCategoryShops(slug) {
+  if (slug === 'all') return categoryShopsBySlug.electronics
+  return categoryShopsBySlug[slug] ?? null
+}
+
+/** @deprecated use getCategoryShops(slug) */
+export const categoryShops = categoryShopsBySlug.electronics
 
 export function formatLkr(amount) {
   return `LKR ${amount.toLocaleString('en-LK')}`

@@ -21,17 +21,38 @@ export const categories = [
 ]
 
 export const flashDeals = [
-  { id: 1, name: 'Wireless Headphones', price: '8,990', oldPrice: '11,990', discount: 25, hue: 'from-violet-200/90 to-violet-300/80' },
+  {
+    id: 'sony-wh-1000xm5',
+    name: 'WH-1000XM5 Headphones',
+    price: '97,750',
+    oldPrice: '115,000',
+    discount: 16,
+    hue: 'from-violet-200/90 to-violet-300/80',
+  },
   {
     id: 'ultra-smart-watch-pro-10',
     name: 'Smart Watch Pro',
-    price: '24,999',
-    oldPrice: '32,999',
-    discount: 24,
+    price: '45,990',
+    oldPrice: '57,500',
+    discount: 20,
     hue: 'from-slate-200/90 to-slate-300/80',
   },
-  { id: 3, name: 'Luxury Perfume', price: '8,750', oldPrice: '11,500', discount: 24, hue: 'from-pink-200/90 to-pink-300/80' },
-  { id: 4, name: 'Running Shoes', price: '9,999', oldPrice: '14,999', discount: 33, hue: 'from-amber-200/90 to-amber-300/80' },
+  {
+    id: 'apple-airpods-pro',
+    name: 'AirPods Pro (2nd Gen)',
+    price: '64,990',
+    oldPrice: null,
+    discount: null,
+    hue: 'from-pink-200/90 to-pink-300/80',
+  },
+  {
+    id: 'logitech-mx-master',
+    name: 'MX Master 3S Mouse',
+    price: '28,500',
+    oldPrice: '32,000',
+    discount: 11,
+    hue: 'from-amber-200/90 to-amber-300/80',
+  },
 ]
 
 export const topShops = [

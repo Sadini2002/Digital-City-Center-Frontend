@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import SiteLayout from '../layouts/SiteLayout'
 import AuthPageMain from '../components/auth/AuthPageMain'
@@ -12,6 +12,8 @@ import { authApi } from '../services/api'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const redirectTo = location.state?.from || '/'
   const [role, setRole] = useState('buyer')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -56,7 +58,7 @@ export default function Login() {
       } else if (userRole === 'SELLER') {
         navigate('/seller/dashboard')
       } else {
-        navigate('/')
+        navigate(redirectTo)
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.')
@@ -164,7 +166,10 @@ export default function Login() {
 
             <p className="mt-6 text-center text-sm text-slate-600">
               Don&apos;t have an account?{' '}
-              <Link to="/register" className="font-bold text-dcc-primary hover:underline">
+              <Link
+                to={role === 'seller' ? '/register/seller' : '/register'}
+                className="font-bold text-dcc-primary hover:underline"
+              >
                 Register
               </Link>
             </p>
