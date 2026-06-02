@@ -25,6 +25,7 @@ import {
   WishlistPage,
 } from '../buyer'
 import { SellerRegisterPage, SellerRegisterSuccessPage } from '../seller'
+import SellerDashboard from '../pages/seller/SellerDashboard'
 
 // Buyer pages: ../buyer · Seller registration: ../seller · Public/marketplace: ../pages
 
@@ -57,7 +58,7 @@ function AppRouter() {
           <Route path="/order/:id/reviews" element={<OrderReviewsPage />} />
           <Route path="/order/:id" element={<OrderTrackingPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/seller/dashboard" element={<PlaceholderPage title="Seller Dashboard" description="Seller summary with orders, earnings, and listings." />} />
+         <Route path="/seller/dashboard" element={<SellerDashboard />} />
           <Route path="/seller/listings" element={<PlaceholderPage title="Seller Listings" description="Manage all seller listings." />} />
           <Route path="/seller/listings/new" element={<PlaceholderPage title="Add or Edit Listing" description="Create or update seller listing details." />} />
           <Route path="/seller/orders" element={<PlaceholderPage title="Seller Orders" description="Order queue with status updates." />} />
