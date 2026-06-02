@@ -2,14 +2,28 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Compass, Package, ShieldCheck, Star } from 'lucide-react'
 import { IMG } from '../../config/images'
 import { heroTrust } from './homeData'
+import { getAnnouncements } from '../../admin/utils/adminStorage'
 
 const trustIcons = [Package, ShieldCheck, Star]
 
 export default function HeroSection() {
+  const announcement = getAnnouncements().find((a) => a.enabled)
   return (
     <section className="bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-3 py-8 sm:px-6 sm:py-10 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-8 lg:py-14">
         <div className="min-w-0">
+          {announcement && (
+            <div className="mb-4 rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3">
+              <p className="text-sm font-semibold text-slate-900">{announcement.title}</p>
+              <p className="mt-0.5 text-sm text-slate-600">{announcement.subtitle}</p>
+              <Link
+                to={announcement.ctaTo || '/category/all'}
+                className="mt-2 inline-flex text-sm font-semibold text-dcc-primary hover:underline"
+              >
+                {announcement.ctaLabel || 'Shop now'} <span className="ml-1">›</span>
+              </Link>
+            </div>
+          )}
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 sm:text-xs">
             Shop smart, live better
           </p>
