@@ -13,6 +13,7 @@ import Register from '../pages/Register'
 import SearchResultsPage from '../pages/SearchResultsPage'
 import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
+
 import {
   AccountPage,
   CartPage,
@@ -68,6 +69,7 @@ function AppRouter() {
           <Route path="/admin/dashboard" element={<PlaceholderPage title="Admin Dashboard" description="Platform-wide KPIs and summaries." />} />
           <Route path="/admin/sellers" element={<PlaceholderPage title="Admin Seller Management" description="Approve, reject, or suspend sellers." />} />
           <Route path="/admin/categories" element={<PlaceholderPage title="Admin Category Management" description="Add, edit, and disable marketplace categories." />} />
+          
           <Route path="/admin/orders" element={<PlaceholderPage title="Admin Orders" description="Platform-level order and dispute handling." />} />
           <Route path="/admin/delivery" element={<PlaceholderPage title="Admin Delivery Providers" description="Manage delivery partner registrations." />} />
           <Route path="/admin/reports" element={<PlaceholderPage title="Admin Reports" description="Sales and performance reporting views." />} />
