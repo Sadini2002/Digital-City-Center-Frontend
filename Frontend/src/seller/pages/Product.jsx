@@ -9,7 +9,7 @@ export default function Products() {
         </h1>
 
         <Link
-          to="/seller/add-product"
+          to="/seller/listings/new"
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           Add Product

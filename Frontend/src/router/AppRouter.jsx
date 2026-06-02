@@ -24,14 +24,17 @@ import {
   PaymentGatewayPage,
   WishlistPage,
 } from '../buyer'
-import { SellerRegisterPage, SellerRegisterSuccessPage } from '../seller'
-import SellerDashboard from '../pages/seller/SellerDashboard'
-import Products from '../pages/seller/Product'
-import AddProduct from '../pages/seller/AddProduct'
-import Orders from '../pages/seller/Orders'
-import ShopSettings from '../pages/seller/ShopSettings'
-import SellerLayout from '../pages/seller/SellerLayout'
-import SellerRoute from '../pages/seller/SellerRoute'
+import {
+  SellerRegisterPage,
+  SellerRegisterSuccessPage,
+  SellerDashboard,
+  SellerProductsPage,
+  SellerAddProductPage,
+  SellerOrdersPage,
+  SellerShopSettingsPage,
+  SellerLayout,
+  SellerRoute,
+} from '../seller'
 
 import {
   AdminLoginPage,
@@ -49,7 +52,7 @@ import {
 } from '../admin'
 
 
-// Buyer pages: ../buyer · Seller registration: ../seller · Public/marketplace: ../pages
+// Buyer: ../buyer · Seller: ../seller · Public/marketplace: ../pages
 
 function AppRouter() {
   return (
@@ -91,9 +94,9 @@ function AppRouter() {
           }
         >
           <Route path="dashboard" element={<SellerDashboard />} />
-          <Route path="listings" element={<Products />} />
-          <Route path="listings/new" element={<AddProduct />} />
-          <Route path="orders" element={<Orders />} />
+          <Route path="listings" element={<SellerProductsPage />} />
+          <Route path="listings/new" element={<SellerAddProductPage />} />
+          <Route path="orders" element={<SellerOrdersPage />} />
           <Route
             path="earnings"
             element={
@@ -102,7 +105,7 @@ function AppRouter() {
               </p>
             }
           />
-          <Route path="settings" element={<ShopSettings />} />
+          <Route path="settings" element={<SellerShopSettingsPage />} />
         </Route>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
