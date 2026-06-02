@@ -32,6 +32,7 @@ import {
   SellerAddProductPage,
   SellerOrdersPage,
   SellerShopSettingsPage,
+  SellerEarningsPage,
   SellerLayout,
   SellerRoute,
 } from '../seller'
@@ -97,14 +98,7 @@ function AppRouter() {
           <Route path="listings" element={<SellerProductsPage />} />
           <Route path="listings/new" element={<SellerAddProductPage />} />
           <Route path="orders" element={<SellerOrdersPage />} />
-          <Route
-            path="earnings"
-            element={
-              <p className="text-sm text-slate-600">
-                Revenue summary, payouts, and CSV export will appear here.
-              </p>
-            }
-          />
+          <Route path="earnings" element={<SellerEarningsPage />} />
           <Route path="settings" element={<SellerShopSettingsPage />} />
         </Route>
         <Route element={<MainLayout />}>
