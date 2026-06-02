@@ -9,7 +9,7 @@ export default function SellerSidebar() {
 
       <nav className="flex flex-col gap-3 p-5">
         <Link to="/seller/dashboard">Dashboard</Link>
-        <Link to="/seller/products">Products</Link>
+        <Link to="/seller/listings">Listings</Link>
         <Link to="/seller/orders">Orders</Link>
         <Link to="/seller/earnings">Earnings</Link>
         <Link to="/seller/notifications">Notifications</Link>

@@ -53,8 +53,13 @@ export default function Login() {
       }
       if (role === 'buyer' && userRole === 'SELLER') {
         navigate('/seller/dashboard')
-      } else if (userRole === 'ADMIN') {
-        navigate('/admin')
+      } else if (
+        String(userRole ?? '').toUpperCase().includes('ADMIN') ||
+        String(userRole ?? '').toUpperCase().includes('SUPER')
+      ) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setError('Admin accounts are separate. Please use the dedicated admin portal.')
       } else if (userRole === 'SELLER') {
         navigate('/seller/dashboard')
       } else {
@@ -65,6 +70,20 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDemoSeller = () => {
+    const demoUser = {
+      id: 'seller-demo-1',
+      name: 'Demo Seller',
+      email: 'seller@demo.local',
+      role: 'SELLER',
+    }
+    localStorage.setItem('token', 'demo-seller-token')
+    localStorage.setItem('user', JSON.stringify(demoUser))
+    const from = location.state?.from
+    const target = from && String(from).startsWith('/seller') ? from : '/seller/dashboard'
+    navigate(target, { replace: true })
   }
 
   return (
@@ -151,6 +170,15 @@ export default function Login() {
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
+              {role === 'seller' && (
+                <button
+                  type="button"
+                  onClick={handleDemoSeller}
+                  className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
+                >
+                  Continue as Demo Seller
+                </button>
+              )}
             </form>
 
             <div className="relative my-6">
