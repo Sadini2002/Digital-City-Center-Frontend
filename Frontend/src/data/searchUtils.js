@@ -1,5 +1,6 @@
 import { getAllCategoryListings } from '../components/category/categoryData'
 import { searchResults } from '../components/search/searchData'
+import { shopsCatalog } from './shopsData'
 
 export const SEARCH_CATEGORY_SLUGS = {
   'All Categories': '',
@@ -133,6 +134,10 @@ export function toBestMatch(product) {
       ? Math.round((1 - product.price / product.originalPrice) * 100)
       : null
 
+  const shopId = product.shopId
+  const shop = shopsCatalog.find((s) => s.id === shopId || s.slug === shopId)
+  const sellerName = shop ? shop.name : 'Tech World LK'
+
   return {
     id: product.id,
     title: `${product.brand} ${product.name}`,
@@ -141,7 +146,7 @@ export function toBestMatch(product) {
     discount,
     rating: product.rating,
     reviews: product.reviews ?? product.sales ?? 0,
-    seller: 'Tech World LK',
+    seller: sellerName,
     location: product.sellerLocation
       ? product.sellerLocation.charAt(0).toUpperCase() + product.sellerLocation.slice(1)
       : 'Colombo',
