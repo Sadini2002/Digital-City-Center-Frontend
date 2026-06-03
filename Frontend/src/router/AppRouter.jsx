@@ -121,23 +121,6 @@ function AppRouter() {
           <Route path="/order/:id/reviews" element={<OrderReviewsPage />} />
           <Route path="/order/:id" element={<OrderTrackingPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
-
-         <Route path="/seller/dashboard" element={<SellerDashboard />} />
-          <Route path="/seller/listings" element={<PlaceholderPage title="Seller Listings" description="Manage all seller listings." />} />
-          <Route path="/seller/listings/new" element={<PlaceholderPage title="Add or Edit Listing" description="Create or update seller listing details." />} />
-          <Route path="/seller/orders" element={<PlaceholderPage title="Seller Orders" description="Order queue with status updates." />} />
-          <Route path="/seller/earnings" element={<PlaceholderPage title="Seller Earnings" description="Revenue and payout history." />} />
-          <Route path="/seller/settings" element={<PlaceholderPage title="Seller Shop Settings" description="Shop profile and operating details." />} />
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<PlaceholderPage title="Admin Dashboard" description="Platform-wide KPIs and summaries." />} />
-          <Route path="/admin/sellers" element={<PlaceholderPage title="Admin Seller Management" description="Approve, reject, or suspend sellers." />} />
-          <Route path="/admin/categories" element={<PlaceholderPage title="Admin Category Management" description="Add, edit, and disable marketplace categories." />} />
-          
-          <Route path="/admin/orders" element={<PlaceholderPage title="Admin Orders" description="Platform-level order and dispute handling." />} />
-          <Route path="/admin/delivery" element={<PlaceholderPage title="Admin Delivery Providers" description="Manage delivery partner registrations." />} />
-          <Route path="/admin/reports" element={<PlaceholderPage title="Admin Reports" description="Sales and performance reporting views." />} />
-          <Route path="/admin/settings" element={<PlaceholderPage title="Admin Platform Settings" description="Commission and system configuration." />} />
-
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
