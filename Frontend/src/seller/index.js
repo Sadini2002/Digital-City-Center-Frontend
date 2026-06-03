@@ -8,6 +8,7 @@ export { default as SellerProductsPage } from './pages/Product'
 export { default as SellerAddProductPage } from './pages/AddProduct'
 export { default as SellerOrdersPage } from './pages/Orders'
 export { default as SellerShopSettingsPage } from './pages/ShopSettings'
+export { default as SellerEarningsPage } from './pages/Earnings'
 
 export { default as SellerLayout } from './components/SellerLayout'
 export { default as SellerRoute } from './components/SellerRoute'

@@ -1,5 +1,4 @@
-<<<<<<< HEAD:Frontend/src/pages/components/SellerSidebar.jsx
-=======
+
 import { Link } from "react-router-dom";
 
 export default function SellerSidebar() {
@@ -20,4 +19,4 @@ export default function SellerSidebar() {
     </div>
   );
 }
->>>>>>> 8e4172c4049b739311592b6a228763041058d2ef:Frontend/src/seller/components/SellerSidebar.jsx
+
