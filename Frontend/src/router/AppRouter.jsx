@@ -13,6 +13,7 @@ import Register from '../pages/Register'
 import SearchResultsPage from '../pages/SearchResultsPage'
 import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
+
 import {
   AccountPage,
   CartPage,
