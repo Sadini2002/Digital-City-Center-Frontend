@@ -30,6 +30,7 @@ import {
   SellerDashboard,
   SellerProductsPage,
   SellerAddProductPage,
+  SellerEditProductPage,
   SellerOrdersPage,
   SellerShopSettingsPage,
   SellerEarningsPage,
@@ -97,6 +98,7 @@ function AppRouter() {
           <Route path="dashboard" element={<SellerDashboard />} />
           <Route path="listings" element={<SellerProductsPage />} />
           <Route path="listings/new" element={<SellerAddProductPage />} />
+          <Route path="listings/:id/edit" element={<SellerEditProductPage />} />
           <Route path="orders" element={<SellerOrdersPage />} />
           <Route path="earnings" element={<SellerEarningsPage />} />
           <Route path="settings" element={<SellerShopSettingsPage />} />
