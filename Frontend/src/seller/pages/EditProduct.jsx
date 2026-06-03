@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import mediaUpload from "../../utils/media";
-
+import { Sparkles } from "lucide-react";
 
 export default function EditProduct() {
   const navigate = useNavigate();
@@ -26,6 +26,23 @@ export default function EditProduct() {
   const [labelPrice, setLabelPrice] = useState(product.labelPrice || 0);
   const [stock, setStock] = useState(product.stock || 0);
   const [isAvailable, setIsAvailable] = useState(product.isAvailable ?? true);
+
+  // Requirement parameters
+  const [itemType, setItemType] = useState(product.itemType || "physical")
+  const [sizes, setSizes] = useState(product.variants?.sizes?.join(",") || "")
+  const [colors, setColors] = useState(product.variants?.colors?.join(",") || "")
+  const [discountPercent, setDiscountPercent] = useState(product.discount?.percent || 0)
+  const [discountStart, setDiscountStart] = useState(product.discount?.startDate || "")
+  const [discountEnd, setDiscountEnd] = useState(product.discount?.endDate || "")
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files)
+    if (existingImages.length + files.length > 8) {
+      toast.error("You can upload a maximum of 8 images.")
+      return
+    }
+    setNewImages(files)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -59,8 +76,18 @@ export default function EditProduct() {
           description,
           image: [...existingImages, ...uploadedNewImages],
           labelPrice: Number(labelPrice),
-          stock: Number(stock),
+          stock: itemType === 'service' ? 9999 : Number(stock),
           isAvailable,
+          itemType,
+          variants: {
+            sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
+            colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+          },
+          discount: {
+            percent: Number(discountPercent),
+            startDate: discountStart,
+            endDate: discountEnd,
+          }
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -69,7 +96,7 @@ export default function EditProduct() {
       navigate("/seller/listings");
     } catch (err) {
       console.warn("API update product failed, updating local storage fallback", err);
-      // Fallback
+      
       const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]');
       const updated = local.map((p) => {
         if ((p._id || p.id) === (product._id || product.id)) {
@@ -82,8 +109,18 @@ export default function EditProduct() {
             description,
             image: [...existingImages, ...newImages.map(f => typeof f === 'string' ? f : URL.createObjectURL(f))],
             labelPrice: Number(labelPrice),
-            stock: Number(stock),
+            stock: itemType === 'service' ? 9999 : Number(stock),
             isAvailable,
+            itemType,
+            variants: {
+              sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
+              colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+            },
+            discount: {
+              percent: Number(discountPercent),
+              startDate: discountStart,
+              endDate: discountEnd,
+            }
           };
         }
         return p;
@@ -97,35 +134,59 @@ export default function EditProduct() {
 
   return (
     <div className="mx-auto max-w-xl bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 animate-fadeIn">
-
-        {/* Header */}
         <h2 className="text-2xl font-bold text-slate-900 text-center mb-1">
-          Edit Product
+          Edit Listing
         </h2>
         <p className="text-sm text-slate-500 text-center mb-8">
-          Update product details carefully
+          Update your product or service details carefully
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Listing Type Selection */}
+          <div className="flex gap-4 p-1 rounded-xl bg-slate-100">
+            <button
+              type="button"
+              onClick={() => setItemType("physical")}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                itemType === 'physical' ? 'bg-white text-dcc-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Physical Product
+            </button>
+            <button
+              type="button"
+              onClick={() => setItemType("service")}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                itemType === 'service' ? 'bg-white text-dcc-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Service (Non-physical)
+            </button>
+          </div>
 
-          {/* Input */}
-          {[
-            ["Product ID", productId, setProductId],
-            ["Product Name", name, setName],
-          ].map(([label, value, setter], i) => (
-            <div key={i}>
-              <label className="text-sm text-gray-600">{label}</label>
+          {/* Product ID and Name */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-600 font-medium">Listing ID</label>
               <input
-                value={value}
-                onChange={(e) => setter(e.target.value)}
-                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none"
+                value={productId}
+                onChange={(e) => setProductId(e.target.value)}
+                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
               />
             </div>
-          ))}
+            <div>
+              <label className="text-sm text-gray-600 font-medium">Listing Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+              />
+            </div>
+          </div>
 
           {/* Alt Names */}
           <div>
-            <label className="text-sm text-gray-600">Alternative Names</label>
+            <label className="text-sm text-gray-600 font-medium">Alternative Names</label>
             <input
               value={altName.join(",")}
               onChange={(e) =>
@@ -133,68 +194,155 @@ export default function EditProduct() {
                   e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
                 )
               }
-              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none"
+              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
             />
           </div>
 
           {/* Price Row */}
           <div className="grid grid-cols-2 gap-4">
-            {[
-              ["Price", price, setPrice],
-              ["Label Price", labelPrice, setLabelPrice],
-            ].map(([label, value, setter], i) => (
-              <div key={i}>
-                <label className="text-sm text-gray-600">{label}</label>
-                <input
-                  type="number"
-                  value={value}
-                  onChange={(e) => setter(e.target.value)}
-                  className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none"
-                />
-              </div>
-            ))}
+            <div>
+              <label className="text-sm text-gray-600 font-medium">Price (Rs.)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 font-medium">Label Price</label>
+              <input
+                type="number"
+                value={labelPrice}
+                onChange={(e) => setLabelPrice(e.target.value)}
+                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+              />
+            </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="text-sm text-gray-600">Description</label>
+            <label className="text-sm text-gray-600 font-medium">Description</label>
             <textarea
               rows="3"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none"
+              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
             />
           </div>
 
-          {/* Images */}
-          <div className="flex gap-3 flex-wrap">
-            {existingImages.map((img, i) => (
-              <img
-                key={i}
-                src={img}
-                className="w-16 h-16 rounded-xl object-cover shadow"
-              />
-            ))}
+          {/* Existing Images */}
+          {existingImages.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold text-slate-500 block mb-2">Existing Images</label>
+              <div className="flex gap-3 flex-wrap">
+                {existingImages.map((img, i) => (
+                  <div key={i} className="relative group w-16 h-16 rounded-xl overflow-hidden shadow">
+                    <img src={img} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))}
+                      className="absolute inset-0 bg-red-600/70 text-white font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px]"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* New Image Upload */}
+          <div>
+            <label className="text-sm text-gray-600 font-medium block">Upload New Images (Max 8 Total)</label>
+            <input
+              type="file"
+              multiple
+              className="w-full mt-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200 transition"
+              onChange={handleImageChange}
+            />
           </div>
 
-          <input
-            type="file"
-            multiple
-            className="w-full text-sm"
-            onChange={(e) => setNewImages(Array.from(e.target.files))}
-          />
+          {/* Variants */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5 text-dcc-primary" /> Listing Variants
+            </span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-600 font-medium">Sizes</label>
+                <input
+                  value={sizes}
+                  onChange={(e) => setSizes(e.target.value)}
+                  placeholder="e.g. S, M, L"
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 font-medium">Colors</label>
+                <input
+                  value={colors}
+                  onChange={(e) => setColors(e.target.value)}
+                  placeholder="e.g. Red, Blue"
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Discounts */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              Discounts & Promotion
+            </span>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-gray-600 font-medium">Discount (%)</label>
+                <input
+                  type="number"
+                  value={discountPercent}
+                  onChange={(e) => setDiscountPercent(e.target.value)}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 font-medium">Start Date</label>
+                <input
+                  type="date"
+                  value={discountStart}
+                  onChange={(e) => setDiscountStart(e.target.value)}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 font-medium">End Date</label>
+                <input
+                  type="date"
+                  value={discountEnd}
+                  onChange={(e) => setDiscountEnd(e.target.value)}
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Stock + Toggle */}
-          <div className="flex items-center justify-between">
-            <input
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              placeholder="Stock"
-              className="w-32 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none"
-            />
+          <div className="flex items-center justify-between pt-2">
+            {itemType === 'physical' ? (
+              <div>
+                <label className="text-sm text-gray-600 font-medium">Stock</label>
+                <input
+                  type="number"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  className="w-32 mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+                />
+              </div>
+            ) : (
+              <span className="text-xs text-slate-500 italic">No stock tracking needed for Services</span>
+            )}
 
-            <label className="flex items-center gap-3 text-sm">
+            <label className="flex items-center gap-3 text-sm font-medium">
               Available
               <input
                 type="checkbox"
@@ -206,10 +354,10 @@ export default function EditProduct() {
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-between pt-6">
+          <div className="flex justify-between pt-6 border-t border-slate-100">
             <Link
               to="/seller/listings"
-              className="px-6 py-3 rounded-xl text-gray-700 bg-gray-200 hover:bg-gray-300"
+              className="px-6 py-3 rounded-xl text-gray-700 bg-gray-200 hover:bg-gray-300 transition"
             >
               Cancel
             </Link>
@@ -218,7 +366,7 @@ export default function EditProduct() {
               type="submit"
               className="px-8 py-3 rounded-xl bg-dcc-primary text-white hover:bg-dcc-primary-hover transition"
             >
-              Update Product
+              Update Listing
             </button>
           </div>
         </form>

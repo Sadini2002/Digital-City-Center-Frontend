@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { getOrders } from '../../buyer'
 import DashboardCard from '../components/DashboardCard'
-import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send } from 'lucide-react'
+import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send, Calendar, CheckSquare } from 'lucide-react'
 
 export default function Earnings() {
   const [orders, setOrders] = useState([])
@@ -22,14 +22,14 @@ export default function Earnings() {
       const defaultPayouts = [
         {
           id: 'PAY-882910',
-          date: new Date(Date.now() - 3600000 * 24 * 10).toISOString(), // 10 days ago
+          date: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
           amount: 150000,
           account: 'HNB Bank - *4829',
           status: 'cleared',
         },
         {
           id: 'PAY-773820',
-          date: new Date(Date.now() - 3600000 * 24 * 30).toISOString(), // 30 days ago
+          date: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
           amount: 85000,
           account: 'HNB Bank - *4829',
           status: 'cleared',
@@ -53,12 +53,16 @@ export default function Earnings() {
   const platformFee = grossSales * platformFeeRate
   const netEarnings = grossSales - platformFee
 
-  // Calculate total cleared payouts
+  // Calculate total cleared payouts and pending payouts
   const totalPaidOut = payouts
     .filter(p => p.status === 'cleared')
     .reduce((sum, p) => sum + p.amount, 0)
 
-  const availableBalance = Math.max(0, netEarnings - totalPaidOut)
+  const pendingPaidOut = payouts
+    .filter(p => p.status === 'pending')
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  const availableBalance = Math.max(0, netEarnings - totalPaidOut - pendingPaidOut)
 
   const handleRequestPayout = () => {
     if (availableBalance <= 0) {
@@ -85,7 +89,20 @@ export default function Earnings() {
   }
 
   const handleExportCSV = () => {
-    toast.success('CSV Export started! Check your downloads.')
+    // Generate CSV data string
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + "Transaction ID,Date,Account,Amount (LKR),Status\n"
+      + payouts.map(p => `${p.id},${new Date(p.date).toLocaleDateString()},${p.account},${p.amount},${p.status}`).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `earnings_history_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('CSV Export downloaded successfully!')
   }
 
   // Monthly sales mock data for the chart
@@ -101,31 +118,39 @@ export default function Earnings() {
 
   return (
     <div className="space-y-6">
+      {/* Platform weekly payouts note */}
+      <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 flex items-start gap-2.5 text-xs text-slate-700">
+        <Calendar className="h-4.5 w-4.5 text-teal-600 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-bold text-teal-800">Weekly Payouts Scheduled:</span> Payout requests are processed and sent to your bank account automatically every Wednesday. You can also manually trigger an express withdrawal below.
+        </div>
+      </div>
+
       {/* Earnings metrics cards */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
-          title="Gross Sales"
-          value={`Rs. ${Number(grossSales).toLocaleString('en-LK')}`}
-          hint="Total order revenue"
-          icon={ArrowUpRight}
-        />
-        <DashboardCard
-          title="Platform Fee (10%)"
-          value={`Rs. ${Number(platformFee).toLocaleString('en-LK')}`}
-          hint="DCC service fee"
-          icon={ArrowDownLeft}
-        />
-        <DashboardCard
-          title="Net Earnings"
+          title="Total Earnings"
           value={`Rs. ${Number(netEarnings).toLocaleString('en-LK')}`}
-          hint="Your total earnings"
+          hint="Calculated net income"
           icon={Wallet}
         />
         <DashboardCard
-          title="Available Balance"
-          value={`Rs. ${Number(availableBalance).toLocaleString('en-LK')}`}
-          hint="Ready for withdrawal"
+          title="Pending Payout"
+          value={`Rs. ${Number(pendingPaidOut + availableBalance).toLocaleString('en-LK')}`}
+          hint="Awaiting weekly dispatch"
           icon={Landmark}
+        />
+        <DashboardCard
+          title="Commission Deducted"
+          value={`Rs. ${Number(platformFee).toLocaleString('en-LK')}`}
+          hint="10% DCC commission fee"
+          icon={ArrowDownLeft}
+        />
+        <DashboardCard
+          title="Withdrawn Cleared"
+          value={`Rs. ${Number(totalPaidOut).toLocaleString('en-LK')}`}
+          hint="Transferred to HNB"
+          icon={ArrowUpRight}
         />
       </section>
 
@@ -143,6 +168,10 @@ export default function Earnings() {
             </span>
             <span className="font-bold text-slate-900 text-sm block mt-1">HNB Bank (Sri Lanka)</span>
             <span className="text-xs text-slate-500 block">Account number ending in *4829</span>
+          </div>
+          <div className="flex justify-between text-xs font-semibold text-slate-600 border-b border-dashed border-slate-200 pb-2">
+            <span>Available express:</span>
+            <span className="text-slate-900">Rs. {Number(availableBalance).toLocaleString('en-LK')}</span>
           </div>
           <button
             type="button"
@@ -164,10 +193,10 @@ export default function Earnings() {
             </div>
             <button
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-1 text-xs font-bold text-dcc-primary hover:underline"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm"
             >
               <FileText className="h-3.5 w-3.5" />
-              Export CSV
+              Download CSV
             </button>
           </div>
 
