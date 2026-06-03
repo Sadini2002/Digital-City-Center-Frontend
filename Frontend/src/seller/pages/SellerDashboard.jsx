@@ -1,13 +1,9 @@
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Package, ShoppingBag, Star, Wallet } from 'lucide-react'
+import { getOrders } from '../../buyer'
 import DashboardCard from '../components/DashboardCard'
 import StatusBadge from '../components/StatusBadge'
-
-const recentOrders = [
-  { id: '#1001', customer: 'John Perera', status: 'Pending' },
-  { id: '#1002', customer: 'Sarah Silva', status: 'Processing' },
-  { id: '#1003', customer: 'Kamal Jay', status: 'Delivered' },
-]
 
 function readUser() {
   try {
@@ -21,6 +17,97 @@ export default function SellerDashboard() {
   const user = readUser()
   const name = user.name || 'Seller'
 
+  const [orders, setOrders] = useState([])
+  const [productsCount, setProductsCount] = useState(0)
+  const [activeProductsCount, setActiveProductsCount] = useState(0)
+
+  useEffect(() => {
+    // Read and initialize orders if empty
+    let realOrders = getOrders()
+    if (realOrders.length === 0) {
+      realOrders = [
+        {
+          id: 'DCC-58291',
+          email: 'customer.sachini@gmail.com',
+          createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+          total: 85000,
+          status: 'confirmed',
+          items: [
+            { id: 'sony-wh-1000xm5', title: 'Sony WH-1000XM5 Headphones', price: 85000, quantity: 1 }
+          ],
+          shippingAddress: {
+            fullName: 'Sachini Wijesundara',
+            phone: '+94 77 123 4567',
+            street: '123, Galle Road',
+            city: 'Colombo 03',
+          }
+        },
+        {
+          id: 'DCC-41920',
+          email: 'john.doe@yahoo.com',
+          createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+          total: 130000,
+          status: 'processing',
+          items: [
+            { id: 'apple-airpods-pro', title: 'Apple AirPods Pro (2nd Gen)', price: 65000, quantity: 2 }
+          ],
+          shippingAddress: {
+            fullName: 'John Doe',
+            phone: '+94 71 987 6543',
+            street: '45, Kandy Road',
+            city: 'Kandy',
+          }
+        },
+        {
+          id: 'DCC-29104',
+          email: 'nimal.fernando@outlook.com',
+          createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
+          total: 350000,
+          status: 'delivered',
+          items: [
+            { id: 'macbook-air-m3', title: 'MacBook Air 13" M3 Laptop', price: 350000, quantity: 1 }
+          ],
+          shippingAddress: {
+            fullName: 'Nimal Fernando',
+            phone: '+94 72 444 5555',
+            street: '88/B, Negombo Road',
+            city: 'Negombo',
+          }
+        }
+      ]
+      localStorage.setItem('dcc_orders', JSON.stringify(realOrders))
+    }
+    setOrders(realOrders)
+
+    // Read and initialize listings count
+    const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
+    if (localProducts.length > 0) {
+      setProductsCount(localProducts.length)
+      setActiveProductsCount(localProducts.filter(p => p.isAvailable && p.stock > 0).length)
+    } else {
+      setProductsCount(4)
+      setActiveProductsCount(3)
+    }
+  }, [])
+
+  // Calculations for cards
+  const pendingOrdersCount = orders.filter(o => o.status === 'confirmed' || o.status === 'processing').length
+
+  const paidOrders = orders.filter(o => 
+    o.status === 'confirmed' || 
+    o.status === 'processing' || 
+    o.status === 'shipped' || 
+    o.status === 'delivered'
+  )
+  const grossSales = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
+  const platformFee = grossSales * 0.10
+  const netEarnings = grossSales - platformFee
+
+  // Get top 5 recent orders
+  const recentOrdersList = [...orders]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5)
+
   return (
     <div className="space-y-6">
       <section className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 sm:p-6">
@@ -32,14 +119,14 @@ export default function SellerDashboard() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             to="/seller/listings/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover transition"
           >
             Add listing
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             to="/seller/orders"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
           >
             View orders
           </Link>
@@ -47,10 +134,34 @@ export default function SellerDashboard() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardCard title="Products" value="120" hint="12 active listings" icon={ShoppingBag} />
-        <DashboardCard title="Orders" value="45" hint="8 awaiting action" icon={Package} />
-        <DashboardCard title="Earnings" value="Rs. 25,000" hint="This month" icon={Wallet} />
-        <DashboardCard title="Rating" value="4.8" hint="128 reviews" icon={Star} />
+        <DashboardCard 
+          title="Products" 
+          value={productsCount} 
+          hint={`${activeProductsCount} active listings`} 
+          icon={ShoppingBag} 
+          to="/seller/listings"
+        />
+        <DashboardCard 
+          title="Orders" 
+          value={orders.length} 
+          hint={`${pendingOrdersCount} awaiting action`} 
+          icon={Package} 
+          to="/seller/orders"
+        />
+        <DashboardCard 
+          title="Earnings" 
+          value={`Rs. ${Number(netEarnings).toLocaleString('en-LK')}`} 
+          hint="Net earnings" 
+          icon={Wallet} 
+          to="/seller/earnings"
+        />
+        <DashboardCard 
+          title="Rating" 
+          value="4.8" 
+          hint="128 reviews" 
+          icon={Star} 
+          to="/seller/settings"
+        />
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -77,10 +188,10 @@ export default function SellerDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {recentOrders.map((order) => (
+              {recentOrdersList.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/80">
                   <td className="px-4 py-3 font-medium text-slate-900">{order.id}</td>
-                  <td className="px-4 py-3 text-slate-700">{order.customer}</td>
+                  <td className="px-4 py-3 text-slate-700">{order.shippingAddress?.fullName || 'Guest Customer'}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={order.status} />
                   </td>

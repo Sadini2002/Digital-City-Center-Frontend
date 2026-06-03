@@ -4,11 +4,12 @@ import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CategoryProductCard from '../components/category/CategoryProductCard'
+import CdnImage from '../components/common/CdnImage'
 import { getShopBySlug, getShopProducts } from '../data/shopsData'
 import NotFoundPage from './NotFoundPage'
 
 export default function ShopPage() {
-  const { shopname } = useParams()
+  const shopname = useParams().shopname
   const shop = getShopBySlug(shopname)
   const products = useMemo(() => (shop ? getShopProducts(shop) : []), [shop])
 
@@ -28,10 +29,21 @@ export default function ShopPage() {
         <ProductBreadcrumbs items={breadcrumbs} />
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className={`h-36 bg-gradient-to-br sm:h-44 ${shop.hue}`} />
+          <div className="relative h-36 w-full overflow-hidden bg-slate-100 sm:h-48">
+            {shop.image ? (
+              <CdnImage
+                src={shop.image}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className={`h-full w-full bg-gradient-to-br ${shop.hue}`} />
+            )}
+            <div className="absolute inset-0 bg-slate-950/10" />
+          </div>
           <div className="flex flex-col gap-4 border-t border-slate-100 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
             <div className="flex gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-dcc-primary text-lg font-bold text-white shadow-md">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-dcc-primary to-violet-600 text-lg font-bold text-white shadow-md">
                 {shop.logo}
               </div>
               <div>

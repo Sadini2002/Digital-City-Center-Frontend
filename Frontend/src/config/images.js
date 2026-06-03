@@ -15,9 +15,12 @@ const CDN_BASE = (import.meta.env.VITE_CDN_BASE_URL || '').replace(/\/$/, '')
  * @param {{ width?: number }} [options]
  */
 export function imageUrl(path, options = {}) {
-  if (!CDN_BASE) return ''
-
   const normalized = path.replace(/^\//, '')
+
+  if (!CDN_BASE) {
+    return `/images/${normalized}`
+  }
+
   let url = `${CDN_BASE}/${normalized}`
 
   if (options.width) {

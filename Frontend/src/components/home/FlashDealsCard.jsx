@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Zap } from 'lucide-react'
+import CdnImage from '../common/CdnImage'
 import { flashDeals } from './homeData'
 
 function useCountdownParts() {
@@ -63,16 +64,23 @@ export default function FlashDealsCard() {
             to={`/product/${deal.id}`}
             className="group flex flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white transition hover:shadow-md"
           >
-            <div className={`relative aspect-[4/3] bg-gradient-to-br ${deal.hue}`}>
+            <div className={`relative flex aspect-[4/3] items-center justify-center bg-gradient-to-br p-4 ${deal.hue}`}>
               {deal.discount != null && (
-                <span className="absolute left-2 top-2 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                <span className="absolute left-2 top-2 z-10 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
                   -{deal.discount}%
                 </span>
               )}
               {deal.discount == null && (
-                <span className="absolute left-2 top-2 rounded-md bg-teal-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                <span className="absolute left-2 top-2 z-10 rounded-md bg-teal-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
                   NEW
                 </span>
+              )}
+              {deal.image && (
+                <CdnImage
+                  src={deal.image}
+                  alt={deal.name}
+                  className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105"
+                />
               )}
             </div>
             <div className="flex flex-1 flex-col p-2.5 sm:p-3">

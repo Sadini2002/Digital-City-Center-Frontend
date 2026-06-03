@@ -7,7 +7,6 @@ import ProductBreadcrumbs from '../../components/product/ProductBreadcrumbs'
 const nav = [
   { to: '/seller/dashboard', label: 'Overview', icon: BarChart3, end: true },
   { to: '/seller/listings', label: 'Listings', icon: ShoppingBag },
-  { to: '/seller/listings/new', label: 'Add listing', icon: Plus },
   { to: '/seller/orders', label: 'Orders', icon: Package },
   { to: '/seller/earnings', label: 'Earnings', icon: Wallet },
   { to: '/seller/settings', label: 'Shop settings', icon: Settings },

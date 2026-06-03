@@ -8,9 +8,9 @@ export default function WishlistItemCard({ item, onRemove, onAddToCart }) {
     <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)]">
       <Link
         to={`/product/${item.id}`}
-        className="relative flex aspect-[4/3] items-center justify-center bg-slate-50 p-5"
+        className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50"
       >
-        <CdnImage src={item.image} alt="" className="max-h-full max-w-full object-contain" />
+        <CdnImage src={item.image} alt="" className="h-full w-full object-cover" />
       </Link>
 
       <div className="flex flex-1 flex-col p-4">

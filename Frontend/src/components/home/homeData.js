@@ -8,6 +8,7 @@ import {
   ShoppingBasket,
   Sofa,
 } from 'lucide-react'
+import { IMG } from '../../config/images'
 
 export const categories = [
   { slug: 'fashion', label: 'Fashion', count: '1200+ Items', icon: Shirt, bg: 'bg-pink-100/70', iconColor: 'text-pink-600' },
@@ -28,6 +29,7 @@ export const flashDeals = [
     oldPrice: '115,000',
     discount: 16,
     hue: 'from-violet-200/90 to-violet-300/80',
+    image: IMG.products.headphones,
   },
   {
     id: 'ultra-smart-watch-pro-10',
@@ -36,6 +38,7 @@ export const flashDeals = [
     oldPrice: '57,500',
     discount: 20,
     hue: 'from-slate-200/90 to-slate-300/80',
+    image: IMG.products.smartwatch,
   },
   {
     id: 'apple-airpods-pro',
@@ -44,6 +47,7 @@ export const flashDeals = [
     oldPrice: null,
     discount: null,
     hue: 'from-pink-200/90 to-pink-300/80',
+    image: IMG.products.airpods,
   },
   {
     id: 'logitech-mx-master',
@@ -52,14 +56,15 @@ export const flashDeals = [
     oldPrice: '32,000',
     discount: 11,
     hue: 'from-amber-200/90 to-amber-300/80',
+    image: IMG.products.mouse,
   },
 ]
 
 export const topShops = [
-  { id: 1, name: 'Tech World LK', rating: 4.8, products: '240+ products', hue: 'from-slate-200 to-slate-300' },
-  { id: 2, name: 'Fashion Hub', rating: 4.8, products: '180+ products', hue: 'from-pink-200 to-pink-300' },
-  { id: 3, name: 'Green Grocer', rating: 4.7, products: '320+ products', hue: 'from-green-200 to-green-300' },
-  { id: 4, name: 'Home Essentials', rating: 4.8, products: '150+ products', hue: 'from-amber-200 to-amber-300' },
+  { id: 1, name: 'Tech World LK', rating: 4.8, products: '240+ products', hue: 'from-slate-200 to-slate-300', image: 'https://images.unsplash.com/photo-1468436139062-f60a71c5c892?w=500&auto=format&fit=crop&q=60' },
+  { id: 2, name: 'Fashion Hub', rating: 4.8, products: '180+ products', hue: 'from-pink-200 to-pink-300', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&auto=format&fit=crop&q=60' },
+  { id: 3, name: 'Green Grocer', rating: 4.7, products: '320+ products', hue: 'from-green-200 to-green-300', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60' },
+  { id: 4, name: 'Home Essentials', rating: 4.8, products: '150+ products', hue: 'from-amber-200 to-amber-300', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=60' },
 ]
 
 export const heroTrust = [

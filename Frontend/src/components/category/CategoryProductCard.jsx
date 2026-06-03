@@ -47,15 +47,15 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
         to={`/product/${product.id}`}
         className="group flex gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_4px_24px_rgba(15,23,42,0.06)] transition hover:shadow-md"
       >
-        <div className="relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 p-3">
+        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl bg-slate-50">
           {product.badge && (
             <span
-              className={`absolute left-2 top-2 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white ${badgeStyles(product.badge)}`}
+              className={`absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white ${badgeStyles(product.badge)}`}
             >
               {product.badge.label}
             </span>
           )}
-          <CdnImage src={product.image} alt="" className="max-h-full max-w-full object-contain" />
+          <CdnImage src={product.image} alt="" className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -106,7 +106,7 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
       to={`/product/${product.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.06)] transition hover:shadow-md"
     >
-      <div className="relative flex aspect-[4/3] items-center justify-center bg-slate-50/80 p-5">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50/80">
         {product.badge && (
           <span
             className={`absolute left-3 top-3 z-10 rounded-md px-2 py-0.5 text-[10px] font-bold text-white ${badgeStyles(product.badge)}`}
@@ -127,7 +127,7 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
         <CdnImage
           src={product.image}
           alt=""
-          className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
         />
       </div>
 

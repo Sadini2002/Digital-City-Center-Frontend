@@ -6,6 +6,7 @@ export { default as SellerRegisterSuccessPage } from './pages/RegisterSuccessPag
 export { default as SellerDashboard } from './pages/SellerDashboard'
 export { default as SellerProductsPage } from './pages/Product'
 export { default as SellerAddProductPage } from './pages/AddProduct'
+export { default as SellerEditProductPage } from './pages/EditProduct'
 export { default as SellerOrdersPage } from './pages/Orders'
 export { default as SellerShopSettingsPage } from './pages/ShopSettings'
 export { default as SellerEarningsPage } from './pages/Earnings'
