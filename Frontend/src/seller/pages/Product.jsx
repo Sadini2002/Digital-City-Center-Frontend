@@ -32,6 +32,10 @@ export default function Product() {
       if (local.length > 0) {
         setProducts(local)
       } else {
+        const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
+        const currentShopName = savedSettings.shopName || 'Tech World LK';
+        const currentShopSlug = currentShopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
         // Prepopulate some default listings matching catalog
         const initial = [
           {
@@ -44,6 +48,7 @@ export default function Product() {
             isAvailable: true,
             image: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60'],
             description: 'Industry-leading noise canceling with Auto NC Optimizer, crystal-clear hands-free calling, and up to 30 hours of battery life.',
+            shopId: currentShopSlug,
           },
           {
             _id: 'apple-airpods-pro',
@@ -55,6 +60,7 @@ export default function Product() {
             isAvailable: true,
             image: ['https://images.unsplash.com/photo-1588449668338-d151688ab3a8?w=500&auto=format&fit=crop&q=60'],
             description: 'AirPods Pro (2nd generation) with Active Noise Cancellation, Adaptive Transparency, and personalized Spatial Audio.',
+            shopId: currentShopSlug,
           },
           {
             _id: 'macbook-air-m3',
@@ -66,6 +72,7 @@ export default function Product() {
             isAvailable: true,
             image: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=60'],
             description: 'MacBook Air 13" with the Apple M3 chip, stunning Liquid Retina display, and all-day battery life.',
+            shopId: currentShopSlug,
           },
           {
             _id: 'logitech-mx-master',
@@ -77,6 +84,7 @@ export default function Product() {
             isAvailable: false,
             image: ['https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&auto=format&fit=crop&q=60'],
             description: 'MX Master 3S is a precision wireless mouse with quiet clicks, an 8K DPI sensor, and ergonomic sculpting.',
+            shopId: currentShopSlug,
           }
         ]
         setProducts(initial)

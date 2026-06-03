@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight, Star } from 'lucide-react'
 import { topShops } from './homeData'
+import CdnImage from '../common/CdnImage'
 import { slugifyShopName } from '../../data/shopsData'
 
 export default function TopShopsCard() {
@@ -27,9 +28,19 @@ export default function TopShopsCard() {
           <Link
             key={shop.id}
             to={`/shop/${slugifyShopName(shop.name)}`}
-            className="block overflow-hidden rounded-xl border border-slate-200/90 bg-white transition hover:shadow-md"
+            className="group block overflow-hidden rounded-xl border border-slate-200/90 bg-white transition hover:shadow-md"
           >
-            <div className={`h-28 bg-gradient-to-br sm:h-32 ${shop.hue}`} />
+            <div className="relative h-28 w-full overflow-hidden bg-slate-100 sm:h-32">
+              {shop.image ? (
+                <CdnImage
+                  src={shop.image}
+                  alt=""
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div className={`h-full w-full bg-gradient-to-br ${shop.hue}`} />
+              )}
+            </div>
             <div className="border-t border-slate-100 bg-white px-3 py-3 sm:px-4 sm:py-3.5">
               <p className="text-sm font-bold text-slate-900">{shop.name}</p>
               <div className="mt-1 flex items-center gap-1">

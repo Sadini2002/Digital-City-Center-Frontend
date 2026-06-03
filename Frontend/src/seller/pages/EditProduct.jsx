@@ -97,6 +97,10 @@ export default function EditProduct() {
     } catch (err) {
       console.warn("API update product failed, updating local storage fallback", err);
       
+      const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
+      const currentShopName = savedSettings.shopName || 'Tech World LK';
+      const currentShopSlug = currentShopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
       const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]');
       const updated = local.map((p) => {
         if ((p._id || p.id) === (product._id || product.id)) {
@@ -120,7 +124,8 @@ export default function EditProduct() {
               percent: Number(discountPercent),
               startDate: discountStart,
               endDate: discountEnd,
-            }
+            },
+            shopId: p.shopId || currentShopSlug,
           };
         }
         return p;

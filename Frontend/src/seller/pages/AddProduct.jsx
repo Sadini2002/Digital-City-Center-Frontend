@@ -93,6 +93,10 @@ export default function AddProduct() {
     } catch (err) {
       console.warn("API add product failed, saving to local storage fallback", err);
       
+      const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
+      const currentShopName = savedSettings.shopName || 'Tech World LK';
+      const currentShopSlug = currentShopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
       const newProduct = {
         _id: 'prod_' + Math.random().toString(36).substr(2, 9),
         productId: productId || 'prod_' + Math.random().toString(36).substr(2, 9),
@@ -113,7 +117,8 @@ export default function AddProduct() {
           percent: Number(discountPercent),
           startDate: discountStart,
           endDate: discountEnd,
-        }
+        },
+        shopId: currentShopSlug,
       };
       
       const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]');

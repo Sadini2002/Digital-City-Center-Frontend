@@ -29,6 +29,7 @@ function collectShops() {
         featured,
         location: shop.location ?? 'Colombo',
         memberSince: shop.memberSince ?? '2022',
+        image: shop.image ?? '',
       })
     }
 
@@ -52,7 +53,19 @@ export function getShopBySlug(shopname) {
 
 export function getShopProducts(shop) {
   if (!shop) return []
-  return getCategoryProducts(shop.categorySlug)
+  
+  // 1. Get default mock products for this shop
+  const allCategoryProducts = getCategoryProducts(shop.categorySlug)
+  const shopProducts = allCategoryProducts.filter((p) => p.shopId === shop.id)
+  
+  // 2. Add local storage products created by the seller for this shop
+  try {
+    const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
+    const sellerProducts = localProducts.filter((p) => p.shopId === shop.id)
+    return [...shopProducts, ...sellerProducts]
+  } catch {
+    return shopProducts
+  }
 }
 
 export function getAllShops() {
