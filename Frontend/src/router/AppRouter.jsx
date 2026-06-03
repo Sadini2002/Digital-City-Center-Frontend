@@ -25,21 +25,83 @@ import {
   PaymentGatewayPage,
   WishlistPage,
 } from '../buyer'
-import { SellerRegisterPage, SellerRegisterSuccessPage } from '../seller'
-import SellerDashboard from '../pages/seller/SellerDashboard'
+import {
+  SellerRegisterPage,
+  SellerRegisterSuccessPage,
+  SellerDashboard,
+  SellerProductsPage,
+  SellerAddProductPage,
+  SellerOrdersPage,
+  SellerShopSettingsPage,
+  SellerEarningsPage,
+  SellerLayout,
+  SellerRoute,
+} from '../seller'
 
-// Buyer pages: ../buyer · Seller registration: ../seller · Public/marketplace: ../pages
+import {
+  AdminLoginPage,
+  AdminRoute,
+  AdminLayout,
+  AdminDashboardPage,
+  SellerManagementPage,
+  CategoryManagementPage,
+  OrderManagementPage,
+  AdminOrderDetailsPage,
+  DeliveryProvidersPage,
+  AnnouncementsPage,
+  CommissionSettingsPage,
+  ReportsPage,
+} from '../admin'
+
+
+// Buyer: ../buyer · Seller: ../seller · Public/marketplace: ../pages
 
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="sellers" element={<SellerManagementPage />} />
+          <Route path="categories" element={<CategoryManagementPage />} />
+          <Route path="orders" element={<OrderManagementPage />} />
+          <Route path="orders/:id" element={<AdminOrderDetailsPage />} />
+          <Route path="delivery" element={<DeliveryProvidersPage />} />
+          <Route path="announcements" element={<AnnouncementsPage />} />
+          <Route path="commission" element={<CommissionSettingsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<CommissionSettingsPage />} />
+        </Route>
         <Route path="/register" element={<Register />} />
         <Route path="/register/seller" element={<SellerRegisterPage />} />
         <Route path="/register/seller/success" element={<SellerRegisterSuccessPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/payment/gateway/:orderId" element={<PaymentGatewayPage />} />
+        <Route
+          path="/seller"
+          element={
+            <SellerRoute>
+              <SellerLayout />
+            </SellerRoute>
+          }
+        >
+          <Route path="dashboard" element={<SellerDashboard />} />
+          <Route path="listings" element={<SellerProductsPage />} />
+          <Route path="listings/new" element={<SellerAddProductPage />} />
+          <Route path="orders" element={<SellerOrdersPage />} />
+          <Route path="earnings" element={<SellerEarningsPage />} />
+          <Route path="settings" element={<SellerShopSettingsPage />} />
+        </Route>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
@@ -59,6 +121,7 @@ function AppRouter() {
           <Route path="/order/:id/reviews" element={<OrderReviewsPage />} />
           <Route path="/order/:id" element={<OrderTrackingPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+
          <Route path="/seller/dashboard" element={<SellerDashboard />} />
           <Route path="/seller/listings" element={<PlaceholderPage title="Seller Listings" description="Manage all seller listings." />} />
           <Route path="/seller/listings/new" element={<PlaceholderPage title="Add or Edit Listing" description="Create or update seller listing details." />} />
@@ -74,6 +137,7 @@ function AppRouter() {
           <Route path="/admin/delivery" element={<PlaceholderPage title="Admin Delivery Providers" description="Manage delivery partner registrations." />} />
           <Route path="/admin/reports" element={<PlaceholderPage title="Admin Reports" description="Sales and performance reporting views." />} />
           <Route path="/admin/settings" element={<PlaceholderPage title="Admin Platform Settings" description="Commission and system configuration." />} />
+
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
