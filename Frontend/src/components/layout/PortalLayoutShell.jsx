@@ -44,7 +44,7 @@ export default function PortalLayoutShell({
   }
 
   return (
-    <SiteLayout className="bg-slate-50">
+    <SiteLayout className="bg-slate-50" showHeader={false} showFooter={false}>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white shadow-sm">
           <PageContainer className="flex flex-wrap items-center justify-between gap-4 py-3.5">

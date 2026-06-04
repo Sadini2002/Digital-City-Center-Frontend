@@ -47,7 +47,7 @@ export default function Login() {
       else navigate('/delivery/application-status', { replace: true })
       return
     }
-    if (isDeliveryPortal) {
+    if (role === 'delivery') {
       setError('This account is not a delivery partner. Register as a provider or use demo access.')
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -136,21 +136,14 @@ export default function Login() {
           <AuthFormCard
             title="Welcome Back"
             subtitle={
-              isDeliveryPortal
+              role === 'delivery'
                 ? 'Sign in to the delivery partner portal.'
                 : 'Unified login for Buyers and Sellers.'
             }
           >
-            {!isDeliveryPortal && (
-              <div className="mb-5">
-                <RoleToggle value={role} onChange={setRole} />
-              </div>
-            )}
-            {isDeliveryPortal && (
-              <p className="mb-5 rounded-lg bg-violet-50 px-4 py-3 text-sm font-medium text-dcc-primary">
-                Delivery partner sign in
-              </p>
-            )}
+            <div className="mb-5">
+              <RoleToggle value={role} onChange={setRole} />
+            </div>
 
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -219,7 +212,7 @@ export default function Login() {
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
-              {role === 'seller' && !isDeliveryPortal && (
+              {role === 'seller' && (
                 <button
                   type="button"
                   onClick={handleDemoSeller}
@@ -228,7 +221,7 @@ export default function Login() {
                   Continue as Demo Seller
                 </button>
               )}
-              {isDeliveryPortal && (
+              {role === 'delivery' && (
                 <button
                   type="button"
                   onClick={handleDemoDelivery}
@@ -254,7 +247,7 @@ export default function Login() {
               Don&apos;t have an account?{' '}
               <Link
                 to={
-                  isDeliveryPortal
+                  role === 'delivery'
                     ? '/register/delivery'
                     : role === 'seller'
                       ? '/register/seller'
@@ -265,13 +258,6 @@ export default function Login() {
                 Register
               </Link>
             </p>
-            {!isDeliveryPortal && (
-              <p className="mt-3 text-center text-sm text-slate-500">
-                <Link to="/login?portal=delivery" className="font-semibold text-dcc-primary hover:underline">
-                  Delivery partner login
-                </Link>
-              </p>
-            )}
           </AuthFormCard>
           </div>
         </div>
