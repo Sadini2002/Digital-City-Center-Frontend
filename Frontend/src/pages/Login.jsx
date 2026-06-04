@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import SiteLayout from '../layouts/SiteLayout'
 import AuthPageMain from '../components/auth/AuthPageMain'
@@ -9,18 +9,71 @@ import AuthInput from '../components/auth/AuthInput'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import RoleToggle from '../components/auth/RoleToggle'
 import { authApi } from '../services/api'
+import {
+  isDeliveryDriverActive,
+  isDeliveryProviderActive,
+} from '../delivery/utils/deliveryAuth'
+import {
+  activateDemoDeliveryProvider,
+} from '../delivery/utils/deliveryApplicationStorage'
 
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const isDeliveryPortal = searchParams.get('portal') === 'delivery'
   const redirectTo = location.state?.from || '/'
-  const [role, setRole] = useState('buyer')
+  const [role, setRole] = useState(isDeliveryPortal ? 'delivery' : 'buyer')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (searchParams.get('portal') === 'delivery') setRole('delivery')
+  }, [searchParams])
+
+  const routeAfterAuth = (user) => {
+    const userRole = user?.role
+    if (userRole === 'DELIVERY_PROVIDER') {
+      if (isDeliveryProviderActive(user)) navigate('/delivery', { replace: true })
+      else navigate('/delivery/application-status', { replace: true })
+      return
+    }
+    if (userRole === 'DELIVERY_DRIVER') {
+      if (isDeliveryDriverActive(user)) navigate('/delivery', { replace: true })
+      else navigate('/delivery/application-status', { replace: true })
+      return
+    }
+    if (isDeliveryPortal) {
+      setError('This account is not a delivery partner. Register as a provider or use demo access.')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      return
+    }
+    if (role === 'seller' && userRole !== 'SELLER') {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setError('This account is not registered as a seller. Try signing in as a buyer.')
+      return
+    }
+    if (role === 'buyer' && userRole === 'SELLER') {
+      navigate('/seller/dashboard')
+    } else if (
+      String(userRole ?? '').toUpperCase().includes('ADMIN') ||
+      String(userRole ?? '').toUpperCase().includes('SUPER')
+    ) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setError('Admin accounts are separate. Please use the dedicated admin portal.')
+    } else if (userRole === 'SELLER') {
+      navigate('/seller/dashboard')
+    } else {
+      navigate(redirectTo)
+    }
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -44,32 +97,17 @@ export default function Login() {
         localStorage.removeItem('rememberMe')
       }
 
-      const userRole = user?.role
-      if (role === 'seller' && userRole !== 'SELLER') {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        setError('This account is not registered as a seller. Try signing in as a buyer.')
-        return
-      }
-      if (role === 'buyer' && userRole === 'SELLER') {
-        navigate('/seller/dashboard')
-      } else if (
-        String(userRole ?? '').toUpperCase().includes('ADMIN') ||
-        String(userRole ?? '').toUpperCase().includes('SUPER')
-      ) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        setError('Admin accounts are separate. Please use the dedicated admin portal.')
-      } else if (userRole === 'SELLER') {
-        navigate('/seller/dashboard')
-      } else {
-        navigate(redirectTo)
-      }
+      routeAfterAuth(user)
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDemoDelivery = () => {
+    activateDemoDeliveryProvider()
+    navigate('/delivery', { replace: true })
   }
 
   const handleDemoSeller = () => {
@@ -97,11 +135,22 @@ export default function Login() {
           <div className="w-full min-w-0 max-w-md">
           <AuthFormCard
             title="Welcome Back"
-            subtitle="Unified login for Buyers and Sellers."
+            subtitle={
+              isDeliveryPortal
+                ? 'Sign in to the delivery partner portal.'
+                : 'Unified login for Buyers and Sellers.'
+            }
           >
-            <div className="mb-5">
-              <RoleToggle value={role} onChange={setRole} />
-            </div>
+            {!isDeliveryPortal && (
+              <div className="mb-5">
+                <RoleToggle value={role} onChange={setRole} />
+              </div>
+            )}
+            {isDeliveryPortal && (
+              <p className="mb-5 rounded-lg bg-violet-50 px-4 py-3 text-sm font-medium text-dcc-primary">
+                Delivery partner sign in
+              </p>
+            )}
 
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -170,13 +219,22 @@ export default function Login() {
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
-              {role === 'seller' && (
+              {role === 'seller' && !isDeliveryPortal && (
                 <button
                   type="button"
                   onClick={handleDemoSeller}
                   className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
                 >
                   Continue as Demo Seller
+                </button>
+              )}
+              {isDeliveryPortal && (
+                <button
+                  type="button"
+                  onClick={handleDemoDelivery}
+                  className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
+                >
+                  Continue as Demo Delivery
                 </button>
               )}
             </form>
@@ -195,12 +253,25 @@ export default function Login() {
             <p className="mt-6 text-center text-sm text-slate-600">
               Don&apos;t have an account?{' '}
               <Link
-                to={role === 'seller' ? '/register/seller' : '/register'}
+                to={
+                  isDeliveryPortal
+                    ? '/register/delivery'
+                    : role === 'seller'
+                      ? '/register/seller'
+                      : '/register'
+                }
                 className="font-bold text-dcc-primary hover:underline"
               >
                 Register
               </Link>
             </p>
+            {!isDeliveryPortal && (
+              <p className="mt-3 text-center text-sm text-slate-500">
+                <Link to="/login?portal=delivery" className="font-semibold text-dcc-primary hover:underline">
+                  Delivery partner login
+                </Link>
+              </p>
+            )}
           </AuthFormCard>
           </div>
         </div>

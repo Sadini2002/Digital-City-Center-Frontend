@@ -10,8 +10,8 @@ export default function UtilityTopBar() {
         </p>
 
         <div className="flex w-full shrink-0 items-center justify-end gap-4 text-xs font-medium sm:w-auto sm:gap-5 sm:text-[13px]">
-          <Link to="/order/track" className="whitespace-nowrap hover:text-white/80">
-            Track Order
+          <Link to="/track" className="whitespace-nowrap hover:text-white/80">
+            Track Delivery
           </Link>
           <Link to="/help" className="whitespace-nowrap hover:text-white/80">
             Help Center
@@ -22,6 +22,12 @@ export default function UtilityTopBar() {
             className="whitespace-nowrap hover:text-white/80"
           >
             Sell on DCC
+          </Link>
+          <Link
+            to="/login?portal=delivery"
+            className="whitespace-nowrap hover:text-white/80"
+          >
+            Delivery Partners
           </Link>
           <button
             type="button"

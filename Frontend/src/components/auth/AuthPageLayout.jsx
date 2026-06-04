@@ -5,7 +5,7 @@ const footerLinks = [
   { label: 'Terms of Service', to: '/terms' },
   { label: 'Help Center', to: '/help' },
   { label: 'Sell on DCC', to: '/register/seller' },
-  { label: 'Track Order', to: '/order/track' },
+  { label: 'Track Delivery', to: '/track' },
 ]
 
 function AuthHeader({ variant }) {

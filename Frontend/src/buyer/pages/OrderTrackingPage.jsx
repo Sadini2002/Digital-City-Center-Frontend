@@ -12,6 +12,7 @@ import {
   markOrderDelivered,
   ORDER_STATUS,
 } from '../utils/orderStorage'
+import OrderLiveTrackingBlock from '../../delivery/components/OrderLiveTrackingBlock'
 
 export default function OrderTrackingPage() {
   const { id } = useParams()
@@ -100,6 +101,9 @@ export default function OrderTrackingPage() {
             </button>
           </div>
         )}
+
+        {/* BACKEND: Live map via GET /tracking/order/:orderId — see OrderLiveTrackingBlock */}
+        <OrderLiveTrackingBlock orderId={order.id} />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
