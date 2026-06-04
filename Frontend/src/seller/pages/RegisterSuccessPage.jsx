@@ -53,7 +53,7 @@ export default function SellerRegisterSuccessPage() {
 
           <div className="mt-6 flex flex-col gap-3">
             <Link
-              to="/login"
+              to="/login?portal=seller"
               className="flex items-center justify-center rounded-xl bg-dcc-primary py-3 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
             >
               Sign in when approved
