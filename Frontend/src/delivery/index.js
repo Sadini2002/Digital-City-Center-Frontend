@@ -12,6 +12,7 @@ export { default as DeliveryEarningsPage } from './pages/EarningsPage'
 export { default as DeliveryAnalyticsPage } from './pages/AnalyticsPage'
 export { default as DeliveryDriversPage } from './pages/DriversPage'
 export { default as DeliveryDriverProfilePage } from './pages/DriverProfilePage'
+export { default as DeliverySettingsPage } from './pages/SettingsPage'
 export { default as DeliveryNotificationsPage } from './pages/NotificationsPage'
 
 export { default as DeliveryLayout } from './components/DeliveryLayout'

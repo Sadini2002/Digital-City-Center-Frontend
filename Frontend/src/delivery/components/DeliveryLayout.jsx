@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   LayoutDashboard,
+  Settings,
   Truck,
   Users,
   Wallet,
@@ -23,6 +24,7 @@ const providerNav = [
   { to: '/delivery/drivers', label: 'Drivers', icon: Users },
   { to: '/delivery/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/delivery/earnings', label: 'Earnings', icon: Wallet },
+  { to: '/delivery/settings', label: 'Settings', icon: Settings },
   { to: '/delivery/notifications', label: 'Notifications', icon: Bell },
 ]
 
@@ -40,6 +42,7 @@ const pageTitles = {
   '/delivery/drivers': 'Fleet drivers',
   '/delivery/analytics': 'Fleet analytics',
   '/delivery/earnings': 'Earnings',
+  '/delivery/settings': 'Settings',
   '/delivery/notifications': 'Notifications',
   '/delivery/profile': 'My profile',
 }
@@ -51,6 +54,7 @@ const pageDescriptions = {
   '/delivery/drivers': 'Invite riders and control who is available for assignments.',
   '/delivery/analytics': 'Track completion rates and average delivery times.',
   '/delivery/earnings': 'See what you have earned from completed deliveries.',
+  '/delivery/settings': 'Configure your delivery coverage areas and pricing rates.',
   '/delivery/notifications': 'Stay on top of new assignments and status changes.',
   '/delivery/profile': 'Update availability and view your driver details.',
 }

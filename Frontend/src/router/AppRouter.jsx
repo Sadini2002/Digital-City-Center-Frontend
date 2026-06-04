@@ -50,6 +50,7 @@ import {
   DeliveryAnalyticsPage,
   DeliveryDriversPage,
   DeliveryDriverProfilePage,
+  DeliverySettingsPage,
   DeliveryNotificationsPage,
   DeliveryLayout,
   DeliveryRoute,
@@ -134,6 +135,7 @@ function AppRouter() {
             <Route path="profile" element={<DeliveryDriverProfilePage />} />
             <Route element={<DeliveryProviderOnlyRoute />}>
               <Route path="drivers" element={<DeliveryDriversPage />} />
+              <Route path="settings" element={<DeliverySettingsPage />} />
             </Route>
             <Route path="notifications" element={<DeliveryNotificationsPage />} />
           </Route>

@@ -61,7 +61,7 @@ function AuthFooter() {
 export default function AuthPageLayout({ variant = 'register', centered = false, children }) {
   const mainClass = centered
     ? 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col items-center justify-center px-3 py-8 sm:px-6 sm:py-12 lg:px-8'
-    : 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col-reverse gap-6 px-3 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:flex-row lg:items-center lg:gap-14 lg:px-8 lg:py-12'
+    : 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col-reverse gap-6 px-3 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:flex-row lg:items-start lg:gap-14 lg:px-8 lg:py-12'
 
   return (
     <div className="flex min-h-dvh min-w-0 flex-col overflow-x-hidden bg-dcc-auth">
