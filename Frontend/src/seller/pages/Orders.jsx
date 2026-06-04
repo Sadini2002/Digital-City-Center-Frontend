@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { getOrders, updateOrderStatus } from '../../buyer'
 import OrderTable from '../components/OrderTable'

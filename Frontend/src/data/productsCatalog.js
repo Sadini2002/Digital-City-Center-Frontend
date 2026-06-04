@@ -1,6 +1,7 @@
 import { getAllCategoryListings, getCategoryMeta } from '../components/category/categoryData'
 import { searchResults } from '../components/search/searchData'
 import { IMG } from '../config/images'
+import { shopsCatalog } from './shopsData'
 
 const SELLER = {
   name: 'Tech World LK',
@@ -661,6 +662,15 @@ function buildFromListing(listing) {
   const categorySlug = listing.categorySlug || 'electronics'
   const categoryTitle = getCategoryMeta(categorySlug).title
 
+  const shopId = listing.shopId || ext.shopId
+  const shop = shopsCatalog.find((s) => s.id === shopId || s.slug === shopId)
+  const productSeller = shop ? {
+    name: shop.name,
+    verified: shop.verified,
+    feedback: shop.rating ? `${Math.round(shop.rating * 20)}% Positive Feedback` : '95% Positive Feedback',
+    shopSlug: shop.slug
+  } : SELLER
+
   return {
     id: listing.id,
     title: listing.name,
@@ -674,7 +684,7 @@ function buildFromListing(listing) {
     badges: buildBadges(listing, ext),
     rating: listing.rating,
     reviewCount,
-    seller: SELLER,
+    seller: productSeller,
     price: listing.price,
     originalPrice: listing.originalPrice ?? null,
     stock: ext.stock ?? 15,
@@ -684,7 +694,7 @@ function buildFromListing(listing) {
     defaultSize: ext.defaultSize ?? ext.sizes?.[0],
     colorLabel: ext.colorLabel ?? 'Select color',
     sizeLabel: ext.sizeLabel ?? 'Size',
-    description: ext.description ?? `${listing.name} — available from ${SELLER.name} with islandwide delivery.`,
+    description: ext.description ?? `${listing.name} — available from ${productSeller.name} with islandwide delivery.`,
     featureCards: ext.featureCards ?? [],
     highlights: ext.highlights ?? [],
     specifications: ext.specifications ?? [],
