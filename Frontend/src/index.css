@@ -3,24 +3,41 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
-    --shadow-card-hover: 0 12px 40px rgba(15, 23, 42, 0.1);
-    --shadow-header: 0 1px 0 rgba(15, 23, 42, 0.06);
+  html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     margin: 0;
+    overflow-x: hidden;
+    min-height: 100dvh;
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  #root {
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  .bg-dcc-topbar,
+  .bg-dcc-bar {
+    background-color: #1a1523;
   }
 }
 
 @layer utilities {
-  .container-dcc {
-    @apply mx-auto w-full max-w-[1200px] px-4;
-  }
-
-  .section-padding {
-    @apply py-16 md:py-20;
+  .touch-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
   }
 }
