@@ -48,11 +48,24 @@ export default function PortalLayoutShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white shadow-sm">
           <PageContainer className="flex flex-wrap items-center justify-between gap-4 py-3.5">
-            <div className="min-w-0">
-              <BrandLogo />
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-dcc-primary">
-                {portalLabel}
-              </p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                to="/"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-dcc-primary text-xl font-bold text-white transition hover:bg-dcc-primary-hover"
+              >
+                D
+              </Link>
+              <div className="min-w-0">
+                <Link
+                  to="/"
+                  className="block text-base font-bold text-dcc-primary transition hover:text-dcc-primary-hover sm:text-lg leading-tight"
+                >
+                  Digital City Center
+                </Link>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-dcc-primary leading-none">
+                  {portalLabel}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {portalHeaderExtra}
