@@ -708,12 +708,60 @@ listingsById.forEach((listing, id) => {
   builtProducts.set(id, buildFromListing(listing))
 })
 
-/**
- * @param {string | undefined} id
- */
 export function getProductById(id) {
   if (!id) return null
-  return builtProducts.get(id) ?? null
+  const staticProd = builtProducts.get(id)
+  if (staticProd) return staticProd
+
+  try {
+    const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
+    const found = localProducts.find((p) => p.productId === id || p._id === id || p.id === id)
+    if (found) {
+      const shopId = found.shopId
+      const shop = shopsCatalog.find((s) => s.id === shopId || s.slug === shopId)
+      const productSeller = shop ? {
+        name: shop.name,
+        verified: shop.verified,
+        feedback: shop.rating ? `${Math.round(shop.rating * 20)}% Positive Feedback` : '95% Positive Feedback',
+        shopSlug: shop.slug
+      } : SELLER
+
+      const discountPercent = found.discount?.percent || (found.labelPrice && found.labelPrice > found.price ? Math.round(((found.labelPrice - found.price) / found.labelPrice) * 100) : 0)
+
+      return {
+        id: found.productId || found._id || found.id,
+        title: found.name,
+        name: found.name,
+        brand: found.brand || 'Local Brand',
+        breadcrumbs: [
+          { label: 'Home', to: '/' },
+          { label: 'Seller Products', to: null },
+          { label: found.name, to: null },
+        ],
+        images: Array.isArray(found.image) ? found.image : [found.image].filter(Boolean),
+        badges: discountPercent > 0 ? [{ label: `-${discountPercent}%`, className: 'bg-red-500' }] : [],
+        rating: found.rating || 4.7,
+        reviewCount: found.reviews || 12,
+        seller: productSeller,
+        price: found.price,
+        originalPrice: found.labelPrice || null,
+        stock: found.stock ?? 15,
+        colors: found.variants?.colors?.map(c => ({ id: c.toLowerCase(), name: c, swatch: c.toLowerCase() })) || [],
+        sizes: found.variants?.sizes || [],
+        defaultColorId: found.variants?.colors?.[0]?.toLowerCase(),
+        defaultSize: found.variants?.sizes?.[0],
+        description: found.description || `${found.name} — available from ${productSeller.name} with islandwide delivery.`,
+        featureCards: [],
+        highlights: [],
+        specifications: [],
+        reviews: DEFAULT_REVIEWS,
+        relatedProducts: [],
+      }
+    }
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+  return null
 }
 
 export function getAllProductIds() {

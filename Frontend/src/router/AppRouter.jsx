@@ -13,6 +13,7 @@ import Register from '../pages/Register'
 import SearchResultsPage from '../pages/SearchResultsPage'
 import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
+import DealsPage from '../pages/DealsPage'
 
 import {
   AccountPage,
@@ -164,7 +165,7 @@ function AppRouter() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/shops" element={<ShopsPage />} />
-          <Route path="/deals" element={<PlaceholderPage title="Deals" description="Flash deals and limited-time offers." />} />
+          <Route path="/deals" element={<DealsPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/shop/:shopname" element={<ShopPage />} />
