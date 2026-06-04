@@ -5,7 +5,8 @@ import BrandLogo from './BrandLogo'
 const quickLinks = [
   { label: 'Help Center', to: '/help' },
   { label: 'Sell on DCC', to: '/register/seller' },
-  { label: 'Track Order', to: '/order/track' },
+  { label: 'Track Delivery', to: '/track' },
+  { label: 'Delivery Partners', to: '/login?portal=delivery' },
   { label: 'Success Stories', to: '/about' },
 ]
 

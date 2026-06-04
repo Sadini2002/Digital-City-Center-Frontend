@@ -40,6 +40,25 @@ import {
 } from '../seller'
 
 import {
+  DeliveryRegisterPage,
+  DeliveryApplicationStatusPage,
+  DeliveryDashboardPage,
+  DeliveryDeliveriesPage,
+  DeliveryDetailPage,
+  DeliveryRouteTrackingPage,
+  DeliveryEarningsPage,
+  DeliveryAnalyticsPage,
+  DeliveryDriversPage,
+  DeliveryDriverProfilePage,
+  DeliveryNotificationsPage,
+  DeliveryLayout,
+  DeliveryRoute,
+  DeliveryApprovedRoute,
+  DeliveryProviderOnlyRoute,
+  TrackDeliveryPage,
+} from '../delivery'
+
+import {
   AdminLoginPage,
   AdminRoute,
   AdminLayout,
@@ -86,6 +105,39 @@ function AppRouter() {
         <Route path="/register" element={<Register />} />
         <Route path="/register/seller" element={<SellerRegisterPage />} />
         <Route path="/register/seller/success" element={<SellerRegisterSuccessPage />} />
+        <Route path="/register/delivery" element={<DeliveryRegisterPage />} />
+        <Route path="/track" element={<TrackDeliveryPage />} />
+        <Route path="/track/:trackingCode" element={<TrackDeliveryPage />} />
+        <Route
+          path="/delivery/application-status"
+          element={
+            <DeliveryRoute>
+              <DeliveryApplicationStatusPage />
+            </DeliveryRoute>
+          }
+        />
+        <Route
+          path="/delivery"
+          element={
+            <DeliveryRoute>
+              <DeliveryApprovedRoute />
+            </DeliveryRoute>
+          }
+        >
+          <Route element={<DeliveryLayout />}>
+            <Route index element={<DeliveryDashboardPage />} />
+            <Route path="deliveries" element={<DeliveryDeliveriesPage />} />
+            <Route path="deliveries/:id" element={<DeliveryDetailPage />} />
+            <Route path="deliveries/:id/tracking" element={<DeliveryRouteTrackingPage />} />
+            <Route path="earnings" element={<DeliveryEarningsPage />} />
+            <Route path="analytics" element={<DeliveryAnalyticsPage />} />
+            <Route path="profile" element={<DeliveryDriverProfilePage />} />
+            <Route element={<DeliveryProviderOnlyRoute />}>
+              <Route path="drivers" element={<DeliveryDriversPage />} />
+            </Route>
+            <Route path="notifications" element={<DeliveryNotificationsPage />} />
+          </Route>
+        </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/payment/gateway/:orderId" element={<PaymentGatewayPage />} />
         <Route
