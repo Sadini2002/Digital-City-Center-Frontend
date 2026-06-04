@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import SiteLayout from '../../layouts/SiteLayout'
 import PageContainer from '../../components/layout/PageContainer'
 import LiveDeliveryPanel from '../components/tracking/LiveDeliveryPanel'
-import trackingApi from '../services/trackingApi'
+import { trackPublic } from '../utils/deliveryStorage'
 
 /**
  * Public buyer tracking — no login required.
@@ -20,13 +20,12 @@ export default function TrackDeliveryPage() {
   const [loading, setLoading] = useState(Boolean(initialCode))
   const [error, setError] = useState('')
 
-  const load = async (trackingCode) => {
+  const load = (trackingCode) => {
     if (!trackingCode?.trim()) return
     setLoading(true)
     setError('')
     try {
-      const data = await trackingApi.getPublic(trackingCode.trim())
-      setDelivery(data)
+      setDelivery(trackPublic(trackingCode.trim()))
     } catch (err) {
       setError(err.message || 'Tracking not found')
       setDelivery(null)

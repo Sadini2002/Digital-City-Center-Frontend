@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Bike, Mail, Phone, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import deliveryApi from '../services/deliveryApi'
+import { updateDriver } from '../utils/deliveryStorage'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryAlert from '../components/ui/DeliveryAlert'
 import { readDeliveryUser } from '../utils/readDeliveryUser'
@@ -17,7 +17,7 @@ export default function DeliveryDriverProfilePage() {
     if (!driver?.id) return
     setSaving(true)
     try {
-      await deliveryApi.updateDriver(driver.id, { isAvailable: !isAvailable })
+      updateDriver(driver.id, { isAvailable: !isAvailable })
       setIsAvailable((v) => !v)
     } finally {
       setSaving(false)

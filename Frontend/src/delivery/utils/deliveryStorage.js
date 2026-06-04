@@ -268,7 +268,8 @@ export function updateDeliveryStatus(id, payload) {
   const idx = list.findIndex((d) => d.id === id)
   if (idx < 0) throw new Error('Delivery not found')
   const job = list[idx]
-  const nextStatus = normalizeDeliveryStatus(payload.status)
+  let nextStatus = normalizeDeliveryStatus(payload.status)
+  if (payload.status === 'FAILED') nextStatus = 'CANCELLED'
   const updated = {
     ...job,
     status: nextStatus,
@@ -469,6 +470,43 @@ export function addTrackingBatch(deliveryId, points) {
 
 export function getUnreadNotificationCount() {
   return getNotifications().filter((n) => !n.read).length
+}
+
+export function listNotifications(params = {}) {
+  const page = params.page || 1
+  const limit = params.limit || 20
+  return paginate(getNotifications(), { page, limit })
+}
+
+export function markNotificationRead(id) {
+  const list = getNotifications().map((n) => (n.id === id ? { ...n, read: true } : n))
+  saveNotifications(list)
+  return list.find((n) => n.id === id)
+}
+
+export function markAllNotificationsRead() {
+  const list = getNotifications().map((n) => ({ ...n, read: true }))
+  saveNotifications(list)
+  return list
+}
+
+export function deleteNotification(id) {
+  const list = getNotifications().filter((n) => n.id !== id)
+  saveNotifications(list)
+  return { ok: true }
+}
+
+function currentDriverId() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    return user?.deliveryDriver?.id || user?.id || 'driver-demo'
+  } catch {
+    return 'driver-demo'
+  }
+}
+
+export function acceptDeliveryForCurrentDriver(id) {
+  return acceptDelivery(id, currentDriverId())
 }
 
 function findDeliveryForOrder(orderId) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import trackingApi from '../services/trackingApi'
+import { getDeliveryLive } from '../utils/deliveryStorage'
 import { isGpsActiveStatus } from '../utils/deliveryStatus'
 
 const POLL_MS = 12000
@@ -17,10 +17,10 @@ export default function useLiveDeliveryTracking(deliveryId, { enableFetch = true
   const [isLive, setIsLive] = useState(false)
   const [loading, setLoading] = useState(Boolean(deliveryId && enableFetch))
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(() => {
     if (!deliveryId) return
     try {
-      const data = await trackingApi.getDeliveryLive(deliveryId)
+      const data = getDeliveryLive(deliveryId)
       setTracking(data)
       if (data.location) setLocation(data.location)
       if (data.route) setRoute(data.route)

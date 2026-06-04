@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import deliveryApi from '../services/deliveryApi'
-import trackingApi from '../services/trackingApi'
+import { addTrackingBatch, getDeliveryLive } from '../utils/deliveryStorage'
 import { isActiveStatus, isGpsActiveStatus } from '../utils/deliveryStatus'
 
 const POLL_MS = 15000
@@ -23,7 +22,7 @@ export default function useRealtimeDelivery(deliveryId, { enableGps = false, pol
   const refreshFromApi = async () => {
     if (!deliveryId) return
     try {
-      const data = await trackingApi.getDeliveryLive(deliveryId)
+      const data = getDeliveryLive(deliveryId)
       setLiveDelivery(data)
       if (data.location) setLocation(data.location)
       if (data.route) setRoute(data.route)
@@ -51,7 +50,7 @@ export default function useRealtimeDelivery(deliveryId, { enableGps = false, pol
     const flush = () => {
       if (!buffer.length) return
       const points = buffer.splice(0, buffer.length)
-      deliveryApi.addTrackingBatch(deliveryId, points).catch(() => buffer.unshift(...points))
+      addTrackingBatch(deliveryId, points)
     }
 
     watchRef.current = navigator.geolocation.watchPosition(

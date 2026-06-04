@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, Clock, Target, XCircle } from 'lucide-react'
-import deliveryApi from '../services/deliveryApi'
+import { getAnalytics } from '../utils/deliveryStorage'
 import DeliveryStatusBadge from '../components/DeliveryStatusBadge'
 import DeliveryStatCard from '../components/ui/DeliveryStatCard'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
@@ -16,7 +16,8 @@ export default function DeliveryAnalyticsPage() {
 
   useEffect(() => {
     setLoading(true)
-    deliveryApi.getAnalytics({ days }).then(setData).finally(() => setLoading(false))
+    setData(getAnalytics({ days }))
+    setLoading(false)
   }, [days])
 
   return (

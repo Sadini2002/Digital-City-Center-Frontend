@@ -2,7 +2,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { MapPin, Navigation, Package } from 'lucide-react'
-import deliveryApi from '../services/deliveryApi'
+import {
+  acceptDeliveryForCurrentDriver,
+  getDeliveryById,
+  updateDeliveryStatus,
+} from '../utils/deliveryStorage'
 import DeliveryStatusBadge from '../components/DeliveryStatusBadge'
 import DeliveryStatusActions from '../components/DeliveryStatusActions'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
@@ -19,11 +23,16 @@ export default function DeliveryDetailPage() {
 
   const load = () => {
     setLoading(true)
-    deliveryApi
-      .getDelivery(id)
-      .then(setDelivery)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
+    setError(null)
+    try {
+      const d = getDeliveryById(id)
+      if (!d) throw new Error('Delivery not found')
+      setDelivery(d)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -31,12 +40,12 @@ export default function DeliveryDetailPage() {
   }, [id])
 
   const handleUpdate = async (payload) => {
-    const updated = await deliveryApi.updateStatus(id, payload)
+    const updated = updateDeliveryStatus(id, payload)
     setDelivery(updated)
   }
 
   const handleAccept = async () => {
-    const updated = await deliveryApi.acceptDelivery(id)
+    const updated = acceptDeliveryForCurrentDriver(id)
     setDelivery(updated)
   }
 

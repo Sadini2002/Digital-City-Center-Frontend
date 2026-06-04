@@ -1,60 +1,38 @@
-# Delivery module — backend integration (PDF contract)
+# Delivery module — local dev + backend guide
 
-Set `VITE_API_BASE_URL` (e.g. `http://localhost:5000/api/v1`).
+Same pattern as **buyer** (`orderStorage.js`) and **seller** (reads buyer storage):  
+**pages → `utils/deliveryStorage.js` → localStorage**
 
-## Delivery Provider
+## Local dev (no backend)
 
-| Method | Path | Used by |
-|--------|------|---------|
-| POST | `/delivery-providers/register` | `pages/RegisterPage.jsx` |
-| GET | `/delivery-providers/profile` | `deliveryApi.getProviderProfile` |
-| PUT | `/delivery-providers/profile` | `deliveryApi.updateProviderProfile`, driver profile |
-| GET | `/delivery-providers/jobs` | Deliveries → Available pool |
+- All delivery portal pages import from `utils/deliveryStorage.js`
+- Demo login: `/login?portal=delivery`
+- Data keys: `dcc_delivery_jobs`, `dcc_delivery_drivers`, `dcc_delivery_notifications`
 
-## Assignment
+## Buyer tracking (unchanged buyer components)
 
-| Method | Path | Used by |
-|--------|------|---------|
-| POST | `/deliveries/assign` | Accept job |
-| GET | `/deliveries/assigned` | My deliveries, dashboard |
-| GET | `/deliveries/:id` | Delivery detail |
+- `OrderLiveTrackingBlock` still uses `trackingApi` / hooks
+- `trackingApi.js` reads the same `deliveryStorage` mocks
 
-## Status
+## When backend is ready
 
-| Method | Path | Used by |
-|--------|------|---------|
-| PUT | `/deliveries/:id/status` | Status actions |
-| GET | `/deliveries/status` | Dashboard, analytics |
-| GET | `/deliveries/history` | History, earnings (derived) |
+Wire PDF `/api/v1` routes in a new service layer and replace storage calls in pages — same approach as wiring `paymentService.js` for buyer checkout.
 
-Status values: `CONFIRMED`, `PROCESSING`, `DISPATCHED`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED`
+### PDF endpoints (reference)
 
-## Tracking
+| Area | Routes |
+|------|--------|
+| Provider | `POST/GET/PUT /delivery-providers/*` |
+| Jobs | `GET /delivery-providers/jobs`, `GET /deliveries/assigned`, `POST /deliveries/assign` |
+| Status | `PUT /deliveries/:id/status`, `GET /deliveries/status`, `GET /deliveries/history` |
+| Tracking | `GET/PUT /deliveries/:id/tracking`, `GET /orders/:id/tracking` |
+| Notifications | `GET /delivery/notifications`, `PUT /delivery/notifications/:id/read` |
 
-| Method | Path | Used by |
-|--------|------|---------|
-| GET | `/deliveries/:id/tracking` | Route tracking, live map |
-| PUT | `/deliveries/:id/tracking` | Driver GPS batches |
-| GET | `/orders/:id/tracking` | Buyer order tracking |
-| GET | `/orders/:id/delivery-status` | Buyer delivery status |
+Set `VITE_API_BASE_URL=http://localhost:5000/api/v1` in `.env` when integrating.
 
-## Notifications
+## Files
 
-| Method | Path |
-|--------|------|
-| GET | `/delivery/notifications` |
-| PUT | `/delivery/notifications/:id/read` |
-
-## Admin
-
-See `services/adminDeliveryApi.js` — provider approve/reject, admin deliveries, assign.
-
-## Mocks
-
-`utils/deliveryStorage.js` — used when API fails (`tryApi` in service files).
-
-## Service files
-
-- `services/deliveryApi.js` — provider portal
-- `services/trackingApi.js` — maps + buyer tracking
-- `services/adminDeliveryApi.js` — admin portal (no mock fallback)
+- `utils/deliveryStorage.js` — mock data + CRUD (use this in pages)
+- `services/trackingApi.js` — thin async wrapper for buyer hooks
+- `services/deliveryApi.js` — legacy async aliases (optional)
+- `services/adminDeliveryApi.js` — admin routes (real HTTP)

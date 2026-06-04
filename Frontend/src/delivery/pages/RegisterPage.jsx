@@ -5,7 +5,6 @@ import SiteLayout from '../../layouts/SiteLayout'
 import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { DISTRICTS } from '../data/constants'
-import deliveryApi from '../services/deliveryApi'
 import { saveDeliveryApplication } from '../utils/deliveryApplicationStorage'
 
 const inputClass =
@@ -41,14 +40,7 @@ export default function DeliveryRegisterPage() {
     setError('')
     setIsSubmitting(true)
     try {
-      try {
-        const result = await deliveryApi.registerProvider(form)
-        const { token, user } = result?.data ?? result ?? {}
-        if (token) localStorage.setItem('token', token)
-        if (user) localStorage.setItem('user', JSON.stringify(user))
-      } catch {
-        saveDeliveryApplication(form)
-      }
+      saveDeliveryApplication(form)
       navigate('/delivery/application-status', { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed.')

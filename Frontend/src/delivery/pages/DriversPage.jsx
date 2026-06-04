@@ -1,7 +1,11 @@
 /** BACKEND: GET/POST/PATCH /delivery/drivers — DELIVERY_PROVIDER only */
 import { useEffect, useState } from 'react'
 import { UserPlus, Users } from 'lucide-react'
-import deliveryApi from '../services/deliveryApi'
+import {
+  createDriver,
+  getDrivers,
+  updateDriver,
+} from '../utils/deliveryStorage'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryEmptyState from '../components/ui/DeliveryEmptyState'
 import DeliveryAlert from '../components/ui/DeliveryAlert'
@@ -44,10 +48,8 @@ export default function DeliveryDriversPage() {
 
   const load = () => {
     setLoading(true)
-    deliveryApi
-      .listDrivers()
-      .then(setDrivers)
-      .finally(() => setLoading(false))
+    setDrivers(getDrivers())
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function DeliveryDriversPage() {
     setSaving(true)
     setError(null)
     try {
-      await deliveryApi.createDriver(form)
+      createDriver(form)
       setForm(emptyForm)
       setShowForm(false)
       load()
@@ -71,7 +73,7 @@ export default function DeliveryDriversPage() {
   }
 
   const toggleAvailability = async (driver) => {
-    await deliveryApi.updateDriver(driver.id, { isAvailable: !driver.isAvailable })
+    updateDriver(driver.id, { isAvailable: !driver.isAvailable })
     load()
   }
 

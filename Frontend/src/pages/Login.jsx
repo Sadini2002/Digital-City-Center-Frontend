@@ -14,7 +14,6 @@ import {
   isDeliveryProviderActive,
 } from '../delivery/utils/deliveryAuth'
 import {
-  activateDemoDeliveryDriver,
   activateDemoDeliveryProvider,
 } from '../delivery/utils/deliveryApplicationStorage'
 
@@ -106,13 +105,8 @@ export default function Login() {
     }
   }
 
-  const handleDemoProvider = () => {
+  const handleDemoDelivery = () => {
     activateDemoDeliveryProvider()
-    navigate('/delivery', { replace: true })
-  }
-
-  const handleDemoDriver = () => {
-    activateDemoDeliveryDriver()
     navigate('/delivery', { replace: true })
   }
 
@@ -235,22 +229,13 @@ export default function Login() {
                 </button>
               )}
               {isDeliveryPortal && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleDemoProvider}
-                    className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
-                  >
-                    Continue as Demo Provider
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDemoDriver}
-                    className="w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    Continue as Demo Driver
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={handleDemoDelivery}
+                  className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
+                >
+                  Continue as Demo Delivery
+                </button>
               )}
             </form>
 

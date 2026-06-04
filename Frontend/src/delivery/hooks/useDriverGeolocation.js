@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import deliveryApi from '../services/deliveryApi'
+import { addTrackingBatch } from '../utils/deliveryStorage'
 
 const BATCH_INTERVAL_MS = 8000
 const MAX_BUFFER = 15
@@ -18,7 +18,7 @@ export default function useDriverGeolocation(deliveryId, { enabled = false, acti
     if (!deliveryId || bufferRef.current.length === 0) return
     const points = bufferRef.current.splice(0, bufferRef.current.length)
     try {
-      await deliveryApi.addTrackingBatch(deliveryId, points)
+      addTrackingBatch(deliveryId, points)
     } catch {
       bufferRef.current.unshift(...points)
     }

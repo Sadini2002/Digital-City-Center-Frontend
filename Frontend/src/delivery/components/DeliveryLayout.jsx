@@ -10,7 +10,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import PortalLayoutShell from '../../components/layout/PortalLayoutShell'
-import deliveryApi from '../services/deliveryApi'
+import { getUnreadNotificationCount } from '../utils/deliveryStorage'
 import {
   getDeliveryDisplayName,
   getDeliveryRoleLabel,
@@ -73,10 +73,7 @@ export default function DeliveryLayout() {
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    deliveryApi
-      .listNotifications({ limit: 100 })
-      .then(({ data }) => setUnreadCount((data || []).filter((n) => !n.read).length))
-      .catch(() => {})
+    setUnreadCount(getUnreadNotificationCount())
   }, [location.pathname])
 
   return (

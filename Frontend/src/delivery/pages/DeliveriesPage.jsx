@@ -2,7 +2,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, MapPin, Navigation, Truck } from 'lucide-react'
-import deliveryApi from '../services/deliveryApi'
+import {
+  acceptDeliveryForCurrentDriver,
+  listAssignedDeliveries,
+  listPoolDeliveries,
+} from '../utils/deliveryStorage'
 import DeliveryStatusBadge from '../components/DeliveryStatusBadge'
 import DeliverySegmentedControl from '../components/ui/DeliverySegmentedControl'
 import DeliveryFilterPills from '../components/ui/DeliveryFilterPills'
@@ -58,15 +62,13 @@ export default function DeliveriesPage() {
 
   const load = (page = 1) => {
     setLoading(true)
-    const fetcher = tab === 'pool' ? deliveryApi.listPool : deliveryApi.listDeliveries
+    const fetcher = tab === 'pool' ? listPoolDeliveries : listAssignedDeliveries
     const params = { page, limit: 10 }
     if (status) params.status = status
-    fetcher(params)
-      .then(({ data, meta: m }) => {
-        setDeliveries(data)
-        setMeta(m)
-      })
-      .finally(() => setLoading(false))
+    const { data, meta: m } = fetcher(params)
+    setDeliveries(data)
+    setMeta(m)
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function DeliveriesPage() {
   const handleAccept = async (id) => {
     setAcceptingId(id)
     try {
-      await deliveryApi.acceptDelivery(id)
+      acceptDeliveryForCurrentDriver(id)
       setTab('mine')
       setStatus('PROCESSING')
       load(1)

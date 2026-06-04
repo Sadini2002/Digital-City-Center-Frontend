@@ -1,7 +1,7 @@
 /** BACKEND: GET /delivery/earnings?days=7|30|90 */
 import { useEffect, useState } from 'react'
 import { Wallet } from 'lucide-react'
-import deliveryApi from '../services/deliveryApi'
+import { getEarnings } from '../utils/deliveryStorage'
 import DeliveryStatCard from '../components/ui/DeliveryStatCard'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryPeriodSelect from '../components/ui/DeliveryPeriodSelect'
@@ -20,7 +20,8 @@ export default function DeliveryEarningsPage() {
 
   useEffect(() => {
     setLoading(true)
-    deliveryApi.getEarnings({ days }).then(setData).finally(() => setLoading(false))
+    setData(getEarnings({ days }))
+    setLoading(false)
   }, [days])
 
   const chartData = data?.chart || []
