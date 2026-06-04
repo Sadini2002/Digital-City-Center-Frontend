@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const footerLinks = [
   { label: 'Privacy Policy', to: '/privacy' },
@@ -11,6 +11,9 @@ const footerLinks = [
 function AuthHeader({ variant }) {
   const isRegister = variant === 'register'
   const isForgot = variant === 'forgot'
+  const location = useLocation()
+  const isDelivery = location.pathname.includes('/delivery')
+  const loginUrl = isDelivery ? '/login?portal=delivery' : '/login'
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -25,7 +28,7 @@ function AuthHeader({ variant }) {
             </span>
           )}
           <Link
-            to="/login"
+            to={loginUrl}
             className="rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-dcc-primary-hover sm:px-6"
           >
             {isForgot ? 'Back to Sign In' : 'Sign In'}

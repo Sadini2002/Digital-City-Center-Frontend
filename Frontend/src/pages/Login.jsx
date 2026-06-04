@@ -21,9 +21,15 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const isDeliveryPortal = searchParams.get('portal') === 'delivery'
+  const portalParam = searchParams.get('portal')
   const redirectTo = location.state?.from || '/'
-  const [role, setRole] = useState(isDeliveryPortal ? 'delivery' : 'buyer')
+  const [role, setRole] = useState(
+    portalParam === 'delivery'
+      ? 'delivery'
+      : portalParam === 'seller'
+        ? 'seller'
+        : 'buyer'
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -32,7 +38,9 @@ export default function Login() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (searchParams.get('portal') === 'delivery') setRole('delivery')
+    const portal = searchParams.get('portal')
+    if (portal === 'delivery') setRole('delivery')
+    else if (portal === 'seller') setRole('seller')
   }, [searchParams])
 
   const routeAfterAuth = (user) => {

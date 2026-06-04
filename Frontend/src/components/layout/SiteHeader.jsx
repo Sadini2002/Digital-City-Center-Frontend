@@ -58,6 +58,13 @@ function NavItem({ item, onClick }) {
 
 export default function SiteHeader({ activeAuth = null, showUtilityBar = true }) {
   const location = useLocation()
+  const isSeller = location.pathname.includes('/seller') || location.pathname.includes('/register/seller')
+  const isDelivery = location.pathname.includes('/delivery') || location.pathname.includes('/register/delivery')
+  const loginUrl = isDelivery
+    ? '/login?portal=delivery'
+    : isSeller
+      ? '/login?portal=seller'
+      : '/login'
   const { cartCount, wishlistCount } = useShop()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -115,7 +122,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
             </Link>
 
             <Link
-              to="/login"
+              to={loginUrl}
               className={`hidden rounded-lg border-2 px-4 py-2 text-sm font-semibold sm:inline ${
                 activeAuth === 'login'
                   ? 'border-dcc-primary bg-violet-50 text-dcc-primary'
