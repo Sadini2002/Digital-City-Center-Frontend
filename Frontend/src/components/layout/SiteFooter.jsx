@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CreditCard, Facebook, Instagram } from 'lucide-react'
+import { Facebook, Instagram, Globe, MessageSquare, Bell } from 'lucide-react'
 import BrandLogo from './BrandLogo'
 
 const quickLinks = [
@@ -106,14 +106,15 @@ export default function SiteFooter() {
             © 2024 Digital City Center. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
-            {[1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className="flex h-7 w-11 items-center justify-center rounded bg-white/10 text-[10px] font-bold text-slate-400"
-              >
-                <CreditCard className="h-4 w-4" />
-              </span>
-            ))}
+            <span className="flex h-7 w-11 items-center justify-center rounded bg-white/10 text-slate-400">
+              <Globe className="h-4 w-4" />
+            </span>
+            <span className="flex h-7 w-11 items-center justify-center rounded bg-white/10 text-slate-400">
+              <MessageSquare className="h-4 w-4" />
+            </span>
+            <span className="flex h-7 w-11 items-center justify-center rounded bg-white/10 text-slate-400">
+              <Bell className="h-4 w-4" />
+            </span>
           </div>
         </div>
       </div>
