@@ -273,5 +273,4 @@ export default function Earnings() {
         </div>
       </section>
     </div>
-  )
-}
+ )}
