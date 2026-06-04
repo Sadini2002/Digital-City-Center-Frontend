@@ -6,7 +6,6 @@ import ForgotPassword from '../pages/ForgotPassword'
 import HomePage from '../pages/HomePage'
 import Login from '../pages/Login'
 import NotFoundPage from '../pages/NotFoundPage'
-import PlaceholderPage from '../pages/PlaceholderPage'
 import CategoryPage from '../pages/CategoryPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import Register from '../pages/Register'
@@ -14,6 +13,7 @@ import SearchResultsPage from '../pages/SearchResultsPage'
 import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
 import DealsPage from '../pages/DealsPage'
+import InfoPage from '../pages/InfoPage'
 
 import {
   AccountPage,
@@ -166,6 +166,10 @@ function AppRouter() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/shops" element={<ShopsPage />} />
           <Route path="/deals" element={<DealsPage />} />
+          <Route path="/privacy" element={<InfoPage type="privacy" />} />
+          <Route path="/terms" element={<InfoPage type="terms" />} />
+          <Route path="/cookies" element={<InfoPage type="cookies" />} />
+          <Route path="/help" element={<InfoPage type="help" />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/shop/:shopname" element={<ShopPage />} />
