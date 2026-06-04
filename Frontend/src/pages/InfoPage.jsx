@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   ShieldCheck, 
@@ -123,6 +123,11 @@ export default function InfoPage({ type = 'privacy' }) {
   const PageIcon = data.icon
   const [activeSection, setActiveSection] = useState(data.sections[0]?.id || '')
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    setActiveSection(data.sections[0]?.id || '')
+  }, [type])
+
   const breadcrumbs = [
     { label: 'Home', to: '/' },
     { label: data.title, to: null },
@@ -141,22 +146,19 @@ export default function InfoPage({ type = 'privacy' }) {
       <PageContainer>
         <ProductBreadcrumbs items={breadcrumbs} />
 
-        {/* Hero Section */}
-        <div className="relative mt-4 overflow-hidden rounded-3xl bg-[#0f1126] p-6 text-white shadow-md md:p-8">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-violet-600/10 blur-2xl" />
-          <div className="relative flex flex-col items-center gap-4 text-center md:flex-row md:text-left md:gap-6">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-violet-400">
-              <PageIcon className="h-8 w-8" />
+        {/* Page Header (Clean, Light Layout) */}
+        <div className="mt-6 flex flex-col gap-2 border-b border-slate-200 pb-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-dcc-primary">
+              <PageIcon className="h-5 w-5" />
             </span>
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                {data.title}
-              </h1>
-              <p className="mt-1 text-sm text-slate-400">
-                {data.subtitle}
-              </p>
-            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              {data.title}
+            </h1>
           </div>
+          <p className="text-xs text-slate-500 sm:text-sm">
+            {data.subtitle}
+          </p>
         </div>
 
         {/* Two Column Layout */}
