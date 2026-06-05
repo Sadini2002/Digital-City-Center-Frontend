@@ -15,7 +15,6 @@ This repository contains the frontend Registration module for the Digital City C
 - **React.js** (Vite)
 - **Tailwind CSS** (Custom Design System)
 - **React Router DOM**
-- **Axios**
 
 ## 🚀 How to Run Locally
 1. Ensure you have [Node.js](https://nodejs.org/) installed.
