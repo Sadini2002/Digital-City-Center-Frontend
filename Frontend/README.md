@@ -22,7 +22,12 @@ Create `.env` in `Frontend`:
 
 ```bash
 VITE_API_BASE_URL=http://localhost:5000/api
+
+# Cloudflare R2 / CDN (product & hero images)
+VITE_CDN_BASE_URL=https://pub-xxxxxxxx.r2.dev/dcc-assets
 ```
+
+See [docs/cloudflare-images.md](docs/cloudflare-images.md) for upload paths and setup.
 
 ## Available Scripts
 
