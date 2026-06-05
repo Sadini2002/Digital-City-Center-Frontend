@@ -1,16 +1,41 @@
-# React + Vite
+# Digital City Center - Registration UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📋 Overview
+This repository contains the frontend Registration module for the Digital City Center Platform (Phase 1). It provides a unified, responsive registration form for both Buyers and Sellers.
 
-Currently, two official plugins are available:
+## ✨ Features
+- **Dual Registration Form:** Seamlessly switch between Buyer and Seller registration using a toggle tab.
+- **Dynamic Fields:** Seller-specific fields (Business Name, Business Type) dynamically appear when the Seller tab is selected.
+- **Form Validation:** Client-side validation for required fields, email format, and password length (min 8 characters).
+- **Backend Integration:** Fully connected to the Node.js/Express backend API via Axios.
+- **Responsive UI:** Full-screen, edge-to-edge design optimized for desktop and mobile views.
+- **Success States:** Animated success screens (Email verification for Buyers, Application received for Sellers).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ Tech Stack
+- **React.js** (Vite)
+- **Tailwind CSS** (Custom Design System)
+- **React Router DOM**
+- **Axios**
 
-## React Compiler
+## 🚀 How to Run Locally
+1. Ensure you have [Node.js](https://nodejs.org/) installed.
+2. Clone this branch:
+   ```bash
+   git clone -b feature/auth-register-ui https://github.com/Sadini2002/Digital-City-Center-Frontend.git
+   ```
+3. Navigate to the project folder:
+   ```bash
+   cd Digital-City-Center-Frontend
+   ```
+4. Install dependencies:
+   ```bash
+   npm install
+   ```
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
+6. Open [http://localhost:5173/register](http://localhost:5173/register) in your browser.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+   git push
+   ```
