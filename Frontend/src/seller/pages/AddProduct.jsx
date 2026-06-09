@@ -49,6 +49,39 @@ export default function AddProduct() {
       return toast.error("Please upload at least one image");
     }
 
+    if (Number(price) < 0) {
+      return toast.error("Price cannot be negative");
+    }
+
+    if (Number(labelPrice) < 0) {
+      return toast.error("Label price cannot be negative");
+    }
+
+    if (itemType === 'physical' && Number(stock) < 0) {
+      return toast.error("Stock quantity cannot be negative");
+    }
+
+    if (Number(discountPercent) < 0 || Number(discountPercent) > 100) {
+      return toast.error("Discount percentage must be between 0 and 100");
+    }
+
+    const variantSizes = sizes
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const variantColors = colors
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean)
+
+    if (new Set(variantSizes.map((s) => s.toLowerCase())).size !== variantSizes.length) {
+      return toast.error('Duplicate size variants are not allowed');
+    }
+
+    if (new Set(variantColors.map((c) => c.toLowerCase())).size !== variantColors.length) {
+      return toast.error('Duplicate color variants are not allowed');
+    }
+
     try {
       const imageUrls = image.length > 0
         ? await Promise.all(image.map(mediaUpload))
@@ -74,8 +107,8 @@ export default function AddProduct() {
           isAvailable,
           itemType,
           variants: {
-            sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-            colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+            sizes: variantSizes,
+            colors: variantColors,
           },
           discount: {
             percent: Number(discountPercent),
@@ -110,8 +143,8 @@ export default function AddProduct() {
         isAvailable,
         itemType,
         variants: {
-          sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-          colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+          sizes: variantSizes,
+          colors: variantColors,
         },
         discount: {
           percent: Number(discountPercent),
@@ -175,8 +208,8 @@ export default function AddProduct() {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Price (Rs.)" type="number" value={price} onChange={setPrice} />
-            <Input label="Label Price" type="number" value={labelPrice} onChange={setLabelPrice} />
+            <Input label="Price (Rs.)" type="number" min="0" value={price} onChange={setPrice} />
+            <Input label="Label Price" type="number" min="0" value={labelPrice} onChange={setLabelPrice} />
           </div>
 
           {/* Description */}
@@ -238,6 +271,8 @@ export default function AddProduct() {
               <Input
                 label="Discount (%)"
                 type="number"
+                min="0"
+                max="100"
                 value={discountPercent}
                 onChange={setDiscountPercent}
               />
@@ -262,6 +297,7 @@ export default function AddProduct() {
               <Input
                 label="Stock Quantity"
                 type="number"
+                min="0"
                 value={stock}
                 onChange={setStock}
                 small
@@ -303,7 +339,7 @@ export default function AddProduct() {
   );
 }
 
-function Input({ label, value, onChange, type = "text", placeholder = "", small }) {
+function Input({ label, value, onChange, type = "text", placeholder = "", small, min, max }) {
   return (
     <div className={small ? "w-32" : "w-full"}>
       <label className="text-sm text-gray-600 font-medium">{label}</label>
@@ -311,6 +347,8 @@ function Input({ label, value, onChange, type = "text", placeholder = "", small 
         type={type}
         placeholder={placeholder}
         value={value}
+        min={min}
+        max={max}
         onChange={(e) => onChange(e.target.value)}
         className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
       />

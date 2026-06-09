@@ -11,12 +11,18 @@ import {
   formatAddressLines,
   generateOrderId,
   getDeliveryFee,
+  getPlatformSettings,
+  isAddressInCoverage,
+  isForeignAddress,
   isOnlinePayment,
   paymentMethods,
-  savedAddresses,
+  getSavedAddresses,
 } from '../data/checkoutData'
+import { DISTRICTS } from '../../delivery/data/constants'
+import { contactNumberError } from '../../utils/phoneValidation'
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
+import { addBuyerNotification, addSellerNotification } from '../../utils/notificationStorage'
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -47,6 +53,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const { cart, clearCart } = useShop()
 
+  const savedAddresses = useMemo(() => getSavedAddresses(), [])
   const defaultAddress = savedAddresses.find((a) => a.isDefault)?.id ?? savedAddresses[0]?.id
 
   const [addressMode, setAddressMode] = useState(defaultAddress ? 'saved' : 'new')
@@ -62,20 +69,22 @@ export default function CheckoutPage() {
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart],
   )
-  const deliveryFee = getDeliveryFee(deliveryMethod)
-  const total = subtotal + deliveryFee
 
-  if (cart.length === 0) {
-    return <Navigate to="/cart" replace />
-  }
-
-  const selectedSaved = savedAddresses.find((a) => a.id === selectedAddressId)
-
+  // resolveAddress must be defined before it is used in memo below
   const resolveAddress = () => {
+    const selectedSaved = savedAddresses.find((a) => a.id === selectedAddressId)
     if (addressMode === 'saved' && selectedSaved) {
       return selectedSaved
     }
     return { id: 'new', label: 'Delivery', ...newAddress }
+  }
+
+  const resolvedAddr = resolveAddress()
+  const deliveryFee = getDeliveryFee(deliveryMethod, resolvedAddr, subtotal)
+  const total = subtotal + deliveryFee
+
+  if (cart.length === 0) {
+    return <Navigate to="/cart" replace />
   }
 
   const validate = () => {
@@ -85,6 +94,19 @@ export default function CheckoutPage() {
     const addr = resolveAddress()
     if (!addr.name?.trim() || !addr.phone?.trim() || !addr.line1?.trim() || !addr.city?.trim()) {
       return 'Please complete your delivery address.'
+    }
+    const phoneErr = contactNumberError(addr.phone)
+    if (phoneErr) return phoneErr
+    if (!addr.district?.trim()) {
+      return 'Please select a valid Sri Lankan district.'
+    }
+    if (isForeignAddress(addr)) {
+      return 'We only deliver within Sri Lanka. Foreign or unsupported addresses are not accepted.'
+    }
+    if (deliveryMethod !== 'pickup' && !isAddressInCoverage(addr)) {
+      const settings = getPlatformSettings()
+      const areas = (settings.coverageAreas || []).join(', ')
+      return `Delivery is not available to ${addr.district}. Supported areas: ${areas}.`
     }
     return ''
   }
@@ -122,6 +144,17 @@ export default function CheckoutPage() {
         navigate(`${result.gatewayUrl}?method=${paymentMethod}`, { replace: true })
         return
       }
+
+      addBuyerNotification(
+        `Order Placed: ${orderId}`,
+        `Your order with total ${formatLkr(total)} has been successfully placed. We will notify you when it ships!`,
+        'success'
+      )
+      addSellerNotification(
+        `New Order Received: ${orderId}`,
+        `You have received a new order ${orderId} containing ${cart.length} items. Total: ${formatLkr(total)}.`,
+        'info'
+      )
 
       clearCart()
       setSubmitting(false)
@@ -291,13 +324,19 @@ export default function CheckoutPage() {
                     <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
                       District
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={newAddress.district}
                       onChange={updateNewAddress('district')}
                       className={inputClass}
                       required
-                    />
+                    >
+                      <option value="">Select district…</option>
+                      {DISTRICTS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -305,7 +344,9 @@ export default function CheckoutPage() {
 
             <CheckoutSection title="Delivery method" step={2}>
               <ul className="space-y-3">
-                {deliveryMethods.map((method) => (
+                {deliveryMethods.map((method) => {
+                  const dynamicFee = getDeliveryFee(method.id, resolvedAddr, subtotal)
+                  return (
                   <li key={method.id}>
                     <label
                       className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
@@ -331,12 +372,13 @@ export default function CheckoutPage() {
                           <p className="mt-1 text-xs text-slate-500">{method.eta}</p>
                         </div>
                         <span className="text-sm font-bold text-dcc-primary">
-                          {method.fee === 0 ? 'Free' : `LKR ${method.fee.toLocaleString('en-LK')}`}
+                          {dynamicFee === 0 ? 'Free' : `LKR ${dynamicFee.toLocaleString('en-LK')}`}
                         </span>
                       </div>
                     </label>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             </CheckoutSection>
 

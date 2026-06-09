@@ -2,6 +2,7 @@ export default function RoleToggle({ value, onChange }) {
   const options = [
     { id: 'buyer', label: 'Buyer' },
     { id: 'seller', label: 'Seller' },
+    { id: 'delivery', label: 'Delivery' },
   ]
 
   return (

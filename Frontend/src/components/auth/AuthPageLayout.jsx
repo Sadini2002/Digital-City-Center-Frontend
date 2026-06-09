@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const footerLinks = [
   { label: 'Privacy Policy', to: '/privacy' },
@@ -11,6 +11,9 @@ const footerLinks = [
 function AuthHeader({ variant }) {
   const isRegister = variant === 'register'
   const isForgot = variant === 'forgot'
+  const location = useLocation()
+  const isDelivery = location.pathname.includes('/delivery')
+  const loginUrl = isDelivery ? '/login?portal=delivery' : '/login'
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -25,7 +28,7 @@ function AuthHeader({ variant }) {
             </span>
           )}
           <Link
-            to="/login"
+            to={loginUrl}
             className="rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-dcc-primary-hover sm:px-6"
           >
             {isForgot ? 'Back to Sign In' : 'Sign In'}
@@ -61,7 +64,7 @@ function AuthFooter() {
 export default function AuthPageLayout({ variant = 'register', centered = false, children }) {
   const mainClass = centered
     ? 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col items-center justify-center px-3 py-8 sm:px-6 sm:py-12 lg:px-8'
-    : 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col-reverse gap-6 px-3 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:flex-row lg:items-center lg:gap-14 lg:px-8 lg:py-12'
+    : 'mx-auto flex w-full min-w-0 max-w-7xl flex-1 flex-col-reverse gap-6 px-3 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:flex-row lg:items-start lg:gap-14 lg:px-8 lg:py-12'
 
   return (
     <div className="flex min-h-dvh min-w-0 flex-col overflow-x-hidden bg-dcc-auth">

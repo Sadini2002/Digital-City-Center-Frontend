@@ -45,10 +45,10 @@ const productSpecificImages = {
   // Beauty
   'beauty-serum': 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400&auto=format&fit=crop&q=60',
   'beauty-lipstick': 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400&auto=format&fit=crop&q=60',
-  'beauty-sunscreen': 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=400&auto=format&fit=crop&q=60',
+  'beauty-sunscreen': '/images/products/beauty-sunscreen.png',
   'beauty-perfume': 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&auto=format&fit=crop&q=60',
   'beauty-shampoo': 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400&auto=format&fit=crop&q=60',
-  'beauty-face-mask': 'https://images.unsplash.com/photo-1567894192231-d22d9c12214d?w=400&auto=format&fit=crop&q=60',
+  'beauty-face-mask': '/images/products/beauty-face-mask.png',
 
   // Sports
   'sports-yoga-mat': 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&auto=format&fit=crop&q=60',
@@ -61,7 +61,7 @@ const productSpecificImages = {
   // Kids
   'kids-building-blocks': 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=400&auto=format&fit=crop&q=60',
   'kids-stuffed-bear': 'https://images.unsplash.com/photo-1559251606-c623743a6d76?w=400&auto=format&fit=crop&q=60',
-  'kids-scooter': 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=400&auto=format&fit=crop&q=60',
+  'kids-scooter': '/images/products/kids-scooter.png',
   'kids-story-books': 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400&auto=format&fit=crop&q=60',
   'kids-art-kit': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&auto=format&fit=crop&q=60',
   'kids-puzzle': 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=400&auto=format&fit=crop&q=60',

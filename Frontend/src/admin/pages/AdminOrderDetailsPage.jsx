@@ -1,12 +1,95 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { getOrderById, getOrderProgress, updateOrderStatus } from '../../buyer'
 import { formatLkr } from '../../components/category/categoryData'
+import { getDeliveryProviders } from '../utils/adminStorage'
+import { addDeliveryNotification } from '../../delivery/utils/deliveryStorage'
 
 export default function AdminOrderDetailsPage() {
   const { id } = useParams()
   const [order, setOrder] = useState(() => getOrderById(id || ''))
   const [disputeNote, setDisputeNote] = useState(() => order?.dispute?.note || '')
+
+  const [providers] = useState(() => getDeliveryProviders().filter(p => p.status === 'approved'))
+  const [selectedProviderId, setSelectedProviderId] = useState('')
+  
+  // Find if there is an existing job for this order
+  const getExistingJob = () => {
+    try {
+      const jobs = JSON.parse(localStorage.getItem('dcc_delivery_jobs') || '[]')
+      return jobs.find(j => j.order?.orderNumber === order?.id || j.order?.id === order?.id)
+    } catch {
+      return null
+    }
+  }
+  
+  const [assignedJob, setAssignedJob] = useState(() => getExistingJob())
+
+  const handleAssignProvider = () => {
+    if (!selectedProviderId) {
+      toast.error('Please select a delivery provider.')
+      return
+    }
+    const selectedProvider = providers.find(p => p.id === selectedProviderId)
+    if (!selectedProvider) return
+    
+    try {
+      const jobs = JSON.parse(localStorage.getItem('dcc_delivery_jobs') || '[]')
+      
+      // Check if already assigned
+      const exists = jobs.find(j => j.order?.orderNumber === order.id || j.order?.id === order.id)
+      if (exists) {
+        toast.error('This order is already assigned to a delivery provider.')
+        return
+      }
+
+      const newJob = {
+        id: `del-${Date.now()}`,
+        trackingCode: `DCC-DLV-${Math.floor(1000 + Math.random() * 9000)}`,
+        status: 'CONFIRMED',
+        pickupAddress: 'Digital City Center Warehouse, Colombo 03',
+        deliveryAddress: order.shippingAddress 
+          ? `${order.shippingAddress.fullName || 'Customer'}, ${order.shippingAddress.street || ''}, ${order.shippingAddress.city || ''}`
+          : 'Colombo, Sri Lanka',
+        feeAmount: 450,
+        order: { orderNumber: order.id, id: order.id },
+        assignedDriverId: null,
+        deliveryProviderId: selectedProvider.id,
+        deliveryProviderName: selectedProvider.name,
+        createdAt: new Date().toISOString(),
+        statusHistory: [
+          { 
+            id: `h-${Date.now()}`, 
+            status: 'CONFIRMED', 
+            note: `Delivery assigned to ${selectedProvider.name} by Admin`, 
+            createdAt: new Date().toISOString() 
+          }
+        ],
+      }
+      
+      jobs.push(newJob)
+      localStorage.setItem('dcc_delivery_jobs', JSON.stringify(jobs))
+      setAssignedJob(newJob)
+
+      addDeliveryNotification(
+        'New delivery assignment',
+        `Order ${order.id} has been assigned to ${selectedProvider.name}. Tracking code: ${newJob.trackingCode}. Pickup: ${newJob.pickupAddress}`,
+      )
+
+      // Update order status/trackingStatus in order storage
+      const next = updateOrderStatus(order.id, order.status, {
+        trackingStatus: 'assigned',
+        deliveryProviderId: selectedProvider.id,
+        deliveryProviderName: selectedProvider.name,
+      })
+      if (next) setOrder(next)
+      
+      toast.success(`Order assigned to ${selectedProvider.name} successfully!`)
+    } catch (e) {
+      toast.error('Failed to assign provider: ' + e.message)
+    }
+  }
 
   if (!order) {
     return (
@@ -83,6 +166,74 @@ export default function AdminOrderDetailsPage() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
+        <h2 className="text-lg font-bold text-slate-900">Delivery Assignment</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Assign this order to an approved third-party courier or platform delivery provider.
+        </p>
+
+        {assignedJob ? (
+          <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-teal-800">Assigned Successfully</span>
+              <span className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-semibold text-teal-800 border border-teal-200">
+                {assignedJob.status}
+              </span>
+            </div>
+            <div className="grid gap-2 text-sm sm:grid-cols-2 pt-2">
+              <div>
+                <span className="font-semibold text-slate-700">Provider:</span>{' '}
+                <span className="text-slate-900">{assignedJob.deliveryProviderName}</span>
+              </div>
+              <div>
+                <span className="font-semibold text-slate-700">Tracking Code:</span>{' '}
+                <span className="text-slate-900">{assignedJob.trackingCode}</span>
+              </div>
+              {assignedJob.assignedDriverId && (
+                <div>
+                  <span className="font-semibold text-slate-700">Driver ID:</span>{' '}
+                  <span className="text-slate-900">{assignedJob.assignedDriverId}</span>
+                </div>
+              )}
+              <div>
+                <span className="font-semibold text-slate-700">Fee:</span>{' '}
+                <span className="text-slate-900">LKR {assignedJob.feeAmount}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {providers.length === 0 ? (
+              <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4 text-sm text-amber-800">
+                No active/approved delivery providers available. Go to the <strong>Delivery</strong> tab to approve one first.
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedProviderId}
+                  onChange={(e) => setSelectedProviderId(e.target.value)}
+                  className="flex-1 rounded-lg border border-dcc-primary/20 bg-dcc-auth px-3 py-2.5 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15"
+                >
+                  <option value="">Select a Delivery Provider...</option>
+                  {providers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAssignProvider}
+                  className="rounded-lg bg-dcc-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover shadow-sm transition"
+                >
+                  Assign Provider
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">

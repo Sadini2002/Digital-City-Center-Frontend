@@ -1,5 +1,6 @@
-import { getAllCategoryListings } from '../components/category/categoryData'
+import { getAllCategoryListings, getEnabledCategorySlugs } from '../components/category/categoryData'
 import { searchResults } from '../components/search/searchData'
+import { shopsCatalog } from './shopsData'
 
 export const SEARCH_CATEGORY_SLUGS = {
   'All Categories': '',
@@ -23,9 +24,12 @@ function enrichProduct(product, index) {
 }
 
 function buildCatalog() {
+  const activeCategories = new Set(getEnabledCategorySlugs())
   const byId = new Map()
   let index = 0
   const add = (product) => {
+    const categorySlug = product.categorySlug
+    if (categorySlug && !activeCategories.has(categorySlug)) return
     byId.set(product.id, enrichProduct(product, index))
     index += 1
   }
@@ -73,7 +77,7 @@ export function searchProducts(query, options = {}) {
 
   return list
     .filter((product) => {
-      const haystack = `${product.brand} ${product.name} ${product.categorySlug || ''}`.toLowerCase()
+      const haystack = `${product.brand} ${product.name} ${product.categoryLabel ?? ''} ${product.categorySlug ?? ''} ${product.seller ?? ''}`.toLowerCase()
       return terms.every((term) => haystack.includes(term))
     })
     .sort((a, b) => relevanceScore(b, trimmed) - relevanceScore(a, trimmed))
@@ -133,6 +137,10 @@ export function toBestMatch(product) {
       ? Math.round((1 - product.price / product.originalPrice) * 100)
       : null
 
+  const shopId = product.shopId
+  const shop = shopsCatalog.find((s) => s.id === shopId || s.slug === shopId)
+  const sellerName = shop ? shop.name : 'Tech World LK'
+
   return {
     id: product.id,
     title: `${product.brand} ${product.name}`,
@@ -141,7 +149,7 @@ export function toBestMatch(product) {
     discount,
     rating: product.rating,
     reviews: product.reviews ?? product.sales ?? 0,
-    seller: 'Tech World LK',
+    seller: sellerName,
     location: product.sellerLocation
       ? product.sellerLocation.charAt(0).toUpperCase() + product.sellerLocation.slice(1)
       : 'Colombo',

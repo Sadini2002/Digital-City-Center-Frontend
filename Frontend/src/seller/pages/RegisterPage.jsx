@@ -296,7 +296,7 @@ export default function SellerRegisterPage() {
                 </button>
               ) : (
                 <Link
-                  to="/login"
+                  to="/login?portal=seller"
                   className="text-sm font-semibold text-slate-500 hover:text-dcc-primary"
                 >
                   Already have an account? Sign in

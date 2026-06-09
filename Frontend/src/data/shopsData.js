@@ -61,7 +61,25 @@ export function getShopProducts(shop) {
   // 2. Add local storage products created by the seller for this shop
   try {
     const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-    const sellerProducts = localProducts.filter((p) => p.shopId === shop.id)
+    const sellerProducts = localProducts
+      .filter((p) => (p.shopId === shop.id || p.shopId === shop.slug) && p.isAvailable !== false && (p.stock == null || Number(p.stock) > 0))
+      .map((p) => {
+        const id = p.productId || p._id || p.id
+        const discountPercent = p.discount?.percent || (p.labelPrice && p.labelPrice > p.price ? Math.round(((p.labelPrice - p.price) / p.labelPrice) * 100) : 0)
+        return {
+          ...p,
+          id,
+          name: p.name,
+          price: p.price,
+          originalPrice: p.labelPrice || null,
+          image: Array.isArray(p.image) ? p.image[0] : p.image,
+          rating: p.rating || 4.7,
+          reviews: p.reviews || 12,
+          badge: discountPercent > 0 ? { label: `-${discountPercent}%`, type: 'sale' } : null,
+          categorySlug: p.categorySlug || shop.categorySlug,
+          shopId: p.shopId || shop.id
+        }
+      })
     return [...shopProducts, ...sellerProducts]
   } catch {
     return shopProducts

@@ -10,7 +10,7 @@ export default function CheckoutOrderSummary({ cart, subtotal, deliveryFee }) {
 
       <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
         {cart.map((item) => (
-          <li key={item.id} className="flex gap-3">
+          <li key={item.lineId ?? item.id} className="flex gap-3">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-50 p-1">
               <CdnImage src={item.image} alt="" className="max-h-full max-w-full object-contain" />
             </div>

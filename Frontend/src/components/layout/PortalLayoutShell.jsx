@@ -4,6 +4,7 @@ import SiteLayout from '../../layouts/SiteLayout'
 import BrandLogo from './BrandLogo'
 import PageContainer from './PageContainer'
 import ProductBreadcrumbs from '../product/ProductBreadcrumbs'
+import NotificationPanel from './NotificationPanel'
 
 /**
  * Shared chrome for seller + delivery dashboards: marketplace header/footer
@@ -44,18 +45,32 @@ export default function PortalLayoutShell({
   }
 
   return (
-    <SiteLayout className="bg-slate-50">
+    <SiteLayout className="bg-slate-50" showHeader={false} showFooter={false}>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white shadow-sm">
           <PageContainer className="flex flex-wrap items-center justify-between gap-4 py-3.5">
-            <div className="min-w-0">
-              <BrandLogo />
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-dcc-primary">
-                {portalLabel}
-              </p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                to="/"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-dcc-primary text-xl font-bold text-white transition hover:bg-dcc-primary-hover"
+              >
+                D
+              </Link>
+              <div className="min-w-0">
+                <Link
+                  to="/"
+                  className="block text-base font-bold text-dcc-primary transition hover:text-dcc-primary-hover sm:text-lg leading-tight"
+                >
+                  Digital City Center
+                </Link>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-dcc-primary leading-none">
+                  {portalLabel}
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {portalHeaderExtra}
+              <NotificationPanel role="seller" />
               <Link
                 to="/"
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"

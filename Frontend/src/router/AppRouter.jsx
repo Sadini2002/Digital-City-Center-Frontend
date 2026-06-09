@@ -6,13 +6,14 @@ import ForgotPassword from '../pages/ForgotPassword'
 import HomePage from '../pages/HomePage'
 import Login from '../pages/Login'
 import NotFoundPage from '../pages/NotFoundPage'
-import PlaceholderPage from '../pages/PlaceholderPage'
 import CategoryPage from '../pages/CategoryPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import Register from '../pages/Register'
 import SearchResultsPage from '../pages/SearchResultsPage'
 import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
+import DealsPage from '../pages/DealsPage'
+import InfoPage from '../pages/InfoPage'
 
 import {
   AccountPage,
@@ -50,6 +51,7 @@ import {
   DeliveryAnalyticsPage,
   DeliveryDriversPage,
   DeliveryDriverProfilePage,
+  DeliverySettingsPage,
   DeliveryNotificationsPage,
   DeliveryLayout,
   DeliveryRoute,
@@ -71,6 +73,7 @@ import {
   AnnouncementsPage,
   CommissionSettingsPage,
   ReportsPage,
+  PlatformSettingsPage,
 } from '../admin'
 
 
@@ -100,7 +103,7 @@ function AppRouter() {
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="commission" element={<CommissionSettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<CommissionSettingsPage />} />
+          <Route path="settings" element={<PlatformSettingsPage />} />
         </Route>
         <Route path="/register" element={<Register />} />
         <Route path="/register/seller" element={<SellerRegisterPage />} />
@@ -134,6 +137,7 @@ function AppRouter() {
             <Route path="profile" element={<DeliveryDriverProfilePage />} />
             <Route element={<DeliveryProviderOnlyRoute />}>
               <Route path="drivers" element={<DeliveryDriversPage />} />
+              <Route path="settings" element={<DeliverySettingsPage />} />
             </Route>
             <Route path="notifications" element={<DeliveryNotificationsPage />} />
           </Route>
@@ -162,7 +166,11 @@ function AppRouter() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/shops" element={<ShopsPage />} />
-          <Route path="/deals" element={<PlaceholderPage title="Deals" description="Flash deals and limited-time offers." />} />
+          <Route path="/deals" element={<DealsPage />} />
+          <Route path="/privacy" element={<InfoPage type="privacy" />} />
+          <Route path="/terms" element={<InfoPage type="terms" />} />
+          <Route path="/cookies" element={<InfoPage type="cookies" />} />
+          <Route path="/help" element={<InfoPage type="help" />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/shop/:shopname" element={<ShopPage />} />
