@@ -7,6 +7,7 @@ import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { DISTRICTS, PROVINCES } from '../data/constants'
 import { saveDeliveryApplication } from '../utils/deliveryApplicationStorage'
+import { contactNumberError } from '../../utils/phoneValidation'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15'
@@ -77,12 +78,13 @@ export default function DeliveryRegisterPage() {
     fullName: '',
     email: '',
     password: '',
-    phone: '',
+    contactNumber: '',
     companyName: '',
     businessRegNo: '',
     district: 'Colombo',
     serviceAreas: ['Colombo'],
   })
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const toggleArea = (area) => {
     setForm((prev) => {
@@ -96,9 +98,15 @@ export default function DeliveryRegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const phoneErr = contactNumberError(form.contactNumber)
+    if (phoneErr) {
+      setFieldErrors({ contactNumber: phoneErr })
+      return
+    }
+    setFieldErrors({})
     setIsSubmitting(true)
     try {
-      saveDeliveryApplication(form)
+      saveDeliveryApplication({ ...form, phone: form.contactNumber })
       navigate('/delivery/application-status', { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed.')
@@ -163,12 +171,18 @@ export default function DeliveryRegisterPage() {
                 variant="auth"
               />
               <AuthInput
-                id="phone"
-                label="Phone Number"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                id="contactNumber"
+                label="Contact Number"
+                type="tel"
+                value={form.contactNumber}
+                onChange={(e) => {
+                  setForm({ ...form, contactNumber: e.target.value })
+                  if (fieldErrors.contactNumber) setFieldErrors({})
+                }}
+                placeholder="077 123 4567 or +94 77 123 4567"
                 required
                 variant="auth"
+                error={fieldErrors.contactNumber}
               />
               <AuthInput
                 id="businessRegNo"

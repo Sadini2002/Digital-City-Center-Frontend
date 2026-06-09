@@ -12,10 +12,14 @@ import {
   generateOrderId,
   getDeliveryFee,
   getPlatformSettings,
+  isAddressInCoverage,
+  isForeignAddress,
   isOnlinePayment,
   paymentMethods,
   getSavedAddresses,
 } from '../data/checkoutData'
+import { DISTRICTS } from '../../delivery/data/constants'
+import { contactNumberError } from '../../utils/phoneValidation'
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
 import { addBuyerNotification, addSellerNotification } from '../../utils/notificationStorage'
@@ -76,7 +80,7 @@ export default function CheckoutPage() {
   }
 
   const resolvedAddr = resolveAddress()
-  const deliveryFee = getDeliveryFee(deliveryMethod, resolvedAddr)
+  const deliveryFee = getDeliveryFee(deliveryMethod, resolvedAddr, subtotal)
   const total = subtotal + deliveryFee
 
   if (cart.length === 0) {
@@ -91,16 +95,18 @@ export default function CheckoutPage() {
     if (!addr.name?.trim() || !addr.phone?.trim() || !addr.line1?.trim() || !addr.city?.trim()) {
       return 'Please complete your delivery address.'
     }
-    
-    // Validate that address is supported (not a foreign address keywords)
-    const settings = getPlatformSettings()
-    const keywords = (settings.unsupportedKeywords || '')
-      .split(',')
-      .map((k) => k.trim().toLowerCase())
-      .filter(Boolean)
-    const addressStr = `${addr.line1} ${addr.line2 || ''} ${addr.city} ${addr.district || ''}`.toLowerCase()
-    if (keywords.some((k) => addressStr.includes(k))) {
-      return 'We only deliver within Sri Lanka. Foreign addresses are not supported.'
+    const phoneErr = contactNumberError(addr.phone)
+    if (phoneErr) return phoneErr
+    if (!addr.district?.trim()) {
+      return 'Please select a valid Sri Lankan district.'
+    }
+    if (isForeignAddress(addr)) {
+      return 'We only deliver within Sri Lanka. Foreign or unsupported addresses are not accepted.'
+    }
+    if (deliveryMethod !== 'pickup' && !isAddressInCoverage(addr)) {
+      const settings = getPlatformSettings()
+      const areas = (settings.coverageAreas || []).join(', ')
+      return `Delivery is not available to ${addr.district}. Supported areas: ${areas}.`
     }
     return ''
   }
@@ -318,13 +324,19 @@ export default function CheckoutPage() {
                     <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
                       District
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={newAddress.district}
                       onChange={updateNewAddress('district')}
                       className={inputClass}
                       required
-                    />
+                    >
+                      <option value="">Select district…</option>
+                      {DISTRICTS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -333,7 +345,7 @@ export default function CheckoutPage() {
             <CheckoutSection title="Delivery method" step={2}>
               <ul className="space-y-3">
                 {deliveryMethods.map((method) => {
-                  const dynamicFee = getDeliveryFee(method.id, resolvedAddr)
+                  const dynamicFee = getDeliveryFee(method.id, resolvedAddr, subtotal)
                   return (
                   <li key={method.id}>
                     <label

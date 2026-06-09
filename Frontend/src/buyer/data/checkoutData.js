@@ -1,3 +1,6 @@
+import { normalizePlatformSettings } from '../../admin/utils/adminStorage'
+import { DISTRICTS } from '../../delivery/data/constants'
+
 export const savedAddresses = [
   {
     id: 'home-colombo',
@@ -166,37 +169,117 @@ export function formatAddressLines(address) {
 export function getPlatformSettings() {
   try {
     const raw = localStorage.getItem('dcc_platform_settings')
-    return raw ? JSON.parse(raw) : {
-      platformName: 'Digital City Center',
-      contactEmail: 'info@dcc.lk',
-      baseFee: 450,
-      outOfColomboFee: 200,
-      supportedCountry: 'Sri Lanka',
-      unsupportedKeywords: 'india, bengaluru, bangalore, chennai, delhi, mumbai, usa, united states, london, pakistan, bangladesh',
-    }
+    return normalizePlatformSettings(raw ? JSON.parse(raw) : {})
   } catch {
-    return {
-      platformName: 'Digital City Center',
-      contactEmail: 'info@dcc.lk',
-      baseFee: 450,
-      outOfColomboFee: 200,
-      supportedCountry: 'Sri Lanka',
-      unsupportedKeywords: 'india, bengaluru, bangalore, chennai, delhi, mumbai, usa, united states, london, pakistan, bangladesh',
-    }
+    return normalizePlatformSettings({})
   }
 }
 
-export function getDeliveryFee(methodId, address) {
+/** Approximate road distance (km) from Colombo hub to each Sri Lankan district. */
+const DISTRICT_DISTANCE_KM = {
+  colombo: 5,
+  gampaha: 28,
+  kalutara: 42,
+  kandy: 115,
+  matale: 142,
+  'nuwara eliya': 170,
+  galle: 115,
+  matara: 155,
+  hambantota: 245,
+  jaffna: 395,
+  kilinochchi: 320,
+  mannar: 340,
+  vavuniya: 255,
+  mullaitivu: 285,
+  batticaloa: 305,
+  ampara: 350,
+  trincomalee: 255,
+  kurunegala: 105,
+  puttalam: 130,
+  anuradhapura: 205,
+  polonnaruwa: 215,
+  badulla: 230,
+  moneragala: 270,
+  ratnapura: 95,
+  kegalle: 78,
+}
+
+export function estimateDistanceKm(address) {
+  const district = String(address?.district || address?.city || '').trim().toLowerCase()
+  if (!district) return 10
+  return DISTRICT_DISTANCE_KM[district] ?? 50
+}
+
+export function isForeignAddress(address) {
   const settings = getPlatformSettings()
-  const base = methodId === 'courier' ? 650 : (methodId === 'pickup' ? 0 : Number(settings.baseFee ?? 450))
+  const keywords = (settings.unsupportedKeywords || '')
+    .split(',')
+    .map((k) => k.trim().toLowerCase())
+    .filter(Boolean)
+  const addressStr = [
+    address?.line1,
+    address?.line2,
+    address?.city,
+    address?.district,
+    address?.country,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (keywords.some((k) => addressStr.includes(k))) return true
+
+  const country = String(address?.country || settings.supportedCountry || 'Sri Lanka').trim().toLowerCase()
+  if (country && country !== 'sri lanka' && country !== 'lk') return true
+
+  const district = String(address?.district || '').trim()
+  if (district && !DISTRICTS.some((d) => d.toLowerCase() === district.toLowerCase())) {
+    return true
+  }
+
+  return false
+}
+
+export function isAddressInCoverage(address) {
+  const settings = getPlatformSettings()
+  const areas = settings.coverageAreas || []
+  const district = String(address?.district || address?.city || '').trim().toLowerCase()
+  if (!district) return false
+  return areas.some((a) => a.toLowerCase() === district)
+}
+
+export function getDeliveryFee(methodId, address, subtotal = 0) {
+  const settings = getPlatformSettings()
   if (methodId === 'pickup') return 0
-  if (!address) return base
+
+  const courierPremium = methodId === 'courier' ? 200 : 0
+
+  if (!address) {
+    const fallback = settings.pricingModel === 'flat'
+      ? Number(settings.flatFee ?? 450)
+      : Number(settings.baseFee ?? 450)
+    return fallback + courierPremium
+  }
+
+  if (subtotal > 0 && Number(settings.freeThreshold) > 0 && subtotal >= Number(settings.freeThreshold)) {
+    return 0
+  }
+
+  if (settings.pricingModel === 'flat') {
+    return Number(settings.flatFee ?? 450) + courierPremium
+  }
+
+  const distanceKm = estimateDistanceKm(address)
+  const baseFee = Number(settings.baseFee ?? 450)
+  const perKmFee = Number(settings.perKmFee ?? 50)
+  let fee = baseFee + distanceKm * perKmFee
 
   const district = String(address.district || address.city || '').trim().toLowerCase()
   if (district && district !== 'colombo') {
-    return base + Number(settings.outOfColomboFee ?? 200)
+    fee += Number(settings.outOfColomboFee ?? 200)
   }
-  return base
+
+  return Math.round(fee + courierPremium)
 }
 
 export function generateOrderId() {

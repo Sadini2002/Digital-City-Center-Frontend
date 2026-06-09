@@ -65,15 +65,39 @@ export default function DeliverySettingsPage() {
   }
 
   const handleSave = () => {
+    const parsedBase = Number(baseFee)
+    const parsedPerKm = Number(perKmFee)
+    const parsedFlat = Number(flatFee)
+    const parsedThreshold = Number(freeThreshold)
+
+    if (pricingModel === 'distance') {
+      if (isNaN(parsedBase) || parsedBase < 0) {
+        toast.error('Base fee must be a non-negative number.')
+        return
+      }
+      if (isNaN(parsedPerKm) || parsedPerKm < 0) {
+        toast.error('Per-km rate must be a non-negative number.')
+        return
+      }
+    } else if (isNaN(parsedFlat) || parsedFlat < 0) {
+      toast.error('Flat fee must be a non-negative number.')
+      return
+    }
+
+    if (isNaN(parsedThreshold) || parsedThreshold < 0) {
+      toast.error('Free delivery threshold must be a non-negative number.')
+      return
+    }
+
     setSaving(true)
     setTimeout(() => {
       const settings = {
         coverageAreas,
         pricingModel,
-        baseFee: Number(baseFee),
-        perKmFee: Number(perKmFee),
-        freeThreshold: Number(freeThreshold),
-        flatFee: Number(flatFee),
+        baseFee: parsedBase,
+        perKmFee: parsedPerKm,
+        freeThreshold: parsedThreshold,
+        flatFee: parsedFlat,
       }
       localStorage.setItem('dcc_delivery_provider_settings', JSON.stringify(settings))
       setSaving(false)

@@ -192,6 +192,20 @@ export function saveNotifications(list) {
   writeJson(NOTIFICATIONS_KEY, list)
 }
 
+export function addDeliveryNotification(title, body) {
+  const list = getNotifications()
+  const notification = {
+    id: `dn-${Date.now()}`,
+    title,
+    body,
+    read: false,
+    createdAt: nowIso(),
+  }
+  list.unshift(notification)
+  saveNotifications(list)
+  return notification
+}
+
 export function getTrackingPoints(deliveryId) {
   const all = readJson(TRACKING_KEY, {})
   return all[deliveryId] || []
@@ -260,6 +274,10 @@ export function acceptDelivery(id, driverId = 'driver-demo') {
   }
   list[idx] = updated
   saveDeliveries(list)
+  addDeliveryNotification(
+    'Delivery accepted',
+    `${updated.trackingCode} has been assigned to you. Pickup: ${updated.pickupAddress}`,
+  )
   return updated
 }
 

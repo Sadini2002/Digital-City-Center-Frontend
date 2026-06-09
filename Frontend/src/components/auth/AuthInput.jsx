@@ -9,6 +9,7 @@ export default function AuthInput({
   icon: Icon,
   rightElement,
   hint,
+  error,
   required,
   autoComplete,
   variant = 'default',
@@ -37,13 +38,14 @@ export default function AuthInput({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
-          className={`w-full min-w-0 rounded-lg border py-3 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-dcc-primary/15 sm:py-2.5 sm:text-sm ${inputSurface} ${Icon ? 'pl-10' : 'px-3'} ${rightElement ? 'pr-10' : 'pr-3'}`}
+          className={`w-full min-w-0 rounded-lg border py-3 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-dcc-primary/15 sm:py-2.5 sm:text-sm ${error ? 'border-red-300 bg-red-50/50 focus:border-red-400 focus:ring-red-200' : inputSurface} ${Icon ? 'pl-10' : 'px-3'} ${rightElement ? 'pr-10' : 'pr-3'}`}
         />
         {rightElement && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">{rightElement}</div>
         )}
       </div>
-      {hint && <p className="mt-1.5 text-xs text-slate-500">{hint}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      {!error && hint && <p className="mt-1.5 text-xs text-slate-500">{hint}</p>}
     </div>
   )
 }

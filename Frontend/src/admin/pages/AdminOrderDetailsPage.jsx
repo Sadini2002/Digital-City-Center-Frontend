@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { getOrderById, getOrderProgress, updateOrderStatus } from '../../buyer'
 import { formatLkr } from '../../components/category/categoryData'
 import { getDeliveryProviders } from '../utils/adminStorage'
+import { addDeliveryNotification } from '../../delivery/utils/deliveryStorage'
 
 export default function AdminOrderDetailsPage() {
   const { id } = useParams()
@@ -70,7 +71,12 @@ export default function AdminOrderDetailsPage() {
       jobs.push(newJob)
       localStorage.setItem('dcc_delivery_jobs', JSON.stringify(jobs))
       setAssignedJob(newJob)
-      
+
+      addDeliveryNotification(
+        'New delivery assignment',
+        `Order ${order.id} has been assigned to ${selectedProvider.name}. Tracking code: ${newJob.trackingCode}. Pickup: ${newJob.pickupAddress}`,
+      )
+
       // Update order status/trackingStatus in order storage
       const next = updateOrderStatus(order.id, order.status, {
         trackingStatus: 'assigned',

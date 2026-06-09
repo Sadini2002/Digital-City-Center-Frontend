@@ -37,8 +37,9 @@ function RejectModal({ provider, onConfirm, onCancel }) {
           </button>
           <button
             type="button"
+            disabled={!reason.trim()}
             onClick={() => onConfirm(reason.trim())}
-            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Confirm Rejection
           </button>
