@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { getOrders } from '../../buyer'
 import DashboardCard from '../components/DashboardCard'
 import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send, Calendar } from 'lucide-react'
+import { addSellerNotification } from '../../utils/notificationStorage'
 
 export default function Earnings() {
   const [orders, setOrders] = useState([])
@@ -82,6 +83,12 @@ export default function Earnings() {
       setPayouts(nextPayouts)
       setRequestingPayout(false)
       toast.success('Payout request submitted successfully! Funds will clear in 24 hours.')
+      // Fire seller notification for payout request
+      addSellerNotification(
+        `Payout Requested: ${newPayout.id}`,
+        `Your payout request of LKR ${Number(availableBalance).toLocaleString('en-LK')} has been submitted. Funds will be cleared to HNB Bank (*4829) within 24 hours.`,
+        'info'
+      )
     }, 1200)
   }
 

@@ -3,12 +3,24 @@ import { X, ZoomIn } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
 import WishlistButton from '../common/WishlistButton'
 
-export default function ProductGallery({ images, badges, product }) {
+export default function ProductGallery({ images, badges, product, selectedColorId }) {
   const galleryImages = images.filter(Boolean)
   const [activeIndex, setActiveIndex] = useState(0)
   const activeSrc = galleryImages[activeIndex]
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [zoomStyle, setZoomStyle] = useState({ transformOrigin: 'center', transform: 'scale(1)' })
+  // Inline card zoom (hover on main image without opening lightbox)
+  const [cardZoomStyle, setCardZoomStyle] = useState({ transformOrigin: 'center', transform: 'scale(1)', transition: 'transform 0.1s ease-out' })
+
+  // When selectedColorId changes, find the matching image and update the active index
+  useEffect(() => {
+    if (!selectedColorId || !product?.colors) return
+    const color = product.colors.find((c) => c.id === selectedColorId)
+    const index = color?.imageIndex
+    if (index !== undefined && galleryImages[index] !== undefined) {
+      setActiveIndex(index)
+    }
+  }, [selectedColorId, product?.colors, galleryImages])
 
   useEffect(() => {
     if (isLightboxOpen) {
@@ -26,6 +38,7 @@ export default function ProductGallery({ images, badges, product }) {
     }
   }, [isLightboxOpen])
 
+  // Lightbox zoom (zoom within full-screen lightbox)
   const handleMouseMove = (e) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - left) / width) * 100
@@ -40,6 +53,26 @@ export default function ProductGallery({ images, badges, product }) {
     setZoomStyle({
       transformOrigin: 'center',
       transform: 'scale(1)',
+    })
+  }
+
+  // Inline card zoom handlers (hover directly on the main product card image)
+  const handleCardMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - left) / width) * 100
+    const y = ((e.clientY - top) / height) * 100
+    setCardZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: 'scale(2)',
+      transition: 'transform 0.1s ease-out',
+    })
+  }
+
+  const handleCardMouseLeave = () => {
+    setCardZoomStyle({
+      transformOrigin: 'center',
+      transform: 'scale(1)',
+      transition: 'transform 0.2s ease-out',
     })
   }
 
@@ -74,13 +107,20 @@ export default function ProductGallery({ images, badges, product }) {
           ))}
         </div>
         {activeSrc ? (
-          <button
-            type="button"
-            className="w-full h-full cursor-zoom-in flex items-center justify-center bg-transparent"
+          /* Inline zoom container — hover zooms image, click opens lightbox */
+          <div
+            className="w-full h-full overflow-hidden cursor-zoom-in"
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
             onClick={() => setIsLightboxOpen(true)}
           >
-            <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover" />
-          </button>
+            <img
+              src={activeSrc}
+              alt="Product"
+              style={cardZoomStyle}
+              className="aspect-square w-full object-cover select-none"
+            />
+          </div>
         ) : (
           <div className="aspect-square w-full bg-slate-100" aria-hidden />
         )}

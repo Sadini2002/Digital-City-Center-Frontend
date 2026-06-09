@@ -5,6 +5,7 @@ import { useShop } from '../../buyer'
 import UtilityTopBar from './UtilityTopBar'
 import BrandLogo from './BrandLogo'
 import HeaderSearch from './HeaderSearch'
+import NotificationPanel from './NotificationPanel'
 
 const navItems = [
   { to: '/', label: 'Home', end: true },
@@ -108,6 +109,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
                 </span>
               )}
             </Link>
+            <NotificationPanel role="buyer" />
             <Link
               to="/cart"
               className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"

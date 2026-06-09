@@ -28,8 +28,8 @@ function SearchResultsContent({ query, categorySlug }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const matchedProducts = useMemo(
-    () => searchProducts(query, { categorySlug: '' }),
-    [query],
+    () => searchProducts(query, { categorySlug }),
+    [query, categorySlug],
   )
 
   const filteredProducts = useMemo(() => {

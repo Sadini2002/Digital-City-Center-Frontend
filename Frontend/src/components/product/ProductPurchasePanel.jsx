@@ -30,12 +30,13 @@ function StarRating({ rating }) {
   )
 }
 
-export default function ProductPurchasePanel({ product }) {
+export default function ProductPurchasePanel({ product, selectedColorId, onColorChange }) {
   const navigate = useNavigate()
   const { addToCart } = useShop()
   const hasColors = product.colors?.length > 0
   const hasSizes = product.sizes?.length > 0
-  const [colorId, setColorId] = useState(product.defaultColorId ?? product.colors?.[0]?.id)
+  // colorId comes from parent (lifted state); fall back to local if not provided
+  const colorId = selectedColorId ?? product.defaultColorId ?? product.colors?.[0]?.id
   const [size, setSize] = useState(product.defaultSize ?? product.sizes?.[0])
   const [quantity, setQuantity] = useState(product.stock > 0 ? 1 : 0)
 
@@ -182,7 +183,9 @@ export default function ProductPurchasePanel({ product }) {
               <button
                 key={color.id}
                 type="button"
-                onClick={() => setColorId(color.id)}
+                onClick={() => {
+                  if (onColorChange) onColorChange(color.id)
+                }}
                 className={`h-9 w-9 rounded-full border-2 ${
                   colorId === color.id ? 'border-dcc-primary ring-2 ring-dcc-primary/30' : 'border-slate-200'
                 }`}
@@ -249,8 +252,8 @@ export default function ProductPurchasePanel({ product }) {
             <button
               type="button"
               className="touch-target px-3 text-slate-605 hover:bg-slate-50 disabled:opacity-40"
-              onClick={() => setQuantity((q) => (parseInt(q, 10) || 0) + 1)}
-              disabled={product.stock <= 0}
+              onClick={() => setQuantity((q) => Math.min(product.stock, (parseInt(q, 10) || 0) + 1))}
+              disabled={product.stock <= 0 || parseInt(quantity, 10) >= product.stock}
               aria-label="Increase quantity"
             >
               <Plus className="h-4 w-4" />

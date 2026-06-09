@@ -66,6 +66,23 @@ export default function EditProduct() {
       return toast.error("Discount percentage must be between 0 and 100");
     }
 
+    const variantSizes = sizes
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const variantColors = colors
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean)
+
+    if (new Set(variantSizes.map((s) => s.toLowerCase())).size !== variantSizes.length) {
+      return toast.error('Duplicate size variants are not allowed');
+    }
+
+    if (new Set(variantColors.map((c) => c.toLowerCase())).size !== variantColors.length) {
+      return toast.error('Duplicate color variants are not allowed');
+    }
+
     let uploadedNewImages = [];
     if (newImages.length) {
       try {
@@ -96,8 +113,8 @@ export default function EditProduct() {
           isAvailable,
           itemType,
           variants: {
-            sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-            colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+            sizes: variantSizes,
+            colors: variantColors,
           },
           discount: {
             percent: Number(discountPercent),
@@ -133,8 +150,8 @@ export default function EditProduct() {
             isAvailable,
             itemType,
             variants: {
-              sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-              colors: colors.split(",").map(c => c.trim()).filter(Boolean),
+              sizes: variantSizes,
+              colors: variantColors,
             },
             discount: {
               percent: Number(discountPercent),
@@ -225,6 +242,7 @@ export default function EditProduct() {
               <label className="text-sm text-gray-600 font-medium">Price (Rs.)</label>
               <input
                 type="number"
+                min="0"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
@@ -234,6 +252,7 @@ export default function EditProduct() {
               <label className="text-sm text-gray-600 font-medium">Label Price</label>
               <input
                 type="number"
+                min="0"
                 value={labelPrice}
                 onChange={(e) => setLabelPrice(e.target.value)}
                 className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
@@ -321,6 +340,8 @@ export default function EditProduct() {
                 <label className="text-xs text-gray-600 font-medium">Discount (%)</label>
                 <input
                   type="number"
+                  min="0"
+                  max="100"
                   value={discountPercent}
                   onChange={(e) => setDiscountPercent(e.target.value)}
                   className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
@@ -354,6 +375,7 @@ export default function EditProduct() {
                 <label className="text-sm text-gray-600 font-medium">Stock</label>
                 <input
                   type="number"
+                  min="0"
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   className="w-32 mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"

@@ -25,6 +25,63 @@ export const savedAddresses = [
   },
 ]
 
+const SAVED_ADDRESSES_KEY = 'dcc_saved_addresses'
+
+export function getSavedAddresses() {
+  try {
+    const raw = localStorage.getItem(SAVED_ADDRESSES_KEY)
+    if (!raw) return [...savedAddresses]
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.length ? parsed : [...savedAddresses]
+  } catch {
+    return [...savedAddresses]
+  }
+}
+
+export function setSavedAddresses(addresses) {
+  try {
+    localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(addresses))
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
+export function normalizeAddressList(addresses) {
+  const list = Array.isArray(addresses) ? [...addresses] : []
+  const hasDefault = list.some((addr) => addr.isDefault)
+  return list.map((addr, index) => ({
+    ...addr,
+    isDefault: hasDefault ? Boolean(addr.isDefault) : index === 0,
+  }))
+}
+
+export function saveAddress(address) {
+  const current = getSavedAddresses()
+  const normalized = normalizeAddressList(
+    address.isDefault
+      ? [address, ...current.map((addr) => ({ ...addr, isDefault: false }))]
+      : current,
+  )
+
+  const existingIndex = normalized.findIndex((addr) => addr.id === address.id)
+  const next = existingIndex >= 0
+    ? normalized.map((addr) => (addr.id === address.id ? { ...addr, ...address } : addr))
+    : [address, ...normalized]
+
+  setSavedAddresses(normalizeAddressList(next))
+  return getSavedAddresses()
+}
+
+export function removeAddress(id) {
+  const next = getSavedAddresses().filter((addr) => addr.id !== id)
+  setSavedAddresses(normalizeAddressList(next))
+  return getSavedAddresses()
+}
+
+export function findAddress(id) {
+  return getSavedAddresses().find((addr) => addr.id === id) ?? null
+}
+
 export const deliveryMethods = [
   {
     id: 'platform',
@@ -106,8 +163,40 @@ export function formatAddressLines(address) {
   return parts.filter(Boolean)
 }
 
-export function getDeliveryFee(methodId) {
-  return deliveryMethods.find((m) => m.id === methodId)?.fee ?? 450
+export function getPlatformSettings() {
+  try {
+    const raw = localStorage.getItem('dcc_platform_settings')
+    return raw ? JSON.parse(raw) : {
+      platformName: 'Digital City Center',
+      contactEmail: 'info@dcc.lk',
+      baseFee: 450,
+      outOfColomboFee: 200,
+      supportedCountry: 'Sri Lanka',
+      unsupportedKeywords: 'india, bengaluru, bangalore, chennai, delhi, mumbai, usa, united states, london, pakistan, bangladesh',
+    }
+  } catch {
+    return {
+      platformName: 'Digital City Center',
+      contactEmail: 'info@dcc.lk',
+      baseFee: 450,
+      outOfColomboFee: 200,
+      supportedCountry: 'Sri Lanka',
+      unsupportedKeywords: 'india, bengaluru, bangalore, chennai, delhi, mumbai, usa, united states, london, pakistan, bangladesh',
+    }
+  }
+}
+
+export function getDeliveryFee(methodId, address) {
+  const settings = getPlatformSettings()
+  const base = methodId === 'courier' ? 650 : (methodId === 'pickup' ? 0 : Number(settings.baseFee ?? 450))
+  if (methodId === 'pickup') return 0
+  if (!address) return base
+
+  const district = String(address.district || address.city || '').trim().toLowerCase()
+  if (district && district !== 'colombo') {
+    return base + Number(settings.outOfColomboFee ?? 200)
+  }
+  return base
 }
 
 export function generateOrderId() {

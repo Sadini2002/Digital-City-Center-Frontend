@@ -10,4 +10,5 @@ export { default as DeliveryProvidersPage } from './pages/DeliveryProvidersPage'
 export { default as AnnouncementsPage } from './pages/AnnouncementsPage'
 export { default as CommissionSettingsPage } from './pages/CommissionSettingsPage'
 export { default as ReportsPage } from './pages/ReportsPage'
+export { default as PlatformSettingsPage } from './pages/PlatformSettingsPage'
 

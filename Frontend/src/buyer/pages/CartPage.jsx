@@ -55,7 +55,7 @@ export default function CartPage() {
           <div className="rounded-2xl border border-slate-200 bg-white px-4 sm:px-6">
             {cart.map((item) => (
               <CartItemRow
-                key={item.id}
+                key={item.lineId ?? item.id}
                 item={item}
                 onUpdateQuantity={updateCartQuantity}
                 onRemove={removeFromCart}

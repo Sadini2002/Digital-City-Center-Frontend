@@ -84,6 +84,24 @@ export default function SellerDashboard() {
     if (localProducts.length > 0) {
       setProductsCount(localProducts.length)
       setActiveProductsCount(localProducts.filter(p => p.isAvailable && p.stock > 0).length)
+
+      // Trigger low stock warning notifications if any item is <= 3 units
+      const lowStockList = localProducts.filter(p => p.stock > 0 && p.stock <= 3)
+      if (lowStockList.length > 0) {
+        import('../../utils/notificationStorage').then(({ addSellerNotification, getSellerNotifications }) => {
+          const currentNotifs = getSellerNotifications()
+          lowStockList.forEach(p => {
+            const hasAlert = currentNotifs.some(n => n.title.includes('Low stock warning') && n.title.includes(p.name))
+            if (!hasAlert) {
+              addSellerNotification(
+                `Low stock warning: ${p.name}`,
+                `Your product "${p.name}" is low on stock (${p.stock} units remaining). Please replenish soon.`,
+                'warning'
+              )
+            }
+          })
+        })
+      }
     } else {
       setProductsCount(4)
       setActiveProductsCount(3)

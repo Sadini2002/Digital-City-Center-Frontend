@@ -97,7 +97,7 @@ function SearchPageBar({ className, query, category }) {
           type="search"
           name="q"
           value={term}
-          onChange={(e) => setTerm(e.target.value)}
+          onChange={(e) => { setTerm(e.target.value); setShowSuggestions(true) }}
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search for products, brands and shops..."
@@ -119,7 +119,8 @@ function SearchPageBar({ className, query, category }) {
             suggestions.map((product, index) => (
               <div
                 key={product.id}
-                onClick={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault()
                   navigate(`/product/${product.id}`)
                   setShowSuggestions(false)
                 }}
@@ -239,7 +240,7 @@ function DefaultSearchBar({ className }) {
         <input
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setShowSuggestions(true) }}
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search for products, brands and shops..."
@@ -261,7 +262,8 @@ function DefaultSearchBar({ className }) {
             suggestions.map((product, index) => (
               <div
                 key={product.id}
-                onClick={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault()
                   navigate(`/product/${product.id}`)
                   setShowSuggestions(false)
                 }}

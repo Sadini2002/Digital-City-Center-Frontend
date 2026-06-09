@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
@@ -12,6 +12,11 @@ export default function ProductDetailPage() {
   const { id } = useParams()
   const reviewsRef = useRef(null)
   const product = getProductById(id)
+
+  // Lift selectedColorId state so both Gallery and PurchasePanel stay in sync
+  const [selectedColorId, setSelectedColorId] = useState(
+    () => product?.defaultColorId ?? product?.colors?.[0]?.id ?? null
+  )
 
   const scrollToReviews = () => {
     reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -44,6 +49,7 @@ export default function ProductDetailPage() {
         <ProductGallery
           images={product.images}
           badges={product.badges}
+          selectedColorId={selectedColorId}
           product={{
             id: product.id,
             title: product.title,
@@ -52,9 +58,14 @@ export default function ProductDetailPage() {
             originalPrice: product.originalPrice,
             image: product.images?.[0],
             seller: product.seller,
+            colors: product.colors,
           }}
         />
-        <ProductPurchasePanel product={product} />
+        <ProductPurchasePanel
+          product={product}
+          selectedColorId={selectedColorId}
+          onColorChange={setSelectedColorId}
+        />
       </div>
 
       <ProductDetailTabs product={product} onShowReviews={scrollToReviews} />

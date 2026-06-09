@@ -4,6 +4,7 @@ import { getOrders, updateOrderStatus } from '../../buyer'
 import OrderTable from '../components/OrderTable'
 import { Search, X, Package, Truck, CheckCircle2, ShoppingBag, Printer, AlertTriangle, Check, RefreshCw } from 'lucide-react'
 import DashboardCard from '../components/DashboardCard'
+import { addBuyerNotification } from '../../utils/notificationStorage'
 
 export default function Orders() {
   const [orders, setOrders] = useState([])
@@ -93,13 +94,46 @@ export default function Orders() {
       trackingStatus, 
       ...extraOptions 
     })
+
+    // Send notifications to buyer
+    if (extraOptions.readyForPickup) {
+      addBuyerNotification(
+        `Order Ready for Pickup: ${orderId}`,
+        `Your order ${orderId} is ready for pickup at the seller's store!`,
+        'success'
+      )
+    } else if (newStatus === 'processing') {
+      addBuyerNotification(
+        `Order Confirmed: ${orderId}`,
+        `The seller has accepted your order ${orderId} and is preparing it.`,
+        'info'
+      )
+    } else if (newStatus === 'shipped') {
+      addBuyerNotification(
+        `Order Dispatched: ${orderId}`,
+        `Good news! Your order ${orderId} has been shipped out.`,
+        'info'
+      )
+    } else if (newStatus === 'delivered') {
+      addBuyerNotification(
+        `Order Delivered: ${orderId}`,
+        `Your order ${orderId} has been marked as delivered. We hope you love your purchase!`,
+        'success'
+      )
+    } else if (newStatus === 'cancelled') {
+      addBuyerNotification(
+        `Order Cancelled: ${orderId}`,
+        `Your order ${orderId} has been cancelled by the seller.`,
+        'error'
+      )
+    }
     
     toast.success(`Order ${orderId} updated to ${newStatus}`)
     
     // Reload state
     const updated = getOrders()
     setOrders(updated)
-
+ 
     // Update selected order details view if open
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder(updated.find(o => o.id === orderId))

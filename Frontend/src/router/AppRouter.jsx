@@ -73,6 +73,7 @@ import {
   AnnouncementsPage,
   CommissionSettingsPage,
   ReportsPage,
+  PlatformSettingsPage,
 } from '../admin'
 
 
@@ -102,7 +103,7 @@ function AppRouter() {
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="commission" element={<CommissionSettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<CommissionSettingsPage />} />
+          <Route path="settings" element={<PlatformSettingsPage />} />
         </Route>
         <Route path="/register" element={<Register />} />
         <Route path="/register/seller" element={<SellerRegisterPage />} />

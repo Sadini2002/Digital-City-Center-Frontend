@@ -3,6 +3,7 @@ const ADMIN_CATEGORIES_KEY = 'dcc_admin_categories'
 const ADMIN_ANNOUNCEMENTS_KEY = 'dcc_admin_announcements'
 const ADMIN_COMMISSION_KEY = 'dcc_admin_commission'
 const ADMIN_DELIVERY_PROVIDERS_KEY = 'dcc_admin_delivery_providers'
+const PLATFORM_SETTINGS_KEY = 'dcc_platform_settings'
 
 function readJson(key, fallback) {
   try {
@@ -21,11 +22,16 @@ export function getSellerApplications() {
   return readJson(SELLER_APPS_KEY, [])
 }
 
-export function updateSellerApplicationStatus(id, status) {
+export function updateSellerApplicationStatus(id, status, rejectionReason = null) {
   const list = getSellerApplications()
   const idx = list.findIndex((a) => a.id === id)
   if (idx < 0) return null
-  const updated = { ...list[idx], status, reviewedAt: new Date().toISOString() }
+  const updated = {
+    ...list[idx],
+    status,
+    reviewedAt: new Date().toISOString(),
+    ...(rejectionReason ? { rejectionReason } : {}),
+  }
   list[idx] = updated
   writeJson(SELLER_APPS_KEY, list)
   return updated
@@ -70,13 +76,32 @@ export function getDeliveryProviders() {
   return seed
 }
 
-export function updateDeliveryProviderStatus(id, status) {
+export function updateDeliveryProviderStatus(id, status, rejectionReason = null) {
   const list = getDeliveryProviders()
   const idx = list.findIndex((p) => p.id === id)
   if (idx < 0) return null
-  const updated = { ...list[idx], status, reviewedAt: new Date().toISOString() }
+  const updated = {
+    ...list[idx],
+    status,
+    reviewedAt: new Date().toISOString(),
+    ...(rejectionReason ? { rejectionReason } : {}),
+  }
   list[idx] = updated
   writeJson(ADMIN_DELIVERY_PROVIDERS_KEY, list)
   return updated
+}
+
+export function getPlatformSettings() {
+  return readJson(PLATFORM_SETTINGS_KEY, {
+    platformName: 'Digital City Center',
+    contactEmail: 'support@dcc.lk',
+    baseDeliveryFee: 350,
+    outOfColomboSurcharge: 200,
+    disallowedKeywords: 'india, bangalore, mumbai',
+  })
+}
+
+export function savePlatformSettings(settings) {
+  writeJson(PLATFORM_SETTINGS_KEY, settings)
 }
 

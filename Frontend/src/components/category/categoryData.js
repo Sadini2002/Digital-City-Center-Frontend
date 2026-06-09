@@ -1,4 +1,5 @@
 import { electronicsProducts, productsByCategorySlug } from '../../data/categoryProductsBySlug'
+import { getAdminCategories } from '../../admin/utils/adminStorage'
 
 export const sortOptions = [
   { value: 'newest', label: 'Newest Arrivals' },
@@ -113,10 +114,34 @@ const categoryMeta = {
   },
 }
 
-const defaultMeta = categoryMeta.electronics
+function getStoredAdminCategories() {
+  const seed = Object.keys(categoryMeta)
+    .filter((slug) => slug !== 'all')
+    .map((slug) => ({ slug, title: categoryMeta[slug].title, enabled: true }))
+  return getAdminCategories(seed)
+}
+
+function isCategoryEnabled(slug) {
+  if (slug === 'all') return true
+  const adminCategory = getStoredAdminCategories().find((c) => c.slug === slug)
+  return adminCategory ? Boolean(adminCategory.enabled) : true
+}
 
 export function getCategoryMeta(slug) {
-  return categoryMeta[slug] ?? null
+  if (slug === 'all') return categoryMeta.all
+
+  const adminCategory = getStoredAdminCategories().find((c) => c.slug === slug)
+  if (adminCategory && !adminCategory.enabled) return null
+  if (categoryMeta[slug]) return categoryMeta[slug]
+  if (adminCategory) {
+    return {
+      title: adminCategory.title,
+      totalProducts: 0,
+      subCategories: [],
+    }
+  }
+
+  return null
 }
 
 export function getCategoryBreadcrumbs(slug, title) {
@@ -132,13 +157,28 @@ export const categoryProducts = electronicsProducts
 
 export function getCategoryProducts(slug) {
   if (slug === 'all') {
-    return Object.values(productsByCategorySlug).flat()
+    return Object.entries(productsByCategorySlug)
+      .filter(([categorySlug]) => isCategoryEnabled(categorySlug))
+      .flatMap(([, products]) => products)
   }
-  return productsByCategorySlug[slug] ?? electronicsProducts
+
+  if (!isCategoryEnabled(slug)) {
+    return []
+  }
+
+  return productsByCategorySlug[slug] ?? []
 }
 
 export function getAllCategoryListings() {
-  return Object.values(productsByCategorySlug).flat()
+  return Object.entries(productsByCategorySlug)
+    .filter(([categorySlug]) => isCategoryEnabled(categorySlug))
+    .flatMap(([, products]) => products)
+}
+
+export function getEnabledCategorySlugs() {
+  return getStoredAdminCategories()
+    .filter((cat) => cat.enabled)
+    .map((cat) => cat.slug)
 }
 
 export const categoryShopsBySlug = {
