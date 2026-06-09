@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Grid3x3, List, SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
@@ -20,10 +20,10 @@ const PER_PAGE = 6
 export default function CategoryPage() {
   const { slug = 'electronics' } = useParams()
   const meta = getCategoryMeta(slug)
-  const breadcrumbs = getCategoryBreadcrumbs(slug, meta.title)
+  const breadcrumbs = getCategoryBreadcrumbs(slug, meta?.title || '')
   const categoryProducts = useMemo(() => getCategoryProducts(slug), [slug])
   const categoryShops = getCategoryShops(slug)
-  const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
+  const defaultSubs = meta?.subCategories?.[0] ? [meta.subCategories[0].id] : []
 
   const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
   const [priceMin, setPriceMin] = useState(0)
@@ -36,11 +36,29 @@ export default function CategoryPage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
+    if (!meta) return
     setPage(1)
     setSelectedSubs(meta.subCategories[0] ? [meta.subCategories[0].id] : [])
     setFiltersOpen(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset filters when category slug changes
   }, [slug])
+
+  if (!meta) {
+    return (
+      <main className="mx-auto flex w-full min-w-0 max-w-7xl flex-1 items-center justify-center px-3 py-24 sm:px-6 lg:px-8">
+        <section className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-3xl font-bold text-slate-900">404</h1>
+          <p className="mt-3 text-slate-600">The category you are looking for does not exist.</p>
+          <Link
+            className="mt-6 inline-block rounded-lg bg-dcc-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+            to="/"
+          >
+            Back to Home
+          </Link>
+        </section>
+      </main>
+    )
+  }
 
   const filteredProducts = useMemo(() => {
     let list = [...categoryProducts]

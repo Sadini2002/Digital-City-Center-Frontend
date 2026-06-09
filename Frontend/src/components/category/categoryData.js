@@ -116,10 +116,7 @@ const categoryMeta = {
 const defaultMeta = categoryMeta.electronics
 
 export function getCategoryMeta(slug) {
-  return categoryMeta[slug] ?? {
-    ...defaultMeta,
-    title: slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '),
-  }
+  return categoryMeta[slug] ?? null
 }
 
 export function getCategoryBreadcrumbs(slug, title) {

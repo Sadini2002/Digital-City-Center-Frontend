@@ -49,6 +49,22 @@ export default function AddProduct() {
       return toast.error("Please upload at least one image");
     }
 
+    if (Number(price) < 0) {
+      return toast.error("Price cannot be negative");
+    }
+
+    if (Number(labelPrice) < 0) {
+      return toast.error("Label price cannot be negative");
+    }
+
+    if (itemType === 'physical' && Number(stock) < 0) {
+      return toast.error("Stock quantity cannot be negative");
+    }
+
+    if (Number(discountPercent) < 0 || Number(discountPercent) > 100) {
+      return toast.error("Discount percentage must be between 0 and 100");
+    }
+
     try {
       const imageUrls = image.length > 0
         ? await Promise.all(image.map(mediaUpload))

@@ -45,6 +45,23 @@ export default function ShopSettings() {
   const handleMediaUpload = (type) => (e) => {
     const file = e.target.files[0]
     if (file) {
+      // Validate file type
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg']
+      if (!validImageTypes.includes(file.type)) {
+        toast.error('Invalid file type. Only PNG, JPG, WEBP, and GIF images are allowed.')
+        e.target.value = ''
+        return
+      }
+
+      // Validate file size (max 1MB for logo, 2MB for banner)
+      const maxSize = type === 'logo' ? 1 * 1024 * 1024 : 2 * 1024 * 1024
+      if (file.size > maxSize) {
+        const sizeLabel = type === 'logo' ? '1MB' : '2MB'
+        toast.error(`Image is too large. Maximum size allowed is ${sizeLabel}.`)
+        e.target.value = ''
+        return
+      }
+
       const url = URL.createObjectURL(file)
       if (type === 'logo') setLogo(url)
       if (type === 'banner') setBanner(url)
