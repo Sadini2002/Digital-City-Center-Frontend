@@ -3,9 +3,13 @@ import { ZoomIn } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
 import WishlistButton from '../common/WishlistButton'
 
-export default function ProductGallery({ images, badges, product }) {
+export default function ProductGallery({ images, badges, product, activeIndex: propsActiveIndex, onChangeActiveIndex }) {
   const galleryImages = images.filter(Boolean)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [localActiveIndex, setLocalActiveIndex] = useState(0)
+  
+  const activeIndex = propsActiveIndex !== undefined ? propsActiveIndex : localActiveIndex
+  const setActiveIndex = onChangeActiveIndex || setLocalActiveIndex
+
   const [isZoomed, setIsZoomed] = useState(false)
   const activeSrc = galleryImages[activeIndex]
 

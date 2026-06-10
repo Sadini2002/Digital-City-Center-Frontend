@@ -1,4 +1,6 @@
 import { createContext, useCallback, useMemo, useSyncExternalStore } from 'react'
+import toast from 'react-hot-toast'
+import { getProductById } from '../../data/productsCatalog'
 import { toCartLine, toShopSnapshot } from './shopUtils'
 
 const CART_KEY = 'dcc_cart'
@@ -54,29 +56,65 @@ export function ShopProvider({ children }) {
     [cart],
   )
 
-  const addToCart = useCallback((product, quantity = 1) => {
+  const getProductStock = (productId) => {
+    try {
+      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
+      const match = local.find(p => (p.productId || p._id || p.id) === productId)
+      if (match) return match.stock ?? 0
+    } catch {}
+
+    const match = getProductById(productId)
+    return match ? match.stock ?? 0 : 0
+  }
+
+  const addToCart = useCallback((product, quantity = 1, color = '', size = '') => {
     const snapshot = toShopSnapshot(product)
+    const lineId = color || size ? `${snapshot.id}::${color}::${size}` : snapshot.id
     const next = [...readStorage(CART_KEY, [])]
-    const index = next.findIndex((line) => line.id === snapshot.id)
+    const index = next.findIndex((line) => (line.lineId || line.id) === lineId)
+
+    const currentQty = index >= 0 ? next[index].quantity : 0
+    const newQty = currentQty + quantity
+    const maxStock = getProductStock(snapshot.id)
+
+    if (newQty > maxStock) {
+      toast.error(`Cannot add to cart. Only ${maxStock} units available in stock.`)
+      return
+    }
+
     if (index >= 0) {
       next[index] = {
         ...next[index],
-        quantity: next[index].quantity + quantity,
+        quantity: newQty,
       }
     } else {
-      next.push(toCartLine(snapshot, quantity))
+      next.push({
+        ...toCartLine(snapshot, quantity),
+        lineId,
+        color,
+        size
+      })
     }
     writeStorage(CART_KEY, next)
+    toast.success('Added to cart')
   }, [])
 
-  const removeFromCart = useCallback((productId) => {
-    const next = readStorage(CART_KEY, []).filter((line) => line.id !== productId)
+  const removeFromCart = useCallback((lineId) => {
+    const next = readStorage(CART_KEY, []).filter((line) => (line.lineId || line.id) !== lineId)
     writeStorage(CART_KEY, next)
   }, [])
 
-  const updateCartQuantity = useCallback((productId, quantity) => {
+  const updateCartQuantity = useCallback((lineId, quantity) => {
+    const productId = lineId.split('::')[0]
+    const maxStock = getProductStock(productId)
+
+    if (quantity > maxStock) {
+      toast.error(`Only ${maxStock} units of this item are available in stock.`)
+      return
+    }
+
     const next = readStorage(CART_KEY, []).map((line) =>
-      line.id === productId ? { ...line, quantity: Math.max(1, quantity) } : line,
+      (line.lineId || line.id) === lineId ? { ...line, quantity: Math.max(1, quantity) } : line,
     )
     writeStorage(CART_KEY, next)
   }, [])

@@ -1,5 +1,6 @@
 import { BarChart3, Package, Settings, ShoppingBag, Wallet, User } from 'lucide-react'
 import PortalLayoutShell from '../../components/layout/PortalLayoutShell'
+import NotificationPanel from '../../components/layout/NotificationPanel'
 
 const nav = [
   { to: '/seller/dashboard', label: 'Overview', icon: BarChart3, end: true },
@@ -40,6 +41,7 @@ export default function SellerLayout() {
       pageTitles={pageTitles}
       pageDescriptions={pageDescriptions}
       logoutRedirect="/login"
+      portalHeaderExtra={<NotificationPanel role="seller" />}
     />
   )
 }

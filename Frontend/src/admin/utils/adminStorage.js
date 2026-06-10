@@ -21,11 +21,11 @@ export function getSellerApplications() {
   return readJson(SELLER_APPS_KEY, [])
 }
 
-export function updateSellerApplicationStatus(id, status) {
+export function updateSellerApplicationStatus(id, status, reason) {
   const list = getSellerApplications()
   const idx = list.findIndex((a) => a.id === id)
   if (idx < 0) return null
-  const updated = { ...list[idx], status, reviewedAt: new Date().toISOString() }
+  const updated = { ...list[idx], status, rejectionReason: reason || undefined, reviewedAt: new Date().toISOString() }
   list[idx] = updated
   writeJson(SELLER_APPS_KEY, list)
   return updated

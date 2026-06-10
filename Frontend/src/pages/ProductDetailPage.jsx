@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
@@ -12,6 +12,8 @@ export default function ProductDetailPage() {
   const { id } = useParams()
   const reviewsRef = useRef(null)
   const product = getProductById(id)
+  
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
 
   const scrollToReviews = () => {
     reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -44,6 +46,8 @@ export default function ProductDetailPage() {
         <ProductGallery
           images={product.images}
           badges={product.badges}
+          activeIndex={activeImageIndex}
+          onChangeActiveIndex={setActiveImageIndex}
           product={{
             id: product.id,
             title: product.title,
@@ -54,7 +58,14 @@ export default function ProductDetailPage() {
             seller: product.seller,
           }}
         />
-        <ProductPurchasePanel product={product} />
+        <ProductPurchasePanel
+          product={product}
+          onSelectColor={(colorIndex) => {
+            if (product.images && product.images[colorIndex]) {
+              setActiveImageIndex(colorIndex)
+            }
+          }}
+        />
       </div>
 
       <ProductDetailTabs product={product} onShowReviews={scrollToReviews} />

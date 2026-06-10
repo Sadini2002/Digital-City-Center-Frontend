@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { getOrders } from '../../buyer'
 import { formatLkr } from '../../components/category/categoryData'
 
@@ -18,13 +20,56 @@ export default function ReportsPage() {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0)
   const totalOrders = orders.length
 
+  const handleExportCSV = () => {
+    if (orders.length === 0) {
+      toast.error('No sales data available to export.')
+      return
+    }
+    const headers = ['Order ID', 'Date', 'Email', 'Items Count', 'Subtotal (LKR)', 'Delivery Fee (LKR)', 'Total (LKR)', 'Status']
+    const rows = orders.map((o) => [
+      o.id,
+      o.placedAt ? new Date(o.placedAt).toLocaleDateString() : 'N/A',
+      o.email,
+      o.items?.length ?? 0,
+      o.subtotal || 0,
+      o.deliveryFee || 0,
+      o.total || 0,
+      o.status
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `DCC_Sales_Report_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Report exported successfully!')
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Daily/weekly/monthly sales (demo based on stored orders).
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Daily/weekly/monthly sales (demo based on stored orders).
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExportCSV}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover shadow-sm transition"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2">
@@ -60,4 +105,3 @@ export default function ReportsPage() {
     </div>
   )
 }
-

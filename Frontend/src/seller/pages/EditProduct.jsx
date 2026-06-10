@@ -79,6 +79,17 @@ export default function EditProduct() {
       return toast.error("Stock quantity cannot be negative");
     }
 
+    // Duplicate variant checks
+    const sizeArray = sizes.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (sizeArray.some((val, i) => sizeArray.indexOf(val) !== i)) {
+      return toast.error("Duplicate size variants are not allowed.");
+    }
+
+    const colorArray = colors.split(",").map(c => c.trim().toLowerCase()).filter(Boolean);
+    if (colorArray.some((val, i) => colorArray.indexOf(val) !== i)) {
+      return toast.error("Duplicate color variants are not allowed.");
+    }
+
     let uploadedNewImages = [];
     if (newImages.length) {
       try {

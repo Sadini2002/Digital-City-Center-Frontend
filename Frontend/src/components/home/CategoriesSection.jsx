@@ -3,6 +3,27 @@ import { ChevronRight } from 'lucide-react'
 import { categories } from './homeData'
 
 export default function CategoriesSection() {
+  const enabledSlugs = (() => {
+    try {
+      const stored = localStorage.getItem('dcc_admin_categories')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          return new Set(parsed.filter((c) => c.enabled !== false).map((c) => c.slug))
+        }
+      }
+    } catch {}
+    return null
+  })()
+
+  const visibleCategories = categories.filter((cat) => {
+    if (cat.slug === 'more') return true
+    if (enabledSlugs) {
+      return enabledSlugs.has(cat.slug)
+    }
+    return true
+  })
+
   return (
     <section className="bg-white py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
@@ -18,7 +39,7 @@ export default function CategoriesSection() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-8">
-          {categories.map((cat) => {
+          {visibleCategories.map((cat) => {
             const Icon = cat.icon
             const to = cat.slug === 'more' ? '/category/all' : `/category/${cat.slug}`
             return (

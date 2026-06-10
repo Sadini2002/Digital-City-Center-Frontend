@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { BarChart3, Bell, Layers, LogOut, Menu, Package, Percent, Search, Sparkles, Truck, Users2, User } from 'lucide-react'
+import { BarChart3, Bell, Layers, LogOut, Menu, Package, Percent, Search, Sparkles, Truck, Users2, User, Settings } from 'lucide-react'
 import { ADMIN_ROLE_LABELS, getAdminAllowedSections, normalizeAdminRole } from '../utils/adminRole'
 import { clearAdminToken } from '../../utils/authStorage'
 
@@ -12,6 +12,7 @@ const nav = [
   { to: '/admin/announcements', label: 'Announcements', icon: Bell },
   { to: '/admin/commission', label: 'Commission', icon: Percent },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/admin/settings', label: 'Platform Settings', icon: Settings },
   { to: '/admin/profile', label: 'My Profile', icon: User },
 ]
 

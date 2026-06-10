@@ -7,7 +7,13 @@ import { getAnnouncements } from '../../admin/utils/adminStorage'
 const trustIcons = [Package, ShieldCheck, Star]
 
 export default function HeroSection() {
-  const announcement = getAnnouncements().find((a) => a.enabled)
+  const announcement = getAnnouncements().find((a) => {
+    if (!a.enabled) return false
+    if (a.expiresAt) {
+      return new Date(a.expiresAt) > new Date()
+    }
+    return true
+  })
   return (
     <section className="bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-3 py-8 sm:px-6 sm:py-10 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-8 lg:py-14">

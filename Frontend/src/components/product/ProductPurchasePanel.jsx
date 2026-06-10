@@ -29,7 +29,7 @@ function StarRating({ rating }) {
   )
 }
 
-export default function ProductPurchasePanel({ product }) {
+export default function ProductPurchasePanel({ product, onSelectColor }) {
   const navigate = useNavigate()
   const { addToCart } = useShop()
   const hasColors = product.colors?.length > 0
@@ -37,6 +37,8 @@ export default function ProductPurchasePanel({ product }) {
   const [colorId, setColorId] = useState(product.defaultColorId ?? product.colors?.[0]?.id)
   const [size, setSize] = useState(product.defaultSize ?? product.sizes?.[0])
   const [quantity, setQuantity] = useState(1)
+
+  const selectedColor = product.colors?.find((c) => c.id === colorId)
 
   const handleAddToCart = () => {
     addToCart(
@@ -50,6 +52,8 @@ export default function ProductPurchasePanel({ product }) {
         seller: product.seller,
       },
       quantity,
+      selectedColor?.name || '',
+      size || '',
     )
   }
 
@@ -57,8 +61,6 @@ export default function ProductPurchasePanel({ product }) {
     handleAddToCart()
     navigate('/cart')
   }
-
-  const selectedColor = product.colors?.find((c) => c.id === colorId)
 
   return (
     <div className="min-w-0">
@@ -114,11 +116,14 @@ export default function ProductPurchasePanel({ product }) {
             {selectedColor?.name ? `: ${selectedColor.name}` : ''}
           </p>
           <div className="mt-2 flex gap-3">
-            {product.colors.map((color) => (
+            {product.colors.map((color, index) => (
               <button
                 key={color.id}
                 type="button"
-                onClick={() => setColorId(color.id)}
+                onClick={() => {
+                  setColorId(color.id)
+                  onSelectColor?.(index)
+                }}
                 className={`h-9 w-9 rounded-full border-2 ${
                   colorId === color.id ? 'border-dcc-primary ring-2 ring-dcc-primary/30' : 'border-slate-200'
                 }`}

@@ -20,6 +20,20 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
         <Link to={`/product/${item.id}`} className="mt-0.5 block font-semibold text-slate-900 hover:text-dcc-primary">
           {item.name}
         </Link>
+        {(item.color || item.size) && (
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold">
+            {item.color && (
+              <span className="flex items-center gap-1">
+                Color: <span className="text-slate-800">{item.color}</span>
+              </span>
+            )}
+            {item.size && (
+              <span>
+                Size: <span className="text-slate-800">{item.size}</span>
+              </span>
+            )}
+          </div>
+        )}
         <p className="mt-1 text-xs text-slate-500">Sold by {item.seller}</p>
         <p className="mt-2 text-sm font-bold text-dcc-primary sm:hidden">{formatLkr(lineTotal)}</p>
       </div>

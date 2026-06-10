@@ -17,6 +17,10 @@ export default function CategoryManagementPage() {
   const [newSlug, setNewSlug] = useState('')
   const [newTitle, setNewTitle] = useState('')
 
+  const [editingSlug, setEditingSlug] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editSlug, setEditSlug] = useState('')
+
   const persist = (next) => {
     saveAdminCategories(next)
     setCategories(next)
@@ -52,6 +56,39 @@ export default function CategoryManagementPage() {
     toast.success('Category added successfully!')
     setNewSlug('')
     setNewTitle('')
+  }
+
+  const startEdit = (c) => {
+    setEditingSlug(c.slug)
+    setEditTitle(c.title)
+    setEditSlug(c.slug)
+  }
+
+  const cancelEdit = () => {
+    setEditingSlug(null)
+  }
+
+  const saveUpdate = (e) => {
+    e.preventDefault()
+    const updatedSlug = editSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
+    const updatedTitle = editTitle.trim()
+
+    if (!updatedTitle) {
+      toast.error('Category title is required.')
+      return
+    }
+    if (!updatedSlug) {
+      toast.error('Category slug is required.')
+      return
+    }
+    if (categories.some((c) => c.slug !== editingSlug && (c.slug === updatedSlug || c.title.toLowerCase() === updatedTitle.toLowerCase()))) {
+      toast.error('A category with this name or slug already exists.')
+      return
+    }
+
+    persist(categories.map((c) => c.slug === editingSlug ? { ...c, slug: updatedSlug, title: updatedTitle } : c))
+    toast.success('Category updated successfully!')
+    setEditingSlug(null)
   }
 
   return (
@@ -99,33 +136,85 @@ export default function CategoryManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {categories.map((c) => (
-                <tr key={c.slug} className="border-b border-dcc-primary/10">
-                  <td className="py-3 font-medium text-slate-900">{c.title}</td>
-                  <td className="py-3 text-slate-600">{c.slug}</td>
-                  <td className="py-3">
-                    <button
-                      type="button"
-                      onClick={() => toggle(c.slug)}
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        c.enabled ? 'bg-dcc-primary/10 text-dcc-primary' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {c.enabled ? 'Enabled' : 'Disabled'}
-                    </button>
-                  </td>
-                  <td className="py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => remove(c.slug)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-dcc-primary/25 px-3 py-2 text-xs font-semibold text-dcc-primary hover:bg-dcc-primary/5"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {categories.map((c) => {
+                const isEditing = editingSlug === c.slug
+                return (
+                  <tr key={c.slug} className="border-b border-dcc-primary/10">
+                    <td className="py-3 font-medium text-slate-900">
+                      {isEditing ? (
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-dcc-primary focus:outline-none"
+                        />
+                      ) : (
+                        c.title
+                      )}
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      {isEditing ? (
+                        <input
+                          value={editSlug}
+                          onChange={(e) => setEditSlug(e.target.value)}
+                          className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-dcc-primary focus:outline-none"
+                        />
+                      ) : (
+                        c.slug
+                      )}
+                    </td>
+                    <td className="py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggle(c.slug)}
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          c.enabled ? 'bg-dcc-primary/10 text-dcc-primary' : 'bg-slate-100 text-slate-600'
+                        }`}
+                        disabled={isEditing}
+                      >
+                        {c.enabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                    </td>
+                    <td className="py-3 text-right">
+                      {isEditing ? (
+                        <div className="inline-flex gap-2">
+                          <button
+                            type="button"
+                            onClick={saveUpdate}
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                          >
+                            Update
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="inline-flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(c)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(c.slug)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-dcc-primary/25 px-3 py-2 text-xs font-semibold text-dcc-primary hover:bg-dcc-primary/5"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

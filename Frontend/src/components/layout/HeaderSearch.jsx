@@ -4,7 +4,23 @@ import { Search } from 'lucide-react'
 import { SEARCH_CATEGORY_SLUGS } from '../../data/searchUtils'
 import { getAllCategoryListings } from '../category/categoryData'
 
-const categoryOptions = Object.keys(SEARCH_CATEGORY_SLUGS)
+function getVisibleCategoryOptions() {
+  const allSlugs = Object.entries(SEARCH_CATEGORY_SLUGS)
+  try {
+    const stored = localStorage.getItem('dcc_admin_categories')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        const enabled = new Set(parsed.filter((c) => c.enabled !== false).map((c) => c.slug))
+        return allSlugs.filter(([label, slug]) => {
+          if (!slug) return true
+          return enabled.has(slug)
+        }).map(([label]) => label)
+      }
+    }
+  } catch (e) {}
+  return Object.keys(SEARCH_CATEGORY_SLUGS)
+}
 
 function categoryFromSlug(slug) {
   if (!slug) return 'All Categories'
@@ -100,7 +116,7 @@ function SearchPageBar({ className, query, category }) {
           className="hidden shrink-0 border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 focus:outline-none sm:block"
           aria-label="Search category"
         >
-          {categoryOptions.map((opt) => (
+          {getVisibleCategoryOptions().map((opt) => (
             <option key={opt} value={opt}>
               {opt}
             </option>
@@ -192,7 +208,7 @@ function DefaultSearchBar({ className }) {
           className="hidden shrink-0 border-r border-slate-200 bg-slate-50/80 pl-4 pr-2 text-xs font-medium text-slate-700 focus:outline-none lg:block"
           aria-label="Search category"
         >
-          {categoryOptions.map((opt) => (
+          {getVisibleCategoryOptions().map((opt) => (
             <option key={opt} value={opt}>
               {opt}
             </option>

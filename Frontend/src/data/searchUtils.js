@@ -23,7 +23,7 @@ function enrichProduct(product, index) {
   }
 }
 
-function buildCatalog() {
+function getFullCatalog() {
   const byId = new Map()
   let index = 0
   const add = (product) => {
@@ -32,10 +32,31 @@ function buildCatalog() {
   }
   getAllCategoryListings().forEach(add)
   searchResults.forEach(add)
+
+  try {
+    const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
+    local.forEach((p) => {
+      const id = p.productId || p._id || p.id
+      const enriched = enrichProduct({
+        id,
+        brand: p.brand || 'Local',
+        name: p.name,
+        categorySlug: p.itemType || 'electronics',
+        price: Number(p.price || 0),
+        originalPrice: p.labelPrice ? Number(p.labelPrice) : null,
+        rating: p.rating || 5,
+        image: Array.isArray(p.image) ? p.image[0] : p.image,
+        seller: p.shopId || 'Tech World LK',
+        sellerLocation: p.sellerLocation || 'colombo',
+        ...p
+      }, index)
+      byId.set(id, enriched)
+      index += 1
+    })
+  } catch (e) {}
+
   return [...byId.values()]
 }
-
-const catalog = buildCatalog()
 
 function relevanceScore(product, query) {
   const q = query.toLowerCase()
@@ -60,7 +81,7 @@ function relevanceScore(product, query) {
  */
 export function searchProducts(query, options = {}) {
   const trimmed = query.trim()
-  let list = catalog
+  let list = getFullCatalog()
 
   if (options.categorySlug) {
     list = list.filter((p) => p.categorySlug === options.categorySlug)

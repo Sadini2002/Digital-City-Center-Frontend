@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Grid3x3, List, SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
@@ -19,11 +19,38 @@ const PER_PAGE = 6
 
 export default function CategoryPage() {
   const { slug = 'electronics' } = useParams()
+  
+  const isEnabled = useMemo(() => {
+    try {
+      const stored = localStorage.getItem('dcc_admin_categories')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          const cat = parsed.find(c => c.slug === slug)
+          if (cat) return cat.enabled !== false
+        }
+      }
+    } catch {}
+    return true
+  }, [slug])
+
   const meta = getCategoryMeta(slug)
   const breadcrumbs = getCategoryBreadcrumbs(slug, meta.title)
   const categoryProducts = useMemo(() => getCategoryProducts(slug), [slug])
   const categoryShops = getCategoryShops(slug)
   const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
+
+  if (!isEnabled) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
+        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
+        <p className="mt-2 text-sm text-slate-600">This category is currently unavailable or has been disabled by the admin.</p>
+        <Link to="/" className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover">
+          Back to Home
+        </Link>
+      </div>
+    )
+  }
 
   const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
   const [priceMin, setPriceMin] = useState(0)

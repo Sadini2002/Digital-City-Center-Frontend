@@ -53,11 +53,57 @@ export default function ProductTable({ products, onDelete }) {
                 <td className="px-5 py-3.5 font-medium text-slate-500 text-xs">
                   {product.productId || id}
                 </td>
-                <td className="px-5 py-3.5 font-semibold text-slate-900">
-                  {product.name}
+                <td className="px-5 py-3.5">
+                  <div className="font-semibold text-slate-900">{product.name}</div>
+                  
+                  {/* Display Variants */}
+                  {((product.variants?.sizes && product.variants.sizes.length > 0) || 
+                    (product.variants?.colors && product.variants.colors.length > 0)) && (
+                    <div className="mt-1 flex flex-wrap gap-1 items-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 mr-0.5">Variants:</span>
+                      {product.variants?.sizes?.map(size => (
+                        <span key={size} className="rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold text-slate-600">
+                          {size}
+                        </span>
+                      ))}
+                      {product.variants?.colors?.map(color => (
+                        <span key={color} className="rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full border border-slate-300" style={{ backgroundColor: color }} />
+                          {color}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Display Discount */}
+                  {product.discount?.percent > 0 && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="rounded bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[10px] font-bold">
+                        {product.discount.percent}% OFF
+                      </span>
+                      {product.discount.startDate && product.discount.endDate && (
+                        <span className="text-[10px] text-slate-400">
+                          ({product.discount.startDate} to {product.discount.endDate})
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </td>
-                <td className="px-5 py-3.5 font-medium text-slate-800">
-                  LKR {Number(product.price || 0).toLocaleString('en-LK')}
+                <td className="px-5 py-3.5">
+                  {product.discount?.percent > 0 ? (
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-800">
+                        LKR {Number(product.price * (1 - product.discount.percent / 100)).toLocaleString('en-LK')}
+                      </span>
+                      <span className="text-xs text-slate-400 line-through">
+                        LKR {Number(product.price).toLocaleString('en-LK')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-medium text-slate-800">
+                      LKR {Number(product.price || 0).toLocaleString('en-LK')}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3.5 text-slate-700">
                   {product.stock}

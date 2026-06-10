@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Search, SlidersHorizontal } from 'lucide-react'
 import { getOrders, updateOrderStatus } from '../../buyer'
 import { formatLkr } from '../../components/category/categoryData'
 
@@ -13,6 +14,9 @@ function statusPill(status) {
 
 export default function OrderManagementPage() {
   const [orders, setOrders] = useState(() => getOrders())
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [disputeFilter, setDisputeFilter] = useState('all')
 
   const setDispute = (orderId, disputeStatus) => {
     const current = orders.find((o) => o.id === orderId)
@@ -26,6 +30,23 @@ export default function OrderManagementPage() {
     setOrders(getOrders())
   }
 
+  const filteredOrders = orders.filter((o) => {
+    const matchesSearch =
+      o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      String(o.status || '').toLowerCase() === statusFilter.toLowerCase()
+
+    const oDispute = o.dispute?.status || 'none'
+    const matchesDispute =
+      disputeFilter === 'all' ||
+      oDispute === disputeFilter
+
+    return matchesSearch && matchesStatus && matchesDispute
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,14 +55,54 @@ export default function OrderManagementPage() {
           View all orders platform-wide (demo: orders stored in browser).
         </p>
       </div>
-      <div className="rounded-xl border border-dcc-primary/20 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm shadow-dcc-primary/10">
-        Use this view to monitor order statuses and open admin tracking details.
+
+      {/* Search and Filters panel */}
+      <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search orders by ID or customer email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/10 transition"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filters:</span>
+          </div>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/10 transition"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="failed">Failed</option>
+          </select>
+
+          <select
+            value={disputeFilter}
+            onChange={(e) => setDisputeFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/10 transition"
+          >
+            <option value="all">All Disputes</option>
+            <option value="none">No Dispute</option>
+            <option value="open">Open</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
       </div>
 
       <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
-        {orders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <p className="text-sm text-slate-600">
-            No orders yet. Place an order in the buyer checkout to see it here.
+            No matching orders found.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -58,7 +119,7 @@ export default function OrderManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((o) => (
+                {filteredOrders.map((o) => (
                   <tr key={o.id} className="border-b border-dcc-primary/10">
                     <td className="py-3 font-semibold text-slate-900">{o.id}</td>
                     <td className="py-3 text-slate-600">{o.email}</td>

@@ -10,6 +10,7 @@ export default function AnnouncementsPage() {
   const [ctaLabel, setCtaLabel] = useState('Shop Now')
   const [ctaTo, setCtaTo] = useState('/category/all')
   const [enabled, setEnabled] = useState(true)
+  const [expiresAt, setExpiresAt] = useState('')
 
   const persist = (next) => {
     saveAnnouncements(next)
@@ -26,11 +27,13 @@ export default function AnnouncementsPage() {
       ctaLabel: ctaLabel.trim() || 'Shop Now',
       ctaTo: ctaTo.trim() || '/category/all',
       enabled: Boolean(enabled),
+      expiresAt: expiresAt || undefined,
       createdAt: new Date().toISOString(),
     }
     persist([item, ...announcements])
     setTitle('')
     setSubtitle('')
+    setExpiresAt('')
   }
 
   const toggle = (id) => {
@@ -39,6 +42,10 @@ export default function AnnouncementsPage() {
 
   const remove = (id) => {
     persist(announcements.filter((a) => a.id !== id))
+  }
+
+  const isExpired = (a) => {
+    return a.expiresAt && new Date(a.expiresAt) < new Date()
   }
 
   const input =
@@ -56,17 +63,23 @@ export default function AnnouncementsPage() {
       <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
         <h2 className="text-lg font-bold text-slate-900">Create announcement</h2>
         <form onSubmit={add} className="mt-4 grid gap-3 sm:grid-cols-2">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className={input} />
-          <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtitle" className={input} />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className={input} required />
+          <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtitle" className={input} required />
           <input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="CTA label" className={input} />
           <input value={ctaTo} onChange={(e) => setCtaTo(e.target.value)} placeholder="CTA link (e.g. /deals)" className={input} />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-            Enabled
-          </label>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-500 uppercase">Expiry Date (Optional)</label>
+            <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={input} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+              Enabled
+            </label>
+          </div>
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover sm:col-span-2"
           >
             <Plus className="h-4 w-4" />
             Publish
@@ -83,11 +96,19 @@ export default function AnnouncementsPage() {
             {announcements.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">{a.title}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-900">{a.title}</p>
+                    {isExpired(a) && (
+                      <span className="rounded bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-700">
+                        Expired
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-600">{a.subtitle}</p>
-                  <p className="text-xs text-slate-400">
-                    CTA: {a.ctaLabel} → {a.ctaTo}
-                  </p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400 font-medium">
+                    <span>CTA: {a.ctaLabel} → {a.ctaTo}</span>
+                    {a.expiresAt && <span>Expires: {a.expiresAt}</span>}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
