@@ -20,6 +20,7 @@ export default function SellerDashboard() {
   const [orders, setOrders] = useState([])
   const [productsCount, setProductsCount] = useState(0)
   const [activeProductsCount, setActiveProductsCount] = useState(0)
+  const [lowStockProducts, setLowStockProducts] = useState([])
 
   useEffect(() => {
     // Read and initialize orders if empty
@@ -84,9 +85,13 @@ export default function SellerDashboard() {
     if (localProducts.length > 0) {
       setProductsCount(localProducts.length)
       setActiveProductsCount(localProducts.filter(p => p.isAvailable && p.stock > 0).length)
+      setLowStockProducts(localProducts.filter(p => p.itemType === 'physical' && p.stock <= 5))
     } else {
       setProductsCount(4)
       setActiveProductsCount(3)
+      setLowStockProducts([
+        { id: 'canon-eos-r50', name: 'Canon EOS R50 Mirrorless Camera', stock: 1 }
+      ])
     }
   }, [])
 
@@ -133,6 +138,28 @@ export default function SellerDashboard() {
         </div>
       </section>
 
+      {lowStockProducts.length > 0 && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm animate-fadeIn">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-950 text-sm">Low Stock Alert!</h3>
+              <p className="text-xs text-amber-700 mt-1">
+                The following products are running out of stock. Please restock soon:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5 text-xs text-amber-800 font-semibold">
+                {lowStockProducts.map(p => (
+                  <li key={p.productId || p._id || p.id}>
+                    {p.name} (Only {p.stock} remaining)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardCard 
           title="Products" 

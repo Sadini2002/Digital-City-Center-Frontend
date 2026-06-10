@@ -17,6 +17,7 @@ import {
 } from '../data/checkoutData'
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
+import { getPlatformSettings } from '../../admin/utils/adminStorage'
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -62,8 +63,6 @@ export default function CheckoutPage() {
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [cart],
   )
-  const deliveryFee = getDeliveryFee(deliveryMethod)
-  const total = subtotal + deliveryFee
 
   if (cart.length === 0) {
     return <Navigate to="/cart" replace />
@@ -78,6 +77,53 @@ export default function CheckoutPage() {
     return { id: 'new', label: 'Delivery', ...newAddress }
   }
 
+  const getCalculatedFee = (methodId) => {
+    if (methodId === 'pickup') return 0
+
+    const settings = getPlatformSettings()
+    
+    if (settings.freeThreshold && subtotal >= Number(settings.freeThreshold)) {
+      return 0
+    }
+
+    if (settings.pricingModel === 'flat') {
+      return Number(settings.flatFee || 0)
+    }
+
+    // Distance-based pricing
+    const baseFee = Number(settings.baseFee || 0)
+    const perKmFee = Number(settings.perKmFee || 0)
+    const outOfColomboFee = Number(settings.outOfColomboFee || 0)
+
+    const addr = resolveAddress()
+    const district = (addr.district || addr.city || '').trim().toLowerCase()
+    
+    let distance = 10 // default
+    if (district === 'colombo') {
+      distance = 5
+    } else if (district === 'gampaha') {
+      distance = 25
+    } else if (district === 'kalutara') {
+      distance = 40
+    } else if (district === 'kandy') {
+      distance = 115
+    } else if (district) {
+      let hash = 0
+      for (let i = 0; i < district.length; i++) {
+        hash += district.charCodeAt(i)
+      }
+      distance = 15 + (hash % 85)
+    }
+
+    const isOutOfColombo = district !== 'colombo'
+    const surcharge = isOutOfColombo ? outOfColomboFee : 0
+
+    return baseFee + (distance * perKmFee) + surcharge
+  }
+
+  const deliveryFee = getCalculatedFee(deliveryMethod)
+  const total = subtotal + deliveryFee
+
   const validate = () => {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return 'Enter a valid email for your order confirmation.'
@@ -86,6 +132,33 @@ export default function CheckoutPage() {
     if (!addr.name?.trim() || !addr.phone?.trim() || !addr.line1?.trim() || !addr.city?.trim()) {
       return 'Please complete your delivery address.'
     }
+
+    const settings = getPlatformSettings()
+    
+    // Check keywords
+    const keywords = (settings.unsupportedKeywords || '')
+      .split(',')
+      .map(k => k.trim().toLowerCase())
+      .filter(Boolean)
+      
+    const addressString = `${addr.line1} ${addr.line2 || ''} ${addr.city} ${addr.district || ''} ${addr.postalCode || ''}`.toLowerCase()
+    
+    for (const kw of keywords) {
+      if (addressString.includes(kw)) {
+        return `Delivery is not supported for the specified address (matched restricted keyword: "${kw}").`
+      }
+    }
+
+    // Check coverage areas
+    const coverage = settings.coverageAreas || []
+    if (coverage.length > 0) {
+      const districtLower = (addr.district || addr.city || '').trim().toLowerCase()
+      const isCovered = coverage.some(area => area.trim().toLowerCase() === districtLower)
+      if (!isCovered && deliveryMethod !== 'pickup') {
+        return `Delivery is not supported in ${addr.district || addr.city || 'your area'}. We only deliver to: ${coverage.join(', ')}.`
+      }
+    }
+
     return ''
   }
 
@@ -331,7 +404,7 @@ export default function CheckoutPage() {
                           <p className="mt-1 text-xs text-slate-500">{method.eta}</p>
                         </div>
                         <span className="text-sm font-bold text-dcc-primary">
-                          {method.fee === 0 ? 'Free' : `LKR ${method.fee.toLocaleString('en-LK')}`}
+                          {getCalculatedFee(method.id) === 0 ? 'Free' : `LKR ${getCalculatedFee(method.id).toLocaleString('en-LK')}`}
                         </span>
                       </div>
                     </label>

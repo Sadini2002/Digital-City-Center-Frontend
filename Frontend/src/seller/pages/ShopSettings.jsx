@@ -48,6 +48,19 @@ export default function ShopSettings() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // 1. File Type validation
+    if (!file.type.startsWith('image/')) {
+      toast.error('Invalid file type. Only image files (JPEG, PNG, GIF, etc.) are allowed.')
+      return
+    }
+    
+    // 2. File Size validation (5MB max)
+    const maxSizeBytes = 5 * 1024 * 1024
+    if (file.size > maxSizeBytes) {
+      toast.error('Image size exceeds the 5MB limit. Please upload a smaller image.')
+      return
+    }
+
     const validation = validateUploadFile(file, {
       label: type === 'logo' ? 'Logo' : 'Banner',
     })

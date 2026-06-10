@@ -12,7 +12,16 @@ export default function DeliveryProvidersPage() {
   const [providers, setProviders] = useState(() => getDeliveryProviders())
 
   const act = (id, status) => {
-    updateDeliveryProviderStatus(id, status)
+    let reason = ''
+    if (status === 'rejected') {
+      reason = window.prompt('Please enter the reason for rejection:')
+      if (reason === null) return // Cancelled
+      if (!reason.trim()) {
+        alert('Rejection reason is required.')
+        return
+      }
+    }
+    updateDeliveryProviderStatus(id, status, reason)
     setProviders(getDeliveryProviders())
   }
 

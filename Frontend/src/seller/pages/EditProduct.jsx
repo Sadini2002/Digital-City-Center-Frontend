@@ -67,6 +67,18 @@ export default function EditProduct() {
     const token = getAuthToken();
     if (!token) return toast.error("Please sign in as a seller");
 
+    if (!productId || !name) {
+      return toast.error("Product ID and Name are required");
+    }
+
+    if (Number(price) <= 0) {
+      return toast.error("Price must be a positive number greater than 0");
+    }
+
+    if (itemType === 'physical' && Number(stock) < 0) {
+      return toast.error("Stock quantity cannot be negative");
+    }
+
     let uploadedNewImages = [];
     if (newImages.length) {
       try {

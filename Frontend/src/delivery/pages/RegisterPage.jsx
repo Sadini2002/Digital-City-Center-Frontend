@@ -96,6 +96,14 @@ export default function DeliveryRegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    
+    // Phone validation
+    const phoneRegex = /^\+?[0-9]{9,15}$/
+    if (!phoneRegex.test(form.phone.trim().replace(/[\s-]/g, ''))) {
+      setError('Invalid contact number. Please enter a valid phone number (9-15 digits).')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       saveDeliveryApplication(form)

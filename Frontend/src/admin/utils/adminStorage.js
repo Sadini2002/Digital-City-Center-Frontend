@@ -70,11 +70,11 @@ export function getDeliveryProviders() {
   return seed
 }
 
-export function updateDeliveryProviderStatus(id, status) {
+export function updateDeliveryProviderStatus(id, status, reason) {
   const list = getDeliveryProviders()
   const idx = list.findIndex((p) => p.id === id)
   if (idx < 0) return null
-  const updated = { ...list[idx], status, reviewedAt: new Date().toISOString() }
+  const updated = { ...list[idx], status, rejectionReason: reason || undefined, reviewedAt: new Date().toISOString() }
   list[idx] = updated
   writeJson(ADMIN_DELIVERY_PROVIDERS_KEY, list)
   return updated

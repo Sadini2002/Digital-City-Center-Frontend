@@ -62,6 +62,14 @@ export default function AddProduct() {
       return toast.error("Product ID and Name are required");
     }
 
+    if (Number(price) <= 0) {
+      return toast.error("Price must be a positive number greater than 0");
+    }
+
+    if (itemType === 'physical' && Number(stock) < 0) {
+      return toast.error("Stock quantity cannot be negative");
+    }
+
     if (!image.length) {
       return toast.error("Please upload at least one image");
     }

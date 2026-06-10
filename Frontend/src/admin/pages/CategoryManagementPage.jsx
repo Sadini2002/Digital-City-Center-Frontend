@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { getAdminCategories, saveAdminCategories } from '../utils/adminStorage'
 import { getCategoryMeta } from '../../components/category/categoryData'
 
@@ -33,9 +34,22 @@ export default function CategoryManagementPage() {
     e.preventDefault()
     const slug = newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const title = newTitle.trim()
-    if (!slug || !title) return
-    if (categories.some((c) => c.slug === slug)) return
+    
+    if (!title) {
+      toast.error('Category title is required.')
+      return
+    }
+    if (!slug) {
+      toast.error('Category slug is required.')
+      return
+    }
+    if (categories.some((c) => c.slug === slug || c.title.toLowerCase() === title.toLowerCase())) {
+      toast.error('A category with this name or slug already exists.')
+      return
+    }
+    
     persist([{ slug, title, enabled: true }, ...categories])
+    toast.success('Category added successfully!')
     setNewSlug('')
     setNewTitle('')
   }

@@ -29,7 +29,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
           <button
             type="button"
             className="px-3 py-2 text-slate-600 hover:bg-slate-50"
-            onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+            onClick={() => onUpdateQuantity(item.lineId || item.id, item.quantity - 1)}
             disabled={item.quantity <= 1}
             aria-label="Decrease quantity"
           >
@@ -39,7 +39,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
           <button
             type="button"
             className="px-3 py-2 text-slate-600 hover:bg-slate-50"
-            onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+            onClick={() => onUpdateQuantity(item.lineId || item.id, item.quantity + 1)}
             aria-label="Increase quantity"
           >
             <Plus className="h-4 w-4" />
@@ -52,7 +52,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
 
         <button
           type="button"
-          onClick={() => onRemove(item.id)}
+          onClick={() => onRemove(item.lineId || item.id)}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-red-600"
         >
           <Trash2 className="h-4 w-4" />

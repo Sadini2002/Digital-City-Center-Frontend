@@ -6,6 +6,7 @@ import WishlistButton from '../common/WishlistButton'
 export default function ProductGallery({ images, badges, product }) {
   const galleryImages = images.filter(Boolean)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [isZoomed, setIsZoomed] = useState(false)
   const activeSrc = galleryImages[activeIndex]
 
   return (
@@ -39,7 +40,7 @@ export default function ProductGallery({ images, badges, product }) {
           ))}
         </div>
         {activeSrc ? (
-          <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover" />
+          <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover cursor-zoom-in" onClick={() => setIsZoomed(true)} />
         ) : (
           <div className="aspect-square w-full bg-slate-100" aria-hidden />
         )}
@@ -50,12 +51,36 @@ export default function ProductGallery({ images, badges, product }) {
         )}
         <button
           type="button"
-          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-slate-600 shadow-sm hover:bg-white"
+          onClick={() => setIsZoomed(true)}
+          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-slate-600 shadow-sm hover:bg-white transition"
           aria-label="Zoom image"
         >
           <ZoomIn className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Fullscreen Zoom Modal */}
+      {isZoomed && activeSrc && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 cursor-zoom-out"
+          onClick={() => setIsZoomed(false)}
+        >
+          <div className="relative max-w-4xl w-full h-[80vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-white hover:text-slate-300 font-bold text-xl bg-slate-900/60 p-2 rounded-full h-10 w-10 flex items-center justify-center transition shadow-md"
+              onClick={() => setIsZoomed(false)}
+            >
+              ✕
+            </button>
+            <img 
+              src={activeSrc} 
+              alt="Zoomed Product View" 
+              className="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition duration-300" 
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
