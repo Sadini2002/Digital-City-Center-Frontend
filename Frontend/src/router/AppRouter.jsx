@@ -36,6 +36,7 @@ import {
   SellerOrdersPage,
   SellerShopSettingsPage,
   SellerEarningsPage,
+  SellerProfilePage,
   SellerLayout,
   SellerRoute,
 } from '../seller'
@@ -73,6 +74,8 @@ import {
   AnnouncementsPage,
   CommissionSettingsPage,
   ReportsPage,
+  PlatformSettingsPage,
+  AdminProfilePage,
 } from '../admin'
 
 
@@ -102,7 +105,8 @@ function AppRouter() {
           <Route path="announcements" element={<AnnouncementsPage />} />
           <Route path="commission" element={<CommissionSettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<CommissionSettingsPage />} />
+          <Route path="settings" element={<PlatformSettingsPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
         </Route>
         <Route path="/register" element={<Register />} />
         <Route path="/register/seller" element={<SellerRegisterPage />} />
@@ -158,6 +162,7 @@ function AppRouter() {
           <Route path="orders" element={<SellerOrdersPage />} />
           <Route path="earnings" element={<SellerEarningsPage />} />
           <Route path="settings" element={<SellerShopSettingsPage />} />
+          <Route path="profile" element={<SellerProfilePage />} />
         </Route>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />

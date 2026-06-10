@@ -38,9 +38,9 @@ export const ADMIN_ROLE_LABELS = {
 }
 
 const ADMIN_ROLE_ACCESS = {
-  SUPER_ADMIN: ['dashboard', 'sellers', 'categories', 'orders', 'delivery', 'announcements', 'commission', 'reports', 'settings'],
-  CATEGORY_MANAGER: ['dashboard', 'categories', 'commission', 'reports'],
-  SUPPORT_AGENT: ['dashboard', 'orders', 'delivery', 'sellers'],
+  SUPER_ADMIN: ['dashboard', 'sellers', 'categories', 'orders', 'delivery', 'announcements', 'commission', 'reports', 'settings', 'profile'],
+  CATEGORY_MANAGER: ['dashboard', 'categories', 'commission', 'reports', 'profile'],
+  SUPPORT_AGENT: ['dashboard', 'orders', 'delivery', 'sellers', 'profile'],
 }
 
 export function getAdminAllowedSections(role) {

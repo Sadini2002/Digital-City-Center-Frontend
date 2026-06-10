@@ -80,3 +80,30 @@ export function updateDeliveryProviderStatus(id, status) {
   return updated
 }
 
+const ADMIN_PLATFORM_SETTINGS_KEY = 'dcc_admin_platform_settings'
+
+export function getPlatformSettings() {
+  const existing = readJson(ADMIN_PLATFORM_SETTINGS_KEY, null)
+  if (existing) return existing
+
+  const defaultSettings = {
+    platformName: 'Digital City Center',
+    contactEmail: 'admin@digitalcity.lk',
+    pricingModel: 'distance',
+    baseFee: 250,
+    outOfColomboFee: 150,
+    perKmFee: 50,
+    flatFee: 350,
+    freeThreshold: 5000,
+    coverageAreas: ['Colombo', 'Gampaha', 'Kalutara'],
+    unsupportedKeywords: 'india, bengaluru, mumbai',
+  }
+  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, defaultSettings)
+  return defaultSettings
+}
+
+export function savePlatformSettings(settings) {
+  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, settings)
+}
+
+

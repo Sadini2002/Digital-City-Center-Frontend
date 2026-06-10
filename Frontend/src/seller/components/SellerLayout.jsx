@@ -1,4 +1,4 @@
-import { BarChart3, Package, Settings, ShoppingBag, Wallet } from 'lucide-react'
+import { BarChart3, Package, Settings, ShoppingBag, Wallet, User } from 'lucide-react'
 import PortalLayoutShell from '../../components/layout/PortalLayoutShell'
 
 const nav = [
@@ -7,6 +7,7 @@ const nav = [
   { to: '/seller/orders', label: 'Orders', icon: Package },
   { to: '/seller/earnings', label: 'Earnings', icon: Wallet },
   { to: '/seller/settings', label: 'Shop settings', icon: Settings },
+  { to: '/seller/profile', label: 'My profile', icon: User },
 ]
 
 const pageTitles = {
@@ -16,6 +17,7 @@ const pageTitles = {
   '/seller/orders': 'Orders',
   '/seller/earnings': 'Earnings',
   '/seller/settings': 'Shop settings',
+  '/seller/profile': 'My profile',
 }
 
 const pageDescriptions = {
@@ -25,6 +27,7 @@ const pageDescriptions = {
   '/seller/orders': 'Review and update customer orders.',
   '/seller/earnings': 'Revenue summary, payouts, and exports.',
   '/seller/settings': 'Update shop profile and preferences.',
+  '/seller/profile': 'Manage personal credentials and verification details.',
 }
 
 export default function SellerLayout() {

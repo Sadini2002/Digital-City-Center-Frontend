@@ -10,6 +10,7 @@ export { default as SellerEditProductPage } from './pages/EditProduct'
 export { default as SellerOrdersPage } from './pages/Orders'
 export { default as SellerShopSettingsPage } from './pages/ShopSettings'
 export { default as SellerEarningsPage } from './pages/Earnings'
+export { default as SellerProfilePage } from './pages/Profile'
 
 export { default as SellerLayout } from './components/SellerLayout'
 export { default as SellerRoute } from './components/SellerRoute'
