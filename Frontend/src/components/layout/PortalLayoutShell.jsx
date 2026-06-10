@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Store } from 'lucide-react'
+import { useAuth } from '@/hooks'
 import SiteLayout from '../../layouts/SiteLayout'
 import BrandLogo from './BrandLogo'
 import PageContainer from './PageContainer'
@@ -37,9 +38,10 @@ export default function PortalLayoutShell({
     { label: title, to: null },
   ]
 
+  const { logout } = useAuth()
+
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    logout()
     navigate(logoutRedirect, { replace: true })
   }
 

@@ -2,7 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import AboutPage from '../pages/AboutPage'
 import ContactPage from '../pages/ContactPage'
-import ForgotPassword from '../pages/ForgotPassword'
+import ForgotPassword from '../pages/auth/ForgotPassword'
+import ResetPassword from '../pages/auth/ResetPassword'
 import HomePage from '../pages/HomePage'
 import Login from '../pages/Login'
 import NotFoundPage from '../pages/NotFoundPage'
@@ -142,6 +143,8 @@ function AppRouter() {
           </Route>
         </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/payment/gateway/:orderId" element={<PaymentGatewayPage />} />
         <Route
           path="/seller"
@@ -151,6 +154,7 @@ function AppRouter() {
             </SellerRoute>
           }
         >
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SellerDashboard />} />
           <Route path="listings" element={<SellerProductsPage />} />
           <Route path="listings/new" element={<SellerAddProductPage />} />

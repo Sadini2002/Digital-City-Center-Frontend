@@ -23,6 +23,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const message = error.response?.data?.message ?? error.message ?? 'Unexpected API error'
-    return Promise.reject(new Error(message))
+    const wrapped = new Error(message)
+    wrapped.status = error.response?.status
+    wrapped.isAxiosError = error.isAxiosError
+    return Promise.reject(wrapped)
   },
 )

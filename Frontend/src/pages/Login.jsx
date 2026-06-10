@@ -8,7 +8,7 @@ import AuthFormCard from '../components/auth/AuthFormCard'
 import AuthInput from '../components/auth/AuthInput'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import RoleToggle from '../components/auth/RoleToggle'
-import { authApi } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import {
   isDeliveryDriverActive,
   isDeliveryProviderActive,
@@ -28,7 +28,7 @@ export default function Login() {
       ? 'delivery'
       : portalParam === 'seller'
         ? 'seller'
-        : 'buyer'
+        : 'buyer',
   )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,6 +36,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { login, googleSignIn } = useAuth()
 
   useEffect(() => {
     const portal = searchParams.get('portal')
@@ -94,11 +95,8 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const response = await authApi.login({ email, password })
-      const { token, user } = response.data
+      const user = await login({ email, password })
 
-      if (token) localStorage.setItem('token', token)
-      if (user) localStorage.setItem('user', JSON.stringify(user))
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
       } else {
@@ -108,6 +106,19 @@ export default function Login() {
       routeAfterAuth(user)
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      const user = await googleSignIn()
+      routeAfterAuth(user)
+    } catch (err) {
+      setError(err.message || 'Google sign-in failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -249,7 +260,7 @@ export default function Login() {
               </div>
             </div>
 
-            <GoogleSignInButton />
+            <GoogleSignInButton onClick={handleGoogleSignIn} />
 
             <p className="mt-6 text-center text-sm text-slate-600">
               Don&apos;t have an account?{' '}

@@ -1,11 +1,20 @@
-export default function GoogleSignInButton({ label = 'Sign in with Google' }) {
+export default function GoogleSignInButton({ label = 'Sign in with Google', onClick }) {
+  const handleClick = () => {
+    if (typeof onClick === 'function') {
+      onClick()
+      return
+    }
+
+    window.alert(
+      'Google sign-in is not configured yet. Use email/password or the demo account credentials instead.',
+    )
+  }
+
   return (
     <button
       type="button"
       className="flex w-full min-w-0 items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 sm:py-2.5"
-      onClick={() => {
-        // OAuth integration can be wired when backend is ready
-      }}
+      onClick={handleClick}
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path
