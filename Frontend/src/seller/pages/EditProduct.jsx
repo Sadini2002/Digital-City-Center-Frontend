@@ -3,6 +3,8 @@ import toast from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import mediaUpload from "../../utils/media";
+import { getAuthToken } from "../../utils/authStorage";
+import { validateUploadFiles } from "../../utils/fileUploadValidation";
 import { Sparkles } from "lucide-react";
 
 export default function EditProduct() {
@@ -23,6 +25,7 @@ export default function EditProduct() {
   const [description, setDescription] = useState(product.description || "");
   const [existingImages, setExistingImages] = useState(product.image || []);
   const [newImages, setNewImages] = useState([]);
+  const [uploadError, setUploadError] = useState('');
   const [labelPrice, setLabelPrice] = useState(product.labelPrice || 0);
   const [stock, setStock] = useState(product.stock || 0);
   const [isAvailable, setIsAvailable] = useState(product.isAvailable ?? true);
@@ -36,18 +39,32 @@ export default function EditProduct() {
   const [discountEnd, setDiscountEnd] = useState(product.discount?.endDate || "")
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files)
-    if (existingImages.length + files.length > 8) {
-      toast.error("You can upload a maximum of 8 images.")
+    const validation = validateUploadFiles(e.target.files, { label: 'Image' })
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      setNewImages([])
+      toast.error(validation.error)
+      e.target.value = ''
       return
     }
+
+    const files = validation.files
+    if (existingImages.length + files.length > 8) {
+      const message = 'You can upload a maximum of 8 images.'
+      setUploadError(message)
+      setNewImages([])
+      toast.error(message)
+      e.target.value = ''
+      return
+    }
+    setUploadError('')
     setNewImages(files)
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) return toast.error("Please sign in as a seller");
 
     let uploadedNewImages = [];
@@ -263,9 +280,16 @@ export default function EditProduct() {
             <input
               type="file"
               multiple
+              accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
               className="w-full mt-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200 transition"
               onChange={handleImageChange}
             />
+            <p className="mt-1 text-xs text-slate-500">JPG, PNG, WebP, or GIF only. Max 5MB per file.</p>
+            {uploadError && (
+              <p className="mt-2 text-sm font-medium text-red-600" role="alert">
+                {uploadError}
+              </p>
+            )}
           </div>
 
           {/* Variants */}

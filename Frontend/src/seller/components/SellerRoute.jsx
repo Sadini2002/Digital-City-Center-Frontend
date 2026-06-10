@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
+import { getAuthToken } from '../../utils/authStorage'
 
 function getStoredUser() {
   try {
@@ -14,7 +15,7 @@ function isSellerRole(role) {
 
 export default function SellerRoute({ children }) {
   const location = useLocation()
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
   const user = getStoredUser()
 
   if (!token || !isSellerRole(user?.role)) {

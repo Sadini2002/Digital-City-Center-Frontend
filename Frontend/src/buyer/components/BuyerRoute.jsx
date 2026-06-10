@@ -1,7 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom'
+import { getAuthToken } from '../../utils/authStorage'
 
 function isLoggedIn() {
-  return Boolean(localStorage.getItem('token'))
+  return Boolean(getAuthToken())
 }
 
 export default function BuyerRoute({ children }) {

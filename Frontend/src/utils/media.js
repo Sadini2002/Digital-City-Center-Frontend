@@ -1,3 +1,6 @@
+import { getAuthToken } from './authStorage'
+import { validateUploadFile } from './fileUploadValidation'
+
 /**
  * Upload a file and return a URL string for product images.
  * POSTs to {API}/upload when the backend is available; otherwise uses a dev blob URL.
@@ -7,13 +10,18 @@ export default async function mediaUpload(file) {
     throw new Error('Invalid file')
   }
 
+  const validation = validateUploadFile(file, { label: 'Image' })
+  if (!validation.valid) {
+    throw new Error(validation.error)
+  }
+
   const base = (
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||
     'http://localhost:5000/api'
   ).replace(/\/+$/, '')
 
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
 
   try {
     const formData = new FormData()

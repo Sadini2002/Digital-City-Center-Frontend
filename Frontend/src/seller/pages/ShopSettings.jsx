@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { validateUploadFile } from '../../utils/fileUploadValidation'
 import { Store, ShieldAlert, Truck, Mail, Phone, MapPin, Save, Clock, Image, Globe } from 'lucide-react'
 
 export default function ShopSettings() {
@@ -18,6 +19,7 @@ export default function ShopSettings() {
   const [operatingHours, setOperatingHours] = useState('9:00 AM - 6:00 PM (Monday - Saturday)')
   const [logo, setLogo] = useState('https://images.unsplash.com/photo-1516876437184-593fda40c7cf?w=150&auto=format&fit=crop&q=60')
   const [banner, setBanner] = useState('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&auto=format&fit=crop&q=60')
+  const [uploadError, setUploadError] = useState('')
 
   useEffect(() => {
     // Read user details from localStorage
@@ -43,13 +45,24 @@ export default function ShopSettings() {
   }, [])
 
   const handleMediaUpload = (type) => (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      if (type === 'logo') setLogo(url)
-      if (type === 'banner') setBanner(url)
-      toast.success(`${type === 'logo' ? 'Logo' : 'Banner'} uploaded successfully!`)
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validation = validateUploadFile(file, {
+      label: type === 'logo' ? 'Logo' : 'Banner',
+    })
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      toast.error(validation.error)
+      e.target.value = ''
+      return
     }
+
+    setUploadError('')
+    const url = URL.createObjectURL(file)
+    if (type === 'logo') setLogo(url)
+    if (type === 'banner') setBanner(url)
+    toast.success(`${type === 'logo' ? 'Logo' : 'Banner'} uploaded successfully!`)
   }
 
   const handleSave = (e) => {
@@ -106,6 +119,12 @@ export default function ShopSettings() {
           <h2 className="font-bold text-slate-900">Shop Brand Assets</h2>
         </div>
 
+        {uploadError && (
+          <p className="text-sm font-medium text-red-600" role="alert">
+            {uploadError}
+          </p>
+        )}
+
         <div className="space-y-5">
           {/* Banner Asset */}
           <div>
@@ -115,7 +134,7 @@ export default function ShopSettings() {
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <label className="cursor-pointer rounded-lg bg-white/90 px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-white transition shadow">
                   Change Banner
-                  <input type="file" accept="image/*" onChange={handleMediaUpload('banner')} className="hidden" />
+                  <input type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" onChange={handleMediaUpload('banner')} className="hidden" />
                 </label>
               </div>
             </div>
@@ -128,7 +147,7 @@ export default function ShopSettings() {
               <div className="absolute inset-0 bg-slate-900/45 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <label className="cursor-pointer text-[10px] text-white font-semibold underline text-center">
                   Edit
-                  <input type="file" accept="image/*" onChange={handleMediaUpload('logo')} className="hidden" />
+                  <input type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" onChange={handleMediaUpload('logo')} className="hidden" />
                 </label>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { canAdminAccessPath, getAdminRedirectPath, isAdminRole, normalizeAdminRole } from '../utils/adminRole'
+import { getAdminToken } from '../../utils/authStorage'
 
 function getStoredUser() {
   try {
@@ -11,7 +12,7 @@ function getStoredUser() {
 
 export default function AdminRoute({ children }) {
   const location = useLocation()
-  const token = localStorage.getItem('admin_token')
+  const token = getAdminToken()
   const user = getStoredUser()
   const normalizedRole = normalizeAdminRole(user?.role)
 

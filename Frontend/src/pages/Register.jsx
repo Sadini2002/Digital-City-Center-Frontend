@@ -6,7 +6,8 @@ import RegisterHero from '../components/auth/RegisterHero'
 import AuthFormCard from '../components/auth/AuthFormCard'
 import AuthInput from '../components/auth/AuthInput'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
-import { useAuth } from '../context/AuthContext'
+import { authApi } from '../services/api'
+import { setAuthToken } from '../utils/authStorage'
 
 const PASSWORD_HINT = 'Must be at least 8 characters with a symbol.'
 
@@ -23,7 +24,6 @@ export default function Register() {
   const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { register, googleSignIn } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -44,27 +44,22 @@ export default function Register() {
 
     setLoading(true)
     try {
-      await register({
+      const response = await authApi.register({
         name: name.trim(),
         email,
         password,
       })
+
+      if (response.data?.token) {
+        await setAuthToken(response.data.token, true)
+      }
+      if (response.data?.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+      }
+
       navigate('/')
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    setError('')
-    setLoading(true)
-    try {
-      await googleSignIn()
-      navigate('/')
-    } catch (err) {
-      setError(err.message || 'Google sign-in failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -176,7 +171,7 @@ export default function Register() {
               </div>
             </div>
 
-            <GoogleSignInButton label="Sign in with Google" onClick={handleGoogleSignIn} />
+            <GoogleSignInButton label="Sign in with Google" />
 
             <p className="mt-6 text-center text-sm text-slate-600 sm:hidden">
               Already have an account?{' '}

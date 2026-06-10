@@ -8,7 +8,7 @@ import AuthFormCard from '../components/auth/AuthFormCard'
 import AuthInput from '../components/auth/AuthInput'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 import RoleToggle from '../components/auth/RoleToggle'
-import { useAuth } from '../context/AuthContext'
+import { authApi } from '../services/api'
 import {
   isDeliveryDriverActive,
   isDeliveryProviderActive,
@@ -16,6 +16,7 @@ import {
 import {
   activateDemoDeliveryProvider,
 } from '../delivery/utils/deliveryApplicationStorage'
+import { clearAuthToken, setAuthToken } from '../utils/authStorage'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -28,7 +29,7 @@ export default function Login() {
       ? 'delivery'
       : portalParam === 'seller'
         ? 'seller'
-        : 'buyer',
+        : 'buyer'
   )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -36,7 +37,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { login, googleSignIn } = useAuth()
 
   useEffect(() => {
     const portal = searchParams.get('portal')
@@ -58,12 +58,12 @@ export default function Login() {
     }
     if (role === 'delivery') {
       setError('This account is not a delivery partner. Register as a provider or use demo access.')
-      localStorage.removeItem('token')
+      clearAuthToken()
       localStorage.removeItem('user')
       return
     }
     if (role === 'seller' && userRole !== 'SELLER') {
-      localStorage.removeItem('token')
+      clearAuthToken()
       localStorage.removeItem('user')
       setError('This account is not registered as a seller. Try signing in as a buyer.')
       return
@@ -74,7 +74,7 @@ export default function Login() {
       String(userRole ?? '').toUpperCase().includes('ADMIN') ||
       String(userRole ?? '').toUpperCase().includes('SUPER')
     ) {
-      localStorage.removeItem('token')
+      clearAuthToken()
       localStorage.removeItem('user')
       setError('Admin accounts are separate. Please use the dedicated admin portal.')
     } else if (userRole === 'SELLER') {
@@ -95,8 +95,11 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const user = await login({ email, password })
+      const response = await authApi.login({ email, password })
+      const { token, user } = response.data
 
+      if (token) await setAuthToken(token, rememberMe)
+      if (user) localStorage.setItem('user', JSON.stringify(user))
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
       } else {
@@ -111,32 +114,19 @@ export default function Login() {
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    setError('')
-    setLoading(true)
-    try {
-      const user = await googleSignIn()
-      routeAfterAuth(user)
-    } catch (err) {
-      setError(err.message || 'Google sign-in failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleDemoDelivery = () => {
     activateDemoDeliveryProvider()
     navigate('/delivery', { replace: true })
   }
 
-  const handleDemoSeller = () => {
+  const handleDemoSeller = async () => {
     const demoUser = {
       id: 'seller-demo-1',
       name: 'Demo Seller',
       email: 'seller@demo.local',
       role: 'SELLER',
     }
-    localStorage.setItem('token', 'demo-seller-token')
+    await setAuthToken('demo-seller-token', true)
     localStorage.setItem('user', JSON.stringify(demoUser))
     const from = location.state?.from
     const target = from && String(from).startsWith('/seller') ? from : '/seller/dashboard'
@@ -260,7 +250,7 @@ export default function Login() {
               </div>
             </div>
 
-            <GoogleSignInButton onClick={handleGoogleSignIn} />
+            <GoogleSignInButton />
 
             <p className="mt-6 text-center text-sm text-slate-600">
               Don&apos;t have an account?{' '}

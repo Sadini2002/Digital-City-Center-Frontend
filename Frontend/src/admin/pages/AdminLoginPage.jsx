@@ -5,6 +5,7 @@ import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { authApi } from '../../services/api'
 import { ADMIN_ROLE_LABELS, getAdminRedirectPath, isAdminRole, normalizeAdminRole } from '../utils/adminRole'
+import { clearAdminToken, setAdminToken } from '../../utils/authStorage'
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
@@ -30,7 +31,7 @@ export default function AdminLoginPage() {
       const response = await authApi.login({ email, password })
       const { token, user } = response.data
 
-      if (token) localStorage.setItem('admin_token', token)
+      if (token) await setAdminToken(token, rememberMe)
       if (user) localStorage.setItem('admin_user', JSON.stringify(user))
 
       if (rememberMe) {
@@ -41,7 +42,7 @@ export default function AdminLoginPage() {
 
       const role = user?.role
       if (!isAdminRole(role)) {
-        localStorage.removeItem('admin_token')
+        await clearAdminToken()
         localStorage.removeItem('admin_user')
         setError('This account is not an admin. Please login as a buyer/seller.')
         return
@@ -49,7 +50,7 @@ export default function AdminLoginPage() {
 
       const normalized = normalizeAdminRole(role)
       if (normalized !== selectedRole) {
-        localStorage.removeItem('admin_token')
+        await clearAdminToken()
         localStorage.removeItem('admin_user')
         setError(`This account is ${ADMIN_ROLE_LABELS[normalized] ?? 'another role'}. Please choose the correct role.`)
         return
@@ -57,7 +58,7 @@ export default function AdminLoginPage() {
       const target = normalized ? getAdminRedirectPath(normalized) : '/admin/dashboard'
       navigate(target, { replace: true })
     } catch (err) {
-      localStorage.removeItem('admin_token')
+      await clearAdminToken()
       localStorage.removeItem('admin_user')
       setError(err.message || 'Admin login failed. Please try again.')
     } finally {
@@ -65,14 +66,14 @@ export default function AdminLoginPage() {
     }
   }
 
-  const handleDemoAccess = () => {
+  const handleDemoAccess = async () => {
     const demoUser = {
       id: 'admin-demo-1',
       name: `Demo ${ADMIN_ROLE_LABELS[selectedRole] ?? 'Admin'}`,
       email: 'admin@demo.local',
       role: selectedRole,
     }
-    localStorage.setItem('admin_token', 'demo-admin-token')
+    await setAdminToken('demo-admin-token', true)
     localStorage.setItem('admin_user', JSON.stringify(demoUser))
     navigate(getAdminRedirectPath(selectedRole), { replace: true })
   }

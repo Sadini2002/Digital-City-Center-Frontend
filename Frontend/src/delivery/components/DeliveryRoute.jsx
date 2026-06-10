@@ -1,6 +1,7 @@
 /** BACKEND: Requires valid JWT; role DELIVERY_PROVIDER | DELIVERY_DRIVER from login */
 import { Navigate, useLocation } from 'react-router-dom'
 import { isDeliveryRole } from '../utils/deliveryAuth'
+import { getAuthToken } from '../../utils/authStorage'
 
 function getStoredUser() {
   try {
@@ -12,7 +13,7 @@ function getStoredUser() {
 
 export default function DeliveryRoute({ children }) {
   const location = useLocation()
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
   const user = getStoredUser()
 
   if (!token || !isDeliveryRole(user?.role)) {

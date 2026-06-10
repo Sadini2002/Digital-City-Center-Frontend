@@ -6,6 +6,7 @@ import {
   isDeliveryDriverActive,
   isDeliveryProviderActive,
 } from '../utils/deliveryAuth'
+import { getAuthToken } from '../../utils/authStorage'
 
 function getStoredUser() {
   try {
@@ -18,7 +19,7 @@ function getStoredUser() {
 export default function DeliveryApprovedRoute() {
   const [checking, setChecking] = useState(true)
   const [user, setUser] = useState(getStoredUser)
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
 
   // BACKEND: GET /users/me — refresh approval status before rendering portal
   useEffect(() => {

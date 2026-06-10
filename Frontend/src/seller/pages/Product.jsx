@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import { getAuthToken } from '../../utils/authStorage'
 import { Plus, Search, SlidersHorizontal } from 'lucide-react'
 import ProductTable from '../components/ProductTable'
 
@@ -11,7 +12,7 @@ export default function Product() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  const token = localStorage.getItem('token')
+  const token = getAuthToken()
   const apiBase = (
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||

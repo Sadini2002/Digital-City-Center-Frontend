@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import mediaUpload from "../../utils/media";
+import { getAuthToken } from "../../utils/authStorage";
+import { validateUploadFiles } from "../../utils/fileUploadValidation";
 import axios from "axios";
 import { Plus, Trash, Sparkles } from "lucide-react";
 
@@ -12,6 +14,7 @@ export default function AddProduct() {
   const [price, setPrice] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState([]);
+  const [uploadError, setUploadError] = useState('');
   const [labelPrice, setLabelPrice] = useState(0);
   const [stock, setStock] = useState(0);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -27,18 +30,32 @@ export default function AddProduct() {
   const navigate = useNavigate();
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files)
-    if (files.length > 8) {
-      toast.error("You can upload a maximum of 8 images.")
+    const validation = validateUploadFiles(e.target.files, { label: 'Image' })
+    if (!validation.valid) {
+      setUploadError(validation.error)
+      setImage([])
+      toast.error(validation.error)
+      e.target.value = ''
       return
     }
+
+    const files = validation.files
+    if (files.length > 8) {
+      const message = 'You can upload a maximum of 8 images.'
+      setUploadError(message)
+      setImage([])
+      toast.error(message)
+      e.target.value = ''
+      return
+    }
+    setUploadError('')
     setImage(files)
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) return toast.error("Please sign in as a seller");
 
     if (!productId || !name) {
@@ -197,10 +214,16 @@ export default function AddProduct() {
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
               onChange={handleImageChange}
               className="w-full mt-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200 transition"
             />
+            <p className="mt-1 text-xs text-slate-500">JPG, PNG, WebP, or GIF only. Max 5MB per file.</p>
+            {uploadError && (
+              <p className="mt-2 text-sm font-medium text-red-600" role="alert">
+                {uploadError}
+              </p>
+            )}
             {image.length > 0 && (
               <span className="text-[10px] text-slate-500 mt-1 block">
                 {image.length} of 8 images uploaded

@@ -1,10 +1,10 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Store } from 'lucide-react'
-import { useAuth } from '@/hooks'
 import SiteLayout from '../../layouts/SiteLayout'
 import BrandLogo from './BrandLogo'
 import PageContainer from './PageContainer'
 import ProductBreadcrumbs from '../product/ProductBreadcrumbs'
+import { clearAuthToken } from '../../utils/authStorage'
 
 /**
  * Shared chrome for seller + delivery dashboards: marketplace header/footer
@@ -38,10 +38,9 @@ export default function PortalLayoutShell({
     { label: title, to: null },
   ]
 
-  const { logout } = useAuth()
-
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await clearAuthToken()
+    localStorage.removeItem('user')
     navigate(logoutRedirect, { replace: true })
   }
 

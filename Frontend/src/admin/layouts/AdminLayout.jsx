@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { BarChart3, Bell, Layers, LogOut, Menu, Package, Percent, Search, Sparkles, Truck, Users2 } from 'lucide-react'
 import { ADMIN_ROLE_LABELS, getAdminAllowedSections, normalizeAdminRole } from '../utils/adminRole'
+import { clearAdminToken } from '../../utils/authStorage'
 
 const nav = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: BarChart3, end: true },
@@ -30,8 +31,8 @@ export default function AdminLayout() {
     return allowed.has(section)
   })
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
+  const handleLogout = async () => {
+    await clearAdminToken()
     localStorage.removeItem('admin_user')
     navigate('/admin/login', { replace: true })
   }
