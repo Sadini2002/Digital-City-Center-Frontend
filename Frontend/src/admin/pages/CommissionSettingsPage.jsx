@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import toast from 'react-hot-toast'
 import { saveCommissionSettings, getCommissionSettings, getAdminCategories } from '../utils/adminStorage'
 
 function seedCategories() {
@@ -19,28 +18,12 @@ export default function CommissionSettingsPage() {
   const [settings, setSettings] = useState(() => getCommissionSettings())
 
   const update = (slug) => (e) => {
-    setSettings((prev) => ({ ...prev, [slug]: e.target.value }))
+    const value = Math.max(0, Math.min(100, Number(e.target.value)))
+    setSettings((prev) => ({ ...prev, [slug]: value }))
   }
 
   const save = () => {
-    for (const c of categories.filter((cat) => cat.enabled)) {
-      const val = settings[c.slug]
-      
-      // If setting is defined but is empty or invalid
-      if (val === '') {
-        toast.error(`Please enter a commission rate for ${c.title}`)
-        return
-      }
-      
-      const num = Number(val ?? 8)
-      if (isNaN(num) || num < 0 || num > 100) {
-        toast.error(`Commission rate for ${c.title} must be a number between 0 and 100`)
-        return
-      }
-    }
-
     saveCommissionSettings(settings)
-    toast.success('Commission settings saved successfully!')
   }
 
   return (

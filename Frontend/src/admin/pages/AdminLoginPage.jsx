@@ -20,32 +20,15 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setError('')
 
-    if (!email.trim() || !password.trim()) {
+    if (!email || !password) {
       setError('Please enter your email and password.')
       return
     }
 
     setLoading(true)
     try {
-      let token, user
-      try {
-        const response = await authApi.login({ email, password })
-        token = response.data.token
-        user = response.data.user
-      } catch (apiErr) {
-        // Fallback mock credentials for sandbox/testing purposes
-        if (email === 'admin@example.com' && password === 'password') {
-          token = 'demo-admin-token'
-          user = {
-            id: 'admin-demo-1',
-            name: `Demo ${ADMIN_ROLE_LABELS[selectedRole] ?? 'Admin'}`,
-            email: 'admin@example.com',
-            role: selectedRole,
-          }
-        } else {
-          throw new Error('Invalid email or password.')
-        }
-      }
+      const response = await authApi.login({ email, password })
+      const { token, user } = response.data
 
       if (token) localStorage.setItem('admin_token', token)
       if (user) localStorage.setItem('admin_user', JSON.stringify(user))
@@ -111,7 +94,7 @@ export default function AdminLoginPage() {
             Admin accounts are created manually. There is no public admin registration.
           </p>
 
-          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label
                 htmlFor="admin-role"
@@ -138,6 +121,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@example.com"
               icon={Mail}
+              required
               autoComplete="email"
               variant="auth"
             />
@@ -149,6 +133,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               icon={Lock}
+              required
               autoComplete="current-password"
               variant="auth"
               rightElement={

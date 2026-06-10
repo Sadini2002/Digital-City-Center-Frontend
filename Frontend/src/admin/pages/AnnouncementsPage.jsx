@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { getAnnouncements, saveAnnouncements } from '../utils/adminStorage'
 
 export default function AnnouncementsPage() {
@@ -19,14 +18,7 @@ export default function AnnouncementsPage() {
 
   const add = (e) => {
     e.preventDefault()
-    if (!title.trim()) {
-      toast.error('Announcement title is required')
-      return
-    }
-    if (!subtitle.trim()) {
-      toast.error('Announcement subtitle is required')
-      return
-    }
+    if (!title.trim() || !subtitle.trim()) return
     const item = {
       id: `ann-${Date.now()}`,
       title: title.trim(),
@@ -39,21 +31,14 @@ export default function AnnouncementsPage() {
     persist([item, ...announcements])
     setTitle('')
     setSubtitle('')
-    toast.success('Announcement published successfully!')
   }
 
   const toggle = (id) => {
-    const next = announcements.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a))
-    persist(next)
-    const target = next.find((a) => a.id === id)
-    if (target) {
-      toast.success(`Announcement is now ${target.enabled ? 'enabled' : 'disabled'}.`)
-    }
+    persist(announcements.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)))
   }
 
   const remove = (id) => {
     persist(announcements.filter((a) => a.id !== id))
-    toast.success('Announcement removed successfully!')
   }
 
   const input =

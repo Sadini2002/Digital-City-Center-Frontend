@@ -62,7 +62,7 @@ export function getShopProducts(shop) {
   try {
     const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
     const sellerProducts = localProducts
-      .filter((p) => (p.shopId === shop.id || p.shopId === shop.slug) && p.isAvailable !== false && (p.stock == null || Number(p.stock) > 0))
+      .filter((p) => p.shopId === shop.id || p.shopId === shop.slug)
       .map((p) => {
         const id = p.productId || p._id || p.id
         const discountPercent = p.discount?.percent || (p.labelPrice && p.labelPrice > p.price ? Math.round(((p.labelPrice - p.price) / p.labelPrice) * 100) : 0)

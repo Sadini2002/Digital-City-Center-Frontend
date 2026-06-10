@@ -4,7 +4,6 @@ import toast from 'react-hot-toast'
 import axios from 'axios'
 import { Plus, Search, SlidersHorizontal } from 'lucide-react'
 import ProductTable from '../components/ProductTable'
-import { addSellerNotification, getSellerNotifications } from '../../utils/notificationStorage'
 
 export default function Product() {
   const [products, setProducts] = useState([])
@@ -26,14 +25,12 @@ export default function Product() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       setProducts(res.data || [])
-      checkLowStock(res.data || [])
     } catch (err) {
       console.warn('API error fetching products, falling back to local storage', err)
       // Fallback
       const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
       if (local.length > 0) {
         setProducts(local)
-        checkLowStock(local)
       } else {
         const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
         const currentShopName = savedSettings.shopName || 'Tech World LK';
@@ -98,28 +95,6 @@ export default function Product() {
     }
   }
 
-  // Fire a low-stock notification for any product with stock <= 5
-  const checkLowStock = (productList) => {
-    const LOW_STOCK_THRESHOLD = 5
-    const existingNotifs = getSellerNotifications()
-    productList.forEach((p) => {
-      const stock = Number(p.stock ?? 0)
-      if (stock <= LOW_STOCK_THRESHOLD && stock > 0) {
-        // Avoid duplicate notifications — check if one already exists for this product
-        const alreadyNotified = existingNotifs.some(
-          (n) => n.title && n.title.includes(p.name || p.productId)
-        )
-        if (!alreadyNotified) {
-          addSellerNotification(
-            `Low Stock Alert: ${p.name || p.productId}`,
-            `"${p.name || p.productId}" only has ${stock} unit(s) remaining. Please restock soon.`,
-            'warning'
-          )
-        }
-      }
-    })
-  }
-
   useEffect(() => {
     fetchProducts()
   }, [])
@@ -143,30 +118,6 @@ export default function Product() {
     }
   }
 
-  const handleToggleAvailability = async (id, nextAvailability) => {
-    try {
-      await axios.put(
-        `${apiBase}/products/${id}`,
-        { isAvailable: nextAvailability },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      )
-      toast.success(`Listing ${nextAvailability ? 'resumed' : 'paused'} successfully`)
-      fetchProducts()
-    } catch (err) {
-      console.warn('API error updating availability, falling back to local storage', err)
-      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-      const updated = local.map((p) => {
-        if ((p._id || p.id) === id) {
-          return { ...p, isAvailable: nextAvailability }
-        }
-        return p
-      })
-      localStorage.setItem('dcc_seller_products', JSON.stringify(updated))
-      toast.success(`Listing ${nextAvailability ? 'resumed' : 'paused'} successfully (local)`)
-      fetchProducts()
-    }
-  }
-
   // Filter listings based on search query and status filter
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -174,17 +125,11 @@ export default function Product() {
       product.productId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product._id?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const hasStock = product.stock == null || Number(product.stock) > 0
-    const isAvailable = product.isAvailable !== false && hasStock
-    const isPaused = product.isAvailable === false
-    const isOutOfStock = product.isAvailable !== false && product.stock != null && Number(product.stock) <= 0
-
+    const isAvailable = product.isAvailable && product.stock > 0
     if (statusFilter === 'available') {
       return matchesSearch && isAvailable
-    } else if (statusFilter === 'paused') {
-      return matchesSearch && isPaused
     } else if (statusFilter === 'outofstock') {
-      return matchesSearch && isOutOfStock
+      return matchesSearch && !isAvailable
     }
     return matchesSearch
   })
@@ -216,7 +161,6 @@ export default function Product() {
           >
             <option value="all">All Listings</option>
             <option value="available">Available</option>
-            <option value="paused">Paused</option>
             <option value="outofstock">Out of Stock</option>
           </select>
 
@@ -235,11 +179,7 @@ export default function Product() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-dcc-primary" />
         </div>
       ) : (
-        <ProductTable
-          products={filteredProducts}
-          onDelete={handleDelete}
-          onToggleAvailability={handleToggleAvailability}
-        />
+        <ProductTable products={filteredProducts} onDelete={handleDelete} />
       )}
     </div>
   )

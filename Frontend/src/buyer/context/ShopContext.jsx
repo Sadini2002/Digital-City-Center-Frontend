@@ -1,5 +1,4 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
-import toast from 'react-hot-toast'
+import { createContext, useCallback, useMemo, useSyncExternalStore } from 'react'
 import { toCartLine, toShopSnapshot } from './shopUtils'
 
 const CART_KEY = 'dcc_cart'
@@ -10,12 +9,7 @@ const ShopContext = createContext(null)
 function readStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key)
-    if (!raw) return fallback
-    const parsed = JSON.parse(raw)
-    if (key === CART_KEY || key === WISHLIST_KEY) {
-      return Array.isArray(parsed) ? parsed : fallback
-    }
-    return parsed
+    return raw ? JSON.parse(raw) : fallback
   } catch {
     return fallback
   }
@@ -29,90 +23,61 @@ function writeStorage(key, value) {
 let cartCache = readStorage(CART_KEY, [])
 let wishlistCache = readStorage(WISHLIST_KEY, [])
 
-function normalizeLineId(line) {
-  return line.lineId ?? [line.id, line.color ?? '', line.size ?? ''].join('::')
+function subscribe(callback) {
+  const handler = () => {
+    cartCache = readStorage(CART_KEY, [])
+    wishlistCache = readStorage(WISHLIST_KEY, [])
+    callback()
+  }
+  window.addEventListener('dcc-shop-update', handler)
+  window.addEventListener('storage', handler)
+  return () => {
+    window.removeEventListener('dcc-shop-update', handler)
+    window.removeEventListener('storage', handler)
+  }
 }
 
 function getCart() {
-  return Array.isArray(cartCache)
-    ? cartCache.map((line) => ({ ...line, lineId: normalizeLineId(line) }))
-    : []
+  return cartCache
 }
 
 function getWishlist() {
-  return Array.isArray(wishlistCache) ? wishlistCache : []
+  return wishlistCache
 }
 
 export function ShopProvider({ children }) {
-  const [cart, setCart] = useState(getCart)
-  const [wishlist, setWishlist] = useState(getWishlist)
-
-  useEffect(() => {
-    const handler = () => {
-      setCart(getCart())
-      setWishlist(getWishlist())
-    }
-
-    window.addEventListener('dcc-shop-update', handler)
-    window.addEventListener('storage', handler)
-
-    return () => {
-      window.removeEventListener('dcc-shop-update', handler)
-      window.removeEventListener('storage', handler)
-    }
-  }, [])
+  const cart = useSyncExternalStore(subscribe, getCart, () => [])
+  const wishlist = useSyncExternalStore(subscribe, getWishlist, () => [])
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
     [cart],
   )
 
   const addToCart = useCallback((product, quantity = 1) => {
     const snapshot = toShopSnapshot(product)
-    const lineId = normalizeLineId(snapshot)
-    const next = [...readStorage(CART_KEY, [])].map((line) => ({ ...line, lineId: normalizeLineId(line) }))
-    const index = next.findIndex((line) => line.lineId === lineId)
-    const availableStock = product.stock ?? snapshot.stock ?? Infinity
-
-    if (availableStock !== Infinity && quantity > availableStock) {
-      toast.error(`Only ${availableStock} unit(s) available in stock.`)
-      return
-    }
-
+    const next = [...readStorage(CART_KEY, [])]
+    const index = next.findIndex((line) => line.id === snapshot.id)
     if (index >= 0) {
-      const newQty = next[index].quantity + quantity
-      if (availableStock !== Infinity && newQty > availableStock) {
-        toast.error(`Cannot add more. Only ${availableStock} unit(s) in stock.`)
-        return
+      next[index] = {
+        ...next[index],
+        quantity: next[index].quantity + quantity,
       }
-      next[index] = { ...next[index], quantity: newQty }
     } else {
-      next.push({
-        ...toCartLine(snapshot, quantity),
-        lineId,
-        stock: availableStock !== Infinity ? availableStock : undefined,
-      })
+      next.push(toCartLine(snapshot, quantity))
     }
     writeStorage(CART_KEY, next)
   }, [])
 
-  const removeFromCart = useCallback((lineId) => {
-    const next = readStorage(CART_KEY, []).map((line) => ({ ...line, lineId: normalizeLineId(line) })).filter((line) => line.lineId !== lineId)
+  const removeFromCart = useCallback((productId) => {
+    const next = readStorage(CART_KEY, []).filter((line) => line.id !== productId)
     writeStorage(CART_KEY, next)
   }, [])
 
-  const updateCartQuantity = useCallback((lineId, quantity) => {
-    const next = readStorage(CART_KEY, []).map((line) => {
-      const normalizedLine = { ...line, lineId: normalizeLineId(line) }
-      if (normalizedLine.lineId !== lineId) return normalizedLine
-      const max = normalizedLine.stock ?? Infinity
-      const safeQty = Math.max(1, quantity)
-      if (max !== Infinity && safeQty > max) {
-        toast.error(`Only ${max} unit(s) available in stock.`)
-        return { ...normalizedLine, quantity: max }
-      }
-      return { ...normalizedLine, quantity: safeQty }
-    })
+  const updateCartQuantity = useCallback((productId, quantity) => {
+    const next = readStorage(CART_KEY, []).map((line) =>
+      line.id === productId ? { ...line, quantity: Math.max(1, quantity) } : line,
+    )
     writeStorage(CART_KEY, next)
   }, [])
 

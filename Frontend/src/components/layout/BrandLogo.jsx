@@ -19,7 +19,7 @@ export default function BrandLogo({ variant = 'header' }) {
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-dcc-primary text-xl font-bold text-white">
         D
       </span>
-      <span className="truncate text-base font-bold text-dcc-primary sm:text-lg">
+      <span className="hidden truncate text-base font-bold text-dcc-primary xs:inline sm:text-lg">
         Digital City Center
       </span>
     </Link>

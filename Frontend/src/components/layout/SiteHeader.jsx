@@ -5,7 +5,6 @@ import { useShop } from '../../buyer'
 import UtilityTopBar from './UtilityTopBar'
 import BrandLogo from './BrandLogo'
 import HeaderSearch from './HeaderSearch'
-import NotificationPanel from './NotificationPanel'
 
 const navItems = [
   { to: '/', label: 'Home', end: true },
@@ -89,14 +88,24 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
       {showUtilityBar && <UtilityTopBar />}
 
       <div className="border-b border-slate-200/80 bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-7xl min-w-0 items-center gap-3 px-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            className="touch-target shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-50 md:hidden"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((o) => !o)}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+
           <BrandLogo />
 
           <div className="hidden min-w-0 flex-1 md:block lg:mx-6">
             <HeaderSearch />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <div className="ml-auto flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
             <Link
               to="/wishlist"
               className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
@@ -109,7 +118,6 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
                 </span>
               )}
             </Link>
-            <NotificationPanel role="buyer" />
             <Link
               to="/cart"
               className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
@@ -136,7 +144,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
 
             <Link
               to="/register"
-              className={`rounded-lg px-3 py-2 text-sm font-semibold text-white sm:px-5 ${
+              className={`hidden rounded-lg px-3 py-2 text-sm font-semibold text-white sm:inline-flex sm:px-5 ${
                 activeAuth === 'register'
                   ? 'bg-dcc-primary-hover'
                   : 'bg-dcc-primary hover:bg-dcc-primary-hover'
@@ -144,15 +152,6 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
             >
               Register
             </Link>
-
-            <button
-              type="button"
-              className="touch-target rounded-lg p-2 text-slate-700 hover:bg-slate-50 md:hidden"
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setMobileOpen((o) => !o)}
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
         </div>
       </div>
@@ -207,6 +206,30 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
                 </NavLink>
               )})}
             </nav>
+            <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:hidden">
+              <Link
+                to={loginUrl}
+                onClick={() => setMobileOpen(false)}
+                className={`rounded-lg border-2 px-4 py-3 text-center text-sm font-semibold ${
+                  activeAuth === 'login'
+                    ? 'border-dcc-primary bg-violet-50 text-dcc-primary'
+                    : 'border-dcc-primary bg-white text-dcc-primary'
+                }`}
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileOpen(false)}
+                className={`rounded-lg px-4 py-3 text-center text-sm font-semibold text-white ${
+                  activeAuth === 'register'
+                    ? 'bg-dcc-primary-hover'
+                    : 'bg-dcc-primary hover:bg-dcc-primary-hover'
+                }`}
+              >
+                Register
+              </Link>
+            </div>
           </div>
         </div>
       )}

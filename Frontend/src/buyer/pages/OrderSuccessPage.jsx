@@ -111,7 +111,7 @@ export default function OrderSuccessPage() {
             <ul className="border-t border-slate-100 pt-4">
               {order.items.map((item) => (
                 <li
-                  key={item.lineId ?? item.id}
+                  key={item.id}
                   className="flex justify-between gap-4 py-2 text-sm"
                 >
                   <span className="text-slate-700">

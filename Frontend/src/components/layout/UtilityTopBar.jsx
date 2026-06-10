@@ -9,29 +9,29 @@ export default function UtilityTopBar() {
           Welcome to Digital City Center - Your All-in-One Marketplace in Sri Lanka!
         </p>
 
-        <div className="flex w-full shrink-0 items-center justify-end gap-4 text-xs font-medium sm:w-auto sm:gap-5 sm:text-[13px]">
-          <Link to="/track" className="whitespace-nowrap hover:text-white/80">
+        <div className="flex w-full min-w-0 items-center justify-end gap-3 overflow-x-auto text-xs font-medium [-ms-overflow-style:none] [scrollbar-width:none] sm:w-auto sm:gap-5 sm:text-[13px] [&::-webkit-scrollbar]:hidden">
+          <Link to="/track" className="shrink-0 whitespace-nowrap hover:text-white/80">
             Track Delivery
           </Link>
-          <Link to="/help" className="whitespace-nowrap hover:text-white/80">
+          <Link to="/help" className="shrink-0 whitespace-nowrap hover:text-white/80">
             Help Center
           </Link>
-          <span className="hidden h-3.5 w-px bg-white/40 sm:block" aria-hidden />
+          <span className="hidden h-3.5 w-px shrink-0 bg-white/40 sm:block" aria-hidden />
           <Link
             to="/register/seller"
-            className="whitespace-nowrap hover:text-white/80"
+            className="hidden shrink-0 whitespace-nowrap hover:text-white/80 xs:inline"
           >
             Sell on DCC
           </Link>
           <Link
             to="/login?portal=delivery"
-            className="whitespace-nowrap hover:text-white/80"
+            className="hidden shrink-0 whitespace-nowrap hover:text-white/80 xs:inline"
           >
             Delivery Partners
           </Link>
           <button
             type="button"
-            className="flex items-center gap-1 whitespace-nowrap hover:text-white/80"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap hover:text-white/80"
             aria-label="Select language"
           >
             English

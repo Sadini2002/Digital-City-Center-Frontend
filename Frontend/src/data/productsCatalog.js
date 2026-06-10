@@ -717,10 +717,6 @@ export function getProductById(id) {
     const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
     const found = localProducts.find((p) => p.productId === id || p._id === id || p.id === id)
     if (found) {
-      if (found.isAvailable === false || (found.stock != null && Number(found.stock) <= 0)) {
-        return null
-      }
-
       const shopId = found.shopId
       const shop = shopsCatalog.find((s) => s.id === shopId || s.slug === shopId)
       const productSeller = shop ? {

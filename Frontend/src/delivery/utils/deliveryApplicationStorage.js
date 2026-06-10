@@ -93,16 +93,8 @@ export function syncUserApprovalFromAdmin() {
     const match = providers.find(
       (p) => p.email === user.email || p.id === user.deliveryProvider?.id
     )
-    if (!match) return user
-
-    if (match.status === 'approved' && user.deliveryProvider.status !== 'ACTIVE') {
+    if (match?.status === 'approved' && user.deliveryProvider.status !== 'ACTIVE') {
       user.deliveryProvider.status = 'ACTIVE'
-      delete user.deliveryProvider.rejectionReason
-      localStorage.setItem(USER_KEY, JSON.stringify(user))
-    } else if (match.status === 'rejected' && user.deliveryProvider.status !== 'REJECTED') {
-      user.deliveryProvider.status = 'REJECTED'
-      user.deliveryProvider.rejectionReason =
-        match.rejectionReason || 'Application not approved.'
       localStorage.setItem(USER_KEY, JSON.stringify(user))
     }
     return user

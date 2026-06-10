@@ -1,14 +1,8 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { categories } from './homeData'
-import { getEnabledCategorySlugs } from '../category/categoryData'
 
 export default function CategoriesSection() {
-  const enabledCategorySlugs = getEnabledCategorySlugs()
-  const visibleCategories = categories.filter(
-    (cat) => cat.slug === 'more' || enabledCategorySlugs.includes(cat.slug),
-  )
-
   return (
     <section className="bg-white py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
@@ -24,7 +18,7 @@ export default function CategoriesSection() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-8">
-          {visibleCategories.map((cat) => {
+          {categories.map((cat) => {
             const Icon = cat.icon
             const to = cat.slug === 'more' ? '/category/all' : `/category/${cat.slug}`
             return (

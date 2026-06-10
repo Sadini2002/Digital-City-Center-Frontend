@@ -104,10 +104,9 @@ export default function DealsPage() {
       const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
       localDeals = localProducts
         .filter(p => {
-          const isVisible = p.isAvailable !== false && (p.stock == null || Number(p.stock) > 0)
           const hasLabelDiscount = p.labelPrice && p.labelPrice > p.price
           const hasPercentDiscount = p.discount?.percent && p.discount.percent > 0
-          return isVisible && (hasLabelDiscount || hasPercentDiscount)
+          return hasLabelDiscount || hasPercentDiscount
         })
         .map(p => getProductById(p.productId || p._id || p.id))
         .filter(Boolean)
