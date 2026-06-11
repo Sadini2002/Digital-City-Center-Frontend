@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Heart, Menu, ShoppingCart, X } from 'lucide-react'
 import { useShop } from '../../buyer'
@@ -59,6 +59,7 @@ function NavItem({ item, onClick }) {
 
 export default function SiteHeader({ activeAuth = null, showUtilityBar = true }) {
   const location = useLocation()
+  const headerRef = useRef(null)
   const isSeller = location.pathname.includes('/seller') || location.pathname.includes('/register/seller')
   const isDelivery = location.pathname.includes('/delivery') || location.pathname.includes('/register/delivery')
   const loginUrl = isDelivery
@@ -68,6 +69,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
       : '/login'
   const { cartCount, wishlistCount } = useShop()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [headerHeight, setHeaderHeight] = useState(0)
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
@@ -75,6 +77,21 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
       document.body.style.overflow = ''
     }
   }, [mobileOpen])
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    const measure = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight)
+      }
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [showUtilityBar, mobileOpen])
 
   useEffect(() => {
     const onResize = () => {
@@ -85,21 +102,11 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
   }, [])
 
   return (
-    <header className="sticky top-0 z-50">
+    <header ref={headerRef} className="sticky top-0 z-50 bg-white">
       {showUtilityBar && <UtilityTopBar />}
 
       <div className="border-b border-slate-200/80 bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-7xl min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            className="touch-target shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-50 md:hidden"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((o) => !o)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-
+        <div className="mx-auto flex h-14 max-w-7xl min-w-0 items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6 lg:px-8">
           <BrandLogo />
 
           <div className="hidden min-w-0 flex-1 md:block lg:mx-6">
@@ -110,7 +117,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
             <NotificationPanel role="buyer" />
             <Link
               to="/wishlist"
-              className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
+              className="touch-target relative inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-50"
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5" strokeWidth={1.75} />
@@ -122,7 +129,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
             </Link>
             <Link
               to="/cart"
-              className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
+              className="touch-target relative inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-50"
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
@@ -154,11 +161,26 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
             >
               Register
             </Link>
+
+            <button
+              type="button"
+              className="touch-target relative z-10 ml-1 inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-800 shadow-sm hover:bg-slate-50 md:hidden"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-main-nav"
+              onClick={() => setMobileOpen((open) => !open)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
+        </div>
+
+        <div className="border-t border-slate-100 px-3 pb-3 md:hidden">
+          <HeaderSearch />
         </div>
       </div>
 
-      <div className="hidden border-b border-slate-100 md:block">
+      <div className="hidden border-b border-slate-100 bg-white md:block">
         <nav
           className="mx-auto flex max-w-7xl items-center gap-7 px-6 lg:gap-9 lg:px-8"
           aria-label="Main"
@@ -170,43 +192,49 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" style={{ top: 'var(--header-offset, 7rem)' }}>
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 md:hidden"
+          style={{ top: headerHeight || undefined }}
+        >
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/40"
+            className="absolute inset-0 bg-slate-900/50"
             onClick={() => setMobileOpen(false)}
-            aria-label="Close"
+            aria-label="Close menu overlay"
           />
-          <div className="absolute left-0 right-0 max-h-[70dvh] overflow-y-auto bg-white p-4 shadow-xl">
-            <HeaderSearch className="mb-4" />
-            <nav className="flex flex-col gap-1">
+          <div
+            id="mobile-main-nav"
+            className="relative max-h-[calc(100dvh-3.5rem)] overflow-y-auto bg-white p-4 shadow-xl"
+          >
+            <nav className="flex flex-col gap-1" aria-label="Mobile main">
               {navItems.map((item) => {
                 const categoryActive =
                   item.matchCategory && location.pathname.startsWith('/category')
                 return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-3 text-base font-medium ${
-                      isActive || categoryActive
-                        ? 'bg-violet-50 text-dcc-primary'
-                        : 'text-slate-700'
-                    }`
-                  }
-                >
-                  <span className="inline-flex items-center gap-2">
-                    {item.label}
-                    {item.hot && (
-                      <span className="rounded bg-red-500 px-1 text-[10px] font-bold text-white">
-                        HOT
-                      </span>
-                    )}
-                  </span>
-                </NavLink>
-              )})}
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `rounded-lg px-3 py-3 text-base font-medium ${
+                        isActive || categoryActive
+                          ? 'bg-violet-50 text-dcc-primary'
+                          : 'text-slate-700'
+                      }`
+                    }
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      {item.label}
+                      {item.hot && (
+                        <span className="rounded bg-red-500 px-1 text-[10px] font-bold text-white">
+                          HOT
+                        </span>
+                      )}
+                    </span>
+                  </NavLink>
+                )
+              })}
             </nav>
             <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:hidden">
               <Link

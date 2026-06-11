@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { BarChart3, Bell, Layers, LogOut, Menu, Package, Percent, Search, Sparkles, Truck, Users2, User, Settings } from 'lucide-react'
+import { BarChart3, Bell, Layers, LogOut, MapPin, Menu, Package, Percent, Search, Sparkles, Truck, Users2, User, Settings, X } from 'lucide-react'
 import { ADMIN_ROLE_LABELS, getAdminAllowedSections, normalizeAdminRole } from '../utils/adminRole'
 import { clearAdminToken } from '../../utils/authStorage'
 
@@ -12,12 +13,39 @@ const nav = [
   { to: '/admin/announcements', label: 'Announcements', icon: Bell },
   { to: '/admin/commission', label: 'Commission', icon: Percent },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/admin/settings', label: 'Platform Settings', icon: Settings },
+  { to: '/admin/settings', label: 'Delivery Pricing', icon: Settings },
+  { to: '/admin/settings#coverage-area-management', label: 'Coverage Areas', icon: MapPin },
   { to: '/admin/profile', label: 'My Profile', icon: User },
 ]
 
+function AdminNavLinks({ items, onNavigate }) {
+  return (
+    <>
+      {items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.end}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            `inline-flex w-full items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold ${
+              isActive
+                ? 'bg-gradient-to-r from-dcc-primary to-[#6f2bff] text-white shadow-lg shadow-violet-900/35'
+                : 'text-slate-200 hover:bg-white/10'
+            }`
+          }
+        >
+          <item.icon className="h-4 w-4" />
+          {item.label}
+        </NavLink>
+      ))}
+    </>
+  )
+}
+
 export default function AdminLayout() {
   const navigate = useNavigate()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   let adminRole = null
   try {
@@ -29,7 +57,7 @@ export default function AdminLayout() {
 
   const allowed = new Set(getAdminAllowedSections(adminRole))
   const visibleNav = nav.filter((item) => {
-    const section = item.to.replace('/admin/', '')
+    const section = item.to.replace('/admin/', '').split('#')[0].split('/')[0] || 'dashboard'
     return allowed.has(section)
   })
 
@@ -48,23 +76,7 @@ export default function AdminLayout() {
           {ADMIN_ROLE_LABELS[adminRole] ?? 'Admin'}
         </p>
         <nav className="mt-12 space-y-2">
-          {visibleNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `inline-flex w-full items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold ${
-                  isActive
-                    ? 'bg-gradient-to-r from-dcc-primary to-[#6f2bff] text-white shadow-lg shadow-violet-900/35'
-                    : 'text-slate-200 hover:bg-white/10'
-                }`
-              }
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </NavLink>
-          ))}
+          <AdminNavLinks items={visibleNav} />
         </nav>
         <div className="mt-auto pt-6">
           <button
@@ -78,10 +90,42 @@ export default function AdminLayout() {
         </div>
       </aside>
 
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/50"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-gradient-to-b from-dcc-topbar via-[#24124a] to-[#1d1138] px-5 py-6 text-slate-100">
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-bold">Admin Menu</p>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                className="rounded-lg p-2 text-slate-200 hover:bg-white/10"
+                aria-label="Close menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <nav className="mt-8 space-y-2">
+              <AdminNavLinks items={visibleNav} onNavigate={() => setMobileNavOpen(false)} />
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-dcc-primary/15 bg-white px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <button type="button" className="rounded-lg border border-violet-200 p-2 text-dcc-primary lg:hidden">
+            <button
+              type="button"
+              className="rounded-lg border border-violet-200 p-2 text-dcc-primary lg:hidden"
+              aria-label="Open navigation menu"
+              onClick={() => setMobileNavOpen(true)}
+            >
               <Menu className="h-4 w-4" />
             </button>
             <h1 className="text-base font-semibold text-slate-900 sm:text-lg">Admin Dashboard</h1>

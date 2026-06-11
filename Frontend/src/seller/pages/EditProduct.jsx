@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,31 +12,36 @@ export default function EditProduct() {
   const location = useLocation();
   const product = location.state;
 
-  if (!product) {
-    toast.error("No product data found");
-    navigate("/seller/listings");
-    return null;
-  }
-
-  const [productId, setProductId] = useState(product.productId || "");
-  const [name, setName] = useState(product.name || "");
-  const [altName, setAltName] = useState(product.altName || [","]);
-  const [price, setPrice] = useState(product.price || 0);
-  const [description, setDescription] = useState(product.description || "");
-  const [existingImages, setExistingImages] = useState(product.image || []);
+  const [productId, setProductId] = useState(product?.productId || "");
+  const [name, setName] = useState(product?.name || "");
+  const [altName, setAltName] = useState(product?.altName || [","]);
+  const [price, setPrice] = useState(product?.price || 0);
+  const [description, setDescription] = useState(product?.description || "");
+  const [existingImages, setExistingImages] = useState(product?.image || []);
   const [newImages, setNewImages] = useState([]);
   const [uploadError, setUploadError] = useState('');
-  const [labelPrice, setLabelPrice] = useState(product.labelPrice || 0);
-  const [stock, setStock] = useState(product.stock || 0);
-  const [isAvailable, setIsAvailable] = useState(product.isAvailable ?? true);
+  const [labelPrice, setLabelPrice] = useState(product?.labelPrice || 0);
+  const [stock, setStock] = useState(product?.stock || 0);
+  const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
 
   // Requirement parameters
-  const [itemType, setItemType] = useState(product.itemType || "physical")
-  const [sizes, setSizes] = useState(product.variants?.sizes?.join(",") || "")
-  const [colors, setColors] = useState(product.variants?.colors?.join(",") || "")
-  const [discountPercent, setDiscountPercent] = useState(product.discount?.percent || 0)
-  const [discountStart, setDiscountStart] = useState(product.discount?.startDate || "")
-  const [discountEnd, setDiscountEnd] = useState(product.discount?.endDate || "")
+  const [itemType, setItemType] = useState(product?.itemType || "physical")
+  const [sizes, setSizes] = useState(product?.variants?.sizes?.join(",") || "")
+  const [colors, setColors] = useState(product?.variants?.colors?.join(",") || "")
+  const [discountPercent, setDiscountPercent] = useState(product?.discount?.percent || 0)
+  const [discountStart, setDiscountStart] = useState(product?.discount?.startDate || "")
+  const [discountEnd, setDiscountEnd] = useState(product?.discount?.endDate || "")
+
+  useEffect(() => {
+    if (!product) {
+      toast.error("No product data found");
+      navigate("/seller/listings");
+    }
+  }, [product, navigate]);
+
+  if (!product) {
+    return null;
+  }
 
   const handleImageChange = (e) => {
     const validation = validateUploadFiles(e.target.files, { label: 'Image' })

@@ -7,6 +7,7 @@ import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { DISTRICTS, PROVINCES } from '../data/constants'
 import { saveDeliveryApplication } from '../utils/deliveryApplicationStorage'
+import { contactNumberError } from '../../utils/phoneValidation'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15'
@@ -72,6 +73,7 @@ function DeliveryRegisterHero() {
 export default function DeliveryRegisterPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
@@ -96,13 +98,13 @@ export default function DeliveryRegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    
-    // Phone validation
-    const phoneRegex = /^\+?[0-9]{9,15}$/
-    if (!phoneRegex.test(form.phone.trim().replace(/[\s-]/g, ''))) {
-      setError('Invalid contact number. Please enter a valid phone number (9-15 digits).')
+    const phoneValidationError = contactNumberError(form.phone)
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError)
+      setError(phoneValidationError)
       return
     }
+    setPhoneError('')
 
     setIsSubmitting(true)
     try {
@@ -170,14 +172,28 @@ export default function DeliveryRegisterPage() {
                 required
                 variant="auth"
               />
-              <AuthInput
-                id="phone"
-                label="Phone Number"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                required
-                variant="auth"
-              />
+              <div>
+                <AuthInput
+                  id="phone"
+                  label="Phone Number"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => {
+                    setPhoneError('')
+                    setError('')
+                    setForm({ ...form, phone: e.target.value })
+                  }}
+                  onBlur={() => setPhoneError(contactNumberError(form.phone))}
+                  placeholder="0771234567 or +94771234567"
+                  required
+                  variant="auth"
+                />
+                {phoneError && (
+                  <p className="mt-1 text-xs text-rose-600" role="alert">
+                    {phoneError}
+                  </p>
+                )}
+              </div>
               <AuthInput
                 id="businessRegNo"
                 label="Business Registration Number (BRN)"

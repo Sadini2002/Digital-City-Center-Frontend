@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { MapPin, Truck } from 'lucide-react'
+import { MapPin, RefreshCw, Truck } from 'lucide-react'
+import toast from 'react-hot-toast'
 import PageContainer from '../../components/layout/PageContainer'
 import ProductBreadcrumbs from '../../components/product/ProductBreadcrumbs'
 import CheckoutSection from '../components/checkout/CheckoutSection'
@@ -10,14 +11,20 @@ import {
   deliveryMethods,
   formatAddressLines,
   generateOrderId,
-  getDeliveryFee,
   isOnlinePayment,
   paymentMethods,
   savedAddresses,
 } from '../data/checkoutData'
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
-import { getPlatformSettings } from '../../admin/utils/adminStorage'
+import { calculateDeliveryFee } from '../utils/deliveryPricing'
+import {
+  getCoverageStatus,
+  isAddressCompleteEnoughForDeliveryCheck,
+  validateDeliveryAddress,
+} from '../utils/deliveryAddressValidation'
+import { usePlatformSettings } from '../../hooks/usePlatformSettings'
+import { DISTRICTS } from '../../delivery/data/constants'
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -64,102 +71,66 @@ export default function CheckoutPage() {
     [cart],
   )
 
+  const resolvedAddress = useMemo(() => {
+    if (addressMode === 'saved') {
+      const saved = savedAddresses.find((a) => a.id === selectedAddressId)
+      if (saved) return saved
+    }
+    return { id: 'new', label: 'Delivery', ...newAddress }
+  }, [addressMode, selectedAddressId, newAddress])
+
+  const { settings: platformSettings, refresh: refreshPlatformSettings, lastRefreshedAt } =
+    usePlatformSettings()
+
+  const addressValidation = useMemo(
+    () => validateDeliveryAddress(resolvedAddress, platformSettings, { deliveryMethod }),
+    [resolvedAddress, platformSettings, deliveryMethod],
+  )
+
+  const coverageStatus = useMemo(
+    () => getCoverageStatus(resolvedAddress, platformSettings),
+    [resolvedAddress, platformSettings],
+  )
+
+  const deliveryQuote = useMemo(
+    () =>
+      calculateDeliveryFee({
+        address: resolvedAddress,
+        methodId: deliveryMethod,
+        subtotal,
+        settings: platformSettings,
+      }),
+    [resolvedAddress, deliveryMethod, subtotal, platformSettings],
+  )
+
+  const deliveryFee = deliveryQuote.fee
+  const total = subtotal + deliveryFee
+
   if (cart.length === 0) {
     return <Navigate to="/cart" replace />
   }
-
-  const selectedSaved = savedAddresses.find((a) => a.id === selectedAddressId)
-
-  const resolveAddress = () => {
-    if (addressMode === 'saved' && selectedSaved) {
-      return selectedSaved
-    }
-    return { id: 'new', label: 'Delivery', ...newAddress }
-  }
-
-  const getCalculatedFee = (methodId) => {
-    if (methodId === 'pickup') return 0
-
-    const settings = getPlatformSettings()
-    
-    if (settings.freeThreshold && subtotal >= Number(settings.freeThreshold)) {
-      return 0
-    }
-
-    if (settings.pricingModel === 'flat') {
-      return Number(settings.flatFee || 0)
-    }
-
-    // Distance-based pricing
-    const baseFee = Number(settings.baseFee || 0)
-    const perKmFee = Number(settings.perKmFee || 0)
-    const outOfColomboFee = Number(settings.outOfColomboFee || 0)
-
-    const addr = resolveAddress()
-    const district = (addr.district || addr.city || '').trim().toLowerCase()
-    
-    let distance = 10 // default
-    if (district === 'colombo') {
-      distance = 5
-    } else if (district === 'gampaha') {
-      distance = 25
-    } else if (district === 'kalutara') {
-      distance = 40
-    } else if (district === 'kandy') {
-      distance = 115
-    } else if (district) {
-      let hash = 0
-      for (let i = 0; i < district.length; i++) {
-        hash += district.charCodeAt(i)
-      }
-      distance = 15 + (hash % 85)
-    }
-
-    const isOutOfColombo = district !== 'colombo'
-    const surcharge = isOutOfColombo ? outOfColomboFee : 0
-
-    return baseFee + (distance * perKmFee) + surcharge
-  }
-
-  const deliveryFee = getCalculatedFee(deliveryMethod)
-  const total = subtotal + deliveryFee
 
   const validate = () => {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return 'Enter a valid email for your order confirmation.'
     }
-    const addr = resolveAddress()
-    if (!addr.name?.trim() || !addr.phone?.trim() || !addr.line1?.trim() || !addr.city?.trim()) {
-      return 'Please complete your delivery address.'
-    }
 
-    const settings = getPlatformSettings()
-    
-    // Check keywords
-    const keywords = (settings.unsupportedKeywords || '')
-      .split(',')
-      .map(k => k.trim().toLowerCase())
-      .filter(Boolean)
-      
-    const addressString = `${addr.line1} ${addr.line2 || ''} ${addr.city} ${addr.district || ''} ${addr.postalCode || ''}`.toLowerCase()
-    
-    for (const kw of keywords) {
-      if (addressString.includes(kw)) {
-        return `Delivery is not supported for the specified address (matched restricted keyword: "${kw}").`
-      }
-    }
-
-    // Check coverage areas
-    const coverage = settings.coverageAreas || []
-    if (coverage.length > 0) {
-      const districtLower = (addr.district || addr.city || '').trim().toLowerCase()
-      const isCovered = coverage.some(area => area.trim().toLowerCase() === districtLower)
-      if (!isCovered && deliveryMethod !== 'pickup') {
-        return `Delivery is not supported in ${addr.district || addr.city || 'your area'}. We only deliver to: ${coverage.join(', ')}.`
-      }
+    if (!addressValidation.valid) {
+      return addressValidation.error
     }
 
     return ''
+  }
+
+  const showAddressBlock =
+    isAddressCompleteEnoughForDeliveryCheck(resolvedAddress) &&
+    !addressValidation.valid &&
+    addressValidation.code !== 'incomplete'
+
+  const handleRefreshCoverage = () => {
+    refreshPlatformSettings()
+    setError('')
+    toast.success('Delivery coverage data refreshed.')
   }
 
   const handlePlaceOrder = async (e) => {
@@ -178,12 +149,13 @@ export default function CheckoutPage() {
       const order = {
         id: orderId,
         email: email.trim(),
-        address: resolveAddress(),
+        address: resolvedAddress,
         deliveryMethod,
         paymentMethod,
         items: [...cart],
         subtotal,
         deliveryFee,
+        deliveryDistanceKm: deliveryQuote.distanceKm,
         total,
         placedAt: new Date().toISOString(),
       }
@@ -206,6 +178,7 @@ export default function CheckoutPage() {
   }
 
   const updateNewAddress = (field) => (e) => {
+    setError('')
     setNewAddress((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
@@ -223,6 +196,56 @@ export default function CheckoutPage() {
         <form onSubmit={handlePlaceOrder} className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
           <div className="space-y-6">
             <CheckoutSection title="Delivery address" step={1}>
+              <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Delivery coverage areas</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Last refreshed: {lastRefreshedAt.toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRefreshCoverage}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-dcc-primary/25 px-3 py-1.5 text-xs font-semibold text-dcc-primary hover:bg-dcc-primary/5"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Refresh coverage
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(platformSettings.coverageAreas || []).map((area) => {
+                    const isActive =
+                      coverageStatus.matchedArea?.toLowerCase() === area.toLowerCase()
+                    return (
+                      <span
+                        key={area}
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isActive
+                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {area}
+                        {isActive ? ' · your area' : ''}
+                      </span>
+                    )
+                  })}
+                </div>
+                {isAddressCompleteEnoughForDeliveryCheck(resolvedAddress) &&
+                  deliveryMethod !== 'pickup' && (
+                    <p
+                      className={`mt-3 text-xs font-medium ${
+                        coverageStatus.inCoverage ? 'text-emerald-700' : 'text-amber-700'
+                      }`}
+                    >
+                      {coverageStatus.inCoverage
+                        ? `Your address is within the ${coverageStatus.matchedArea} delivery zone.`
+                        : 'Your address is outside the current delivery coverage areas.'}
+                    </p>
+                  )}
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -263,7 +286,10 @@ export default function CheckoutPage() {
                           type="radio"
                           name="address"
                           checked={selectedAddressId === addr.id}
-                          onChange={() => setSelectedAddressId(addr.id)}
+                          onChange={() => {
+                            setError('')
+                            setSelectedAddressId(addr.id)
+                          }}
                           className="mt-1 h-4 w-4 border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
                         />
                         <div className="min-w-0">
@@ -276,7 +302,9 @@ export default function CheckoutPage() {
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 text-sm text-slate-600">{addr.name} · {addr.phone}</p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {addr.name} · {addr.phone}
+                          </p>
                           {formatAddressLines(addr).map((line) => (
                             <p key={line} className="text-sm text-slate-600">
                               {line}
@@ -364,52 +392,118 @@ export default function CheckoutPage() {
                     <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
                       District
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={newAddress.district}
                       onChange={updateNewAddress('district')}
                       className={inputClass}
                       required
-                    />
+                    >
+                      <option value="">Select district…</option>
+                      {DISTRICTS.map((district) => {
+                        const covered = (platformSettings.coverageAreas || []).some(
+                          (area) => area.toLowerCase() === district.toLowerCase(),
+                        )
+                        return (
+                          <option key={district} value={district}>
+                            {district}
+                            {covered ? ' (covered)' : ' (not covered)'}
+                          </option>
+                        )
+                      })}
+                    </select>
                   </div>
                 </div>
+              )}
+
+              {showAddressBlock && (
+                <div
+                  role="alert"
+                  className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+                >
+                  <p className="font-semibold">Delivery not available</p>
+                  <p className="mt-1">{addressValidation.error}</p>
+                </div>
+              )}
+
+              {deliveryQuote.model === 'distance' &&
+                deliveryQuote.distanceKm != null &&
+                !showAddressBlock && (
+                <p className="mt-4 rounded-lg bg-violet-50 px-3 py-2 text-xs text-slate-600">
+                  Estimated delivery distance:{' '}
+                  <strong className="text-dcc-primary">{deliveryQuote.distanceKm} km</strong> from
+                  Colombo hub · Fee recalculates when you change address.
+                </p>
               )}
             </CheckoutSection>
 
             <CheckoutSection title="Delivery method" step={2}>
+              <div className="mb-4 rounded-xl border border-dcc-primary/15 bg-violet-50/60 px-4 py-3 text-sm text-slate-700">
+                <p className="font-semibold text-slate-900">Platform delivery pricing</p>
+                <p className="mt-1 text-xs text-slate-600">
+                  {platformSettings.pricingModel === 'flat' ? (
+                    <>
+                      Flat fee model · {formatLkr(Number(platformSettings.flatFee || 0))} per delivery
+                      {Number(platformSettings.freeThreshold) > 0 &&
+                        ` · Free above ${formatLkr(Number(platformSettings.freeThreshold))}`}
+                    </>
+                  ) : (
+                    <>
+                      Distance model · Base {formatLkr(Number(platformSettings.baseFee || 0))} +{' '}
+                      {formatLkr(Number(platformSettings.perKmFee || 0))}/km
+                      {Number(platformSettings.outOfColomboFee) > 0 &&
+                        ` · Out-of-Colombo surcharge ${formatLkr(Number(platformSettings.outOfColomboFee))}`}
+                      {Number(platformSettings.freeThreshold) > 0 &&
+                        ` · Free above ${formatLkr(Number(platformSettings.freeThreshold))}`}
+                    </>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Coverage: {(platformSettings.coverageAreas || []).join(', ') || 'Not configured'}
+                </p>
+              </div>
               <ul className="space-y-3">
-                {deliveryMethods.map((method) => (
-                  <li key={method.id}>
-                    <label
-                      className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
-                        deliveryMethod === method.id
-                          ? 'border-dcc-primary bg-violet-50/50 ring-1 ring-dcc-primary/20'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="delivery"
-                        checked={deliveryMethod === method.id}
-                        onChange={() => setDeliveryMethod(method.id)}
-                        className="mt-1 h-4 w-4 border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
-                      />
-                      <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-dcc-primary" />
-                            <span className="font-semibold text-slate-900">{method.label}</span>
+                {deliveryMethods.map((method) => {
+                  const methodQuote = calculateDeliveryFee({
+                    address: resolvedAddress,
+                    methodId: method.id,
+                    subtotal,
+                    settings: platformSettings,
+                  })
+                  return (
+                    <li key={method.id}>
+                      <label
+                        className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+                          deliveryMethod === method.id
+                            ? 'border-dcc-primary bg-violet-50/50 ring-1 ring-dcc-primary/20'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="delivery"
+                          checked={deliveryMethod === method.id}
+                          onChange={() => setDeliveryMethod(method.id)}
+                          className="mt-1 h-4 w-4 border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
+                        />
+                        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-dcc-primary" />
+                              <span className="font-semibold text-slate-900">{method.label}</span>
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600">{method.description}</p>
+                            <p className="mt-1 text-xs text-slate-500">{method.eta}</p>
                           </div>
-                          <p className="mt-1 text-sm text-slate-600">{method.description}</p>
-                          <p className="mt-1 text-xs text-slate-500">{method.eta}</p>
+                          <span className="text-sm font-bold text-dcc-primary">
+                            {methodQuote.fee === 0
+                              ? 'Free'
+                              : `LKR ${methodQuote.fee.toLocaleString('en-LK')}`}
+                          </span>
                         </div>
-                        <span className="text-sm font-bold text-dcc-primary">
-                          {getCalculatedFee(method.id) === 0 ? 'Free' : `LKR ${getCalculatedFee(method.id).toLocaleString('en-LK')}`}
-                        </span>
-                      </div>
-                    </label>
-                  </li>
-                ))}
+                      </label>
+                    </li>
+                  )
+                })}
               </ul>
             </CheckoutSection>
 
@@ -483,11 +577,16 @@ export default function CheckoutPage() {
           </div>
 
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <CheckoutOrderSummary cart={cart} subtotal={subtotal} deliveryFee={deliveryFee} />
+            <CheckoutOrderSummary
+              cart={cart}
+              subtotal={subtotal}
+              deliveryFee={deliveryFee}
+              distanceKm={deliveryQuote.distanceKm}
+            />
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || showAddressBlock}
               className="mt-4 flex w-full items-center justify-center rounded-xl bg-dcc-primary py-3.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting

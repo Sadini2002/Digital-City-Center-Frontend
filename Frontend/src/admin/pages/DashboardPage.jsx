@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
-import { ArrowUpRight, BarChart3, ShoppingCart, Store, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowUpRight, BarChart3, Settings, ShoppingCart, Store, Users } from 'lucide-react'
+import { getPlatformSettings } from '../utils/adminStorage'
 import { getOrders } from '../../buyer'
 import { getSellerApplications } from '../utils/adminStorage'
 
@@ -26,6 +28,7 @@ export default function AdminDashboardPage() {
   ]
 
   const pendingApps = applications.filter((a) => a.status === 'pending')
+  const pricing = getPlatformSettings()
 
   return (
     <div className="space-y-6">
@@ -53,6 +56,61 @@ export default function AdminDashboardPage() {
             <p className="mt-1 text-sm text-slate-500">{c.label}</p>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-2xl border border-dcc-primary/20 bg-white p-5 shadow-sm shadow-dcc-primary/10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Delivery pricing configuration</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Active model:{' '}
+              <strong className="text-dcc-primary">
+                {pricing.pricingModel === 'flat' ? 'Flat fee' : 'Distance based'}
+              </strong>
+              {pricing.pricingModel === 'distance'
+                ? ` · Base LKR ${Number(pricing.baseFee || 0).toLocaleString('en-LK')} + LKR ${Number(pricing.perKmFee || 0).toLocaleString('en-LK')}/km`
+                : ` · Flat LKR ${Number(pricing.flatFee || 0).toLocaleString('en-LK')}`}
+            </p>
+          </div>
+          <Link
+            to="/admin/settings"
+            className="inline-flex items-center gap-2 rounded-xl bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+          >
+            <Settings className="h-4 w-4" />
+            Configure delivery pricing
+          </Link>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-dcc-primary/20 bg-white p-5 shadow-sm shadow-dcc-primary/10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-slate-900">Delivery coverage areas</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              {(pricing.coverageAreas || []).length > 0
+                ? `${pricing.coverageAreas.length} district(s) enabled for checkout delivery`
+                : 'No coverage areas configured yet'}
+            </p>
+            {(pricing.coverageAreas || []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {pricing.coverageAreas.map((area) => (
+                  <span
+                    key={area}
+                    className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-dcc-primary ring-1 ring-dcc-primary/15"
+                  >
+                    {area}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link
+            to="/admin/settings#coverage-area-management"
+            className="inline-flex items-center gap-2 rounded-xl border border-dcc-primary/25 bg-dcc-primary/5 px-4 py-2.5 text-sm font-semibold text-dcc-primary hover:bg-dcc-primary/10"
+          >
+            Manage coverage areas
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">

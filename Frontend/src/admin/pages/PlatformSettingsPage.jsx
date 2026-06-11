@@ -1,13 +1,21 @@
-import { useState } from 'react'
-import { MapPin, Plus, Save, Settings, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AlertCircle, MapPin, Plus, Save, Settings, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getPlatformSettings, savePlatformSettings } from '../utils/adminStorage'
+import { validatePlatformSettings } from '../utils/platformSettingsValidation'
 import { DISTRICTS } from '../../delivery/data/constants'
 
 export default function PlatformSettingsPage() {
   const [settings, setSettings] = useState(() => getPlatformSettings())
   const [errors, setErrors] = useState({})
   const [newCoverageArea, setNewCoverageArea] = useState('')
+  const formRef = useRef(null)
+
+  useEffect(() => {
+    if (window.location.hash === '#coverage-area-management') {
+      document.getElementById('coverage-area-management')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [])
 
   const handleChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }))
@@ -33,55 +41,21 @@ export default function PlatformSettingsPage() {
     )
   }
 
-  const validate = () => {
-    const errs = {}
-    if (!settings.platformName?.trim()) errs.platformName = 'Platform name is required.'
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!settings.contactEmail?.trim()) {
-      errs.contactEmail = 'Contact email is required.'
-    } else if (!emailRegex.test(settings.contactEmail.trim())) {
-      errs.contactEmail = 'Please enter a valid email address.'
-    }
-
-    const baseFee = Number(settings.baseFee)
-    if (isNaN(baseFee) || baseFee < 0) errs.baseFee = 'Base delivery fee must be a non-negative number.'
-
-    const surcharge = Number(settings.outOfColomboFee)
-    if (isNaN(surcharge) || surcharge < 0) errs.outOfColomboFee = 'Surcharge must be a non-negative number.'
-
-    const perKm = Number(settings.perKmFee)
-    if (settings.pricingModel === 'distance' && (isNaN(perKm) || perKm < 0)) {
-      errs.perKmFee = 'Per-km rate must be a non-negative number.'
-    }
-
-    const flatFee = Number(settings.flatFee)
-    if (settings.pricingModel === 'flat' && (isNaN(flatFee) || flatFee < 0)) {
-      errs.flatFee = 'Flat fee must be a non-negative number.'
-    }
-
-    const freeThreshold = Number(settings.freeThreshold)
-    if (isNaN(freeThreshold) || freeThreshold < 0) {
-      errs.freeThreshold = 'Free delivery threshold must be a non-negative number.'
-    }
-
-    if (!settings.coverageAreas?.length) {
-      errs.coverageAreas = 'At least one coverage area is required.'
-    }
-
-    return errs
-  }
-
   const handleSave = (e) => {
     e.preventDefault()
-    const errs = validate()
+    const errs = validatePlatformSettings(settings)
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
-      toast.error('Please fix the highlighted errors.')
+      toast.error('Please fix the validation errors before saving.')
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       return
     }
-    savePlatformSettings(settings)
-    toast.success('Platform settings saved successfully!')
+    setErrors({})
+    const saved = savePlatformSettings(settings)
+    setSettings(saved)
+    toast.success(
+      `Settings saved. ${(saved.coverageAreas || []).length} coverage area(s) active at checkout.`,
+    )
   }
 
   return (
@@ -92,11 +66,27 @@ export default function PlatformSettingsPage() {
           Platform Settings
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Configure platform-wide delivery pricing, coverage areas, and checkout rules.
+          Configure platform-wide delivery pricing, coverage areas, and checkout rules for buyers.
         </p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSave} className="space-y-6">
+        {Object.keys(errors).length > 0 && (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+          >
+            <div className="flex items-start gap-2 font-semibold">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Validation failed — please correct the following:</span>
+            </div>
+            <ul className="mt-2 list-disc space-y-1 pl-9">
+              {Object.values(errors).map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
           <h2 className="text-lg font-bold text-slate-900">General</h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -285,11 +275,20 @@ export default function PlatformSettingsPage() {
           </p>
         </section>
 
-        <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
-          <h2 className="text-lg font-bold text-slate-900">Coverage Areas</h2>
+        <section
+          id="coverage-area-management"
+          className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10"
+        >
+          <h2 className="text-lg font-bold text-slate-900">Coverage Area Management</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Only addresses in these districts can receive delivery at checkout.
+            Add or remove districts where platform delivery is available. Changes apply at buyer
+            checkout after buyers refresh coverage data.
           </p>
+          {(settings.coverageAreas || []).length > 0 && (
+            <p className="mt-2 text-xs font-medium text-dcc-primary">
+              Active coverage: {(settings.coverageAreas || []).join(' · ')}
+            </p>
+          )}
           {errors.coverageAreas && (
             <p className="mt-2 text-xs text-rose-500">{errors.coverageAreas}</p>
           )}

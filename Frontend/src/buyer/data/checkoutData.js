@@ -1,3 +1,5 @@
+import { getDeliveryFee as calculateDeliveryFee } from '../utils/deliveryPricing'
+
 export const savedAddresses = [
   {
     id: 'home-colombo',
@@ -106,7 +108,10 @@ export function formatAddressLines(address) {
   return parts.filter(Boolean)
 }
 
-export function getDeliveryFee(methodId) {
+export function getDeliveryFee(methodId, address, subtotal = 0) {
+  if (address) {
+    return calculateDeliveryFee(methodId, address, subtotal)
+  }
   return deliveryMethods.find((m) => m.id === methodId)?.fee ?? 450
 }
 

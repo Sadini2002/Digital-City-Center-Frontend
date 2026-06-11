@@ -3,9 +3,9 @@
  * BACKEND: Remove once register + admin approval APIs are live.
  */
 import { getDeliveryProviders } from '../../admin/utils/adminStorage'
+import { setAuthToken } from '../../utils/authStorage'
 
 const USER_KEY = 'user'
-const TOKEN_KEY = 'token'
 
 export function saveDeliveryApplication(form) {
   const providers = getDeliveryProviders()
@@ -38,11 +38,12 @@ export function saveDeliveryApplication(form) {
     },
   }
 
-  localStorage.setItem(TOKEN_KEY, `delivery-${entry.id}`)
+  const token = `delivery-${entry.id}`
+  void setAuthToken(token, true)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   sessionStorage.setItem('dcc_last_delivery_application', JSON.stringify({ user, entry }))
 
-  return { token: localStorage.getItem(TOKEN_KEY), user }
+  return { token, user }
 }
 
 export function activateDemoDeliveryProvider() {
@@ -58,7 +59,7 @@ export function activateDemoDeliveryProvider() {
       district: 'Colombo',
     },
   }
-  localStorage.setItem(TOKEN_KEY, 'demo-delivery-token')
+  void setAuthToken('demo-delivery-token', true)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   return user
 }
@@ -80,7 +81,7 @@ export function activateDemoDeliveryDriver() {
       status: 'ACTIVE',
     },
   }
-  localStorage.setItem(TOKEN_KEY, 'demo-driver-token')
+  void setAuthToken('demo-driver-token', true)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   return user
 }
@@ -95,6 +96,19 @@ export function syncUserApprovalFromAdmin() {
     )
     if (match?.status === 'approved' && user.deliveryProvider.status !== 'ACTIVE') {
       user.deliveryProvider.status = 'ACTIVE'
+      delete user.deliveryProvider.rejectionReason
+      localStorage.setItem(USER_KEY, JSON.stringify(user))
+    } else if (match?.status === 'rejected' && user.deliveryProvider.status !== 'REJECTED') {
+      user.deliveryProvider.status = 'REJECTED'
+      user.deliveryProvider.rejectionReason =
+        match.rejectionReason || 'Your application was not approved. Please contact support.'
+      localStorage.setItem(USER_KEY, JSON.stringify(user))
+    } else if (
+      match?.status === 'rejected' &&
+      match.rejectionReason &&
+      user.deliveryProvider.rejectionReason !== match.rejectionReason
+    ) {
+      user.deliveryProvider.rejectionReason = match.rejectionReason
       localStorage.setItem(USER_KEY, JSON.stringify(user))
     }
     return user
