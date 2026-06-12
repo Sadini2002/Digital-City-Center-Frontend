@@ -14,6 +14,7 @@ import {
   getCategoryShops,
   sortOptions,
 } from '../components/category/categoryData'
+import { categoryApi } from '../services/api'
 
 const PER_PAGE = 6
 
@@ -34,23 +35,17 @@ export default function CategoryPage() {
     return true
   }, [slug])
 
+  const [dbCategory, setDbCategory] = useState(null)
+  const [products, setProducts] = useState([])
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
   const meta = getCategoryMeta(slug)
-  const breadcrumbs = getCategoryBreadcrumbs(slug, meta.title)
-  const categoryProducts = useMemo(() => getCategoryProducts(slug), [slug])
+  const breadcrumbs = getCategoryBreadcrumbs(slug, dbCategory?.name || meta.title)
   const categoryShops = getCategoryShops(slug)
   const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
-
-  if (!isEnabled) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
-        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
-        <p className="mt-2 text-sm text-slate-600">This category is currently unavailable or has been disabled by the admin.</p>
-        <Link to="/" className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover">
-          Back to Home
-        </Link>
-      </div>
-    )
-  }
 
   const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
   const [priceMin, setPriceMin] = useState(0)
@@ -69,43 +64,103 @@ export default function CategoryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset filters when category slug changes
   }, [slug])
 
-  const filteredProducts = useMemo(() => {
-    let list = [...categoryProducts]
+  useEffect(() => {
+    if (!isEnabled) return
 
-    if (minRating > 0) {
-      list = list.filter((p) => p.rating >= minRating)
+    let active = true
+    setLoading(true)
+    setError(null)
+
+    if (slug === 'all') {
+      const mockList = getCategoryProducts('all')
+      setProducts(mockList)
+      setTotalProducts(mockList.length)
+      setTotalPages(Math.ceil(mockList.length / PER_PAGE))
+      setLoading(false)
+      return
     }
 
-    const maxPrice = priceMax * 1000
-    if (priceMax < 100) {
-      list = list.filter((p) => p.price <= maxPrice)
-    }
-    const minPrice = priceMin * 1000
-    if (priceMin > 0) {
-      list = list.filter((p) => p.price >= minPrice)
-    }
-
-    switch (sort) {
-      case 'price-low':
-        list.sort((a, b) => a.price - b.price)
-        break
-      case 'price-high':
-        list.sort((a, b) => b.price - a.price)
-        break
-      case 'rating':
-        list.sort((a, b) => b.rating - a.rating)
-        break
-      default:
-        break
+    const params = {
+      minPrice: priceMin > 0 ? priceMin * 1000 : undefined,
+      maxPrice: priceMax < 100 ? priceMax * 1000 : undefined,
+      minRating: minRating > 0 ? minRating : undefined,
+      sort,
+      page,
+      limit: PER_PAGE,
     }
 
-    return list
-  }, [categoryProducts, minRating, priceMin, priceMax, sort])
+    categoryApi.getBySlug(slug, params)
+      .then((res) => {
+        if (!active) return
+        if (res.data?.success) {
+          const { category, listings, pagination } = res.data.data
+          setDbCategory(category)
+          setProducts(listings || [])
+          setTotalProducts(pagination.total || 0)
+          setTotalPages(pagination.totalPages || 1)
+        } else {
+          setError('Failed to fetch category data')
+        }
+        setLoading(false)
+      })
+      .catch((err) => {
+        if (!active) return
+        setError(err.message || 'Failed to fetch category data')
+        setLoading(false)
+      })
 
-  const start = (page - 1) * PER_PAGE
-  const pageProducts = filteredProducts.slice(start, start + PER_PAGE)
-  const showingStart = filteredProducts.length === 0 ? 0 : start + 1
-  const showingEnd = Math.min(start + PER_PAGE, filteredProducts.length)
+    return () => {
+      active = false
+    }
+  }, [slug, priceMin, priceMax, minRating, sort, page, isEnabled])
+
+  const displayProducts = useMemo(() => {
+    if (slug === 'all') {
+      let list = [...products]
+      if (minRating > 0) {
+        list = list.filter((p) => p.rating >= minRating)
+      }
+      const maxPrice = priceMax * 1000
+      if (priceMax < 100) {
+        list = list.filter((p) => p.price <= maxPrice)
+      }
+      const minPrice = priceMin * 1000
+      if (priceMin > 0) {
+        list = list.filter((p) => p.price >= minPrice)
+      }
+      switch (sort) {
+        case 'price-low':
+          list.sort((a, b) => a.price - b.price)
+          break
+        case 'price-high':
+          list.sort((a, b) => b.price - a.price)
+          break
+        case 'rating':
+          list.sort((a, b) => b.rating - a.rating)
+          break
+        default:
+          break
+      }
+      const startIdx = (page - 1) * PER_PAGE
+      return list.slice(startIdx, startIdx + PER_PAGE)
+    }
+    return products
+  }, [slug, products, priceMin, priceMax, minRating, sort, page])
+
+  const showingStart = totalProducts === 0 ? 0 : (page - 1) * PER_PAGE + 1
+  const showingEnd = Math.min(page * PER_PAGE, totalProducts)
+
+  if (!isEnabled) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
+        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
+        <p className="mt-2 text-sm text-slate-600">This category is currently unavailable or has been disabled by the admin.</p>
+        <Link to="/" className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover">
+          Back to Home
+        </Link>
+      </div>
+    )
+  }
 
   const toggleSub = (id) => {
     setSelectedSubs((prev) =>
@@ -155,10 +210,10 @@ export default function CategoryPage() {
               <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-                    {meta.title}
+                    {dbCategory?.name || meta.title}
                   </h1>
                   <p className="mt-1 text-sm text-slate-500">
-                    Showing {showingStart}–{showingEnd} of {meta.totalProducts} products
+                    Showing {showingStart}–{showingEnd} of {totalProducts} products
                   </p>
                 </div>
 
@@ -216,19 +271,35 @@ export default function CategoryPage() {
                 </div>
               </div>
 
-              <div
-                className={
-                  view === 'grid'
-                    ? 'mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
-                    : 'mt-6 flex flex-col gap-4'
-                }
-              >
-                {pageProducts.map((product) => (
-                  <CategoryProductCard key={product.id} product={product} view={view} />
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex h-64 items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-dcc-primary border-t-transparent" />
+                </div>
+              ) : error ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-red-600">
+                  {error}
+                </div>
+              ) : displayProducts.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+                  No products found matching the filters.
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={
+                      view === 'grid'
+                        ? 'mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
+                        : 'mt-6 flex flex-col gap-4'
+                    }
+                  >
+                    {displayProducts.map((product) => (
+                      <CategoryProductCard key={product.id} product={product} view={view} />
+                    ))}
+                  </div>
 
-              <CategoryPagination currentPage={page} onPageChange={setPage} />
+                  <CategoryPagination currentPage={page} onPageChange={setPage} totalPages={totalPages} />
+                </>
+              )}
             </div>
           </div>
         </PageContainer>

@@ -1,8 +1,25 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-const pages = [1, 2, 3, '...', 12]
+export default function CategoryPagination({ currentPage = 1, onPageChange, totalPages = 1 }) {
+  if (totalPages <= 1) return null
 
-export default function CategoryPagination({ currentPage = 1, onPageChange }) {
+  const pages = []
+  if (totalPages <= 5) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i)
+    }
+  } else {
+    pages.push(1)
+    if (currentPage > 3) pages.push('...')
+    const start = Math.max(2, currentPage - 1)
+    const end = Math.min(totalPages - 1, currentPage + 1)
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) pages.push(i)
+    }
+    if (currentPage < totalPages - 2) pages.push('...')
+    if (!pages.includes(totalPages)) pages.push(totalPages)
+  }
+
   return (
     <nav
       className="mt-10 flex items-center justify-center gap-1.5"
@@ -41,7 +58,7 @@ export default function CategoryPagination({ currentPage = 1, onPageChange }) {
 
       <button
         type="button"
-        disabled={currentPage >= 12}
+        disabled={currentPage >= totalPages}
         onClick={() => onPageChange(currentPage + 1)}
         className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40"
         aria-label="Next page"
