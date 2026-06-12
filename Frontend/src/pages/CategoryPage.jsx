@@ -22,22 +22,19 @@ function mapProductToSubcategory(title, categorySlug) {
   const t = title.toLowerCase()
   
   if (categorySlug === 'electronics') {
+    if (t.includes('headphones') || t.includes('airpods') || t.includes('speaker') || t.includes('earbuds') || t.includes('audio') || t.includes('sound') || t.includes('jbl') || t.includes('flip')) return 'audio'
     if (t.includes('phone') || t.includes('galaxy s24') || t.includes('iphone') || t.includes('pixel') || t.includes('s24')) return 'smartphones'
     if (t.includes('laptop') || t.includes('macbook') || t.includes('xps') || t.includes('notebook')) return 'laptops'
     if (t.includes('watch') || t.includes('wearable') || t.includes('band')) return 'wearables'
     if (t.includes('camera') || t.includes('lens') || t.includes('eos')) return 'cameras'
-    if (t.includes('headphones') || t.includes('airpods') || t.includes('speaker') || t.includes('earbuds') || t.includes('audio') || t.includes('sound') || t.includes('jbl') || t.includes('flip')) return 'audio'
     return 'accessories'
   }
   
   if (categorySlug === 'fashion') {
-    if (t.includes('linen') || t.includes('shirt') || t.includes('men')) {
-      if (t.includes('kids') || t.includes('child')) return 'kids-wear'
-      return 'men'
-    }
+    if (t.includes('kids') || t.includes('child') || t.includes('mini mode')) return 'kids-wear'
+    if (t.includes('linen') || t.includes('shirt') || t.includes('men')) return 'men'
     if (t.includes('saree') || t.includes('sari') || t.includes('women') || t.includes('dress') || t.includes('tote') || t.includes('handbag')) return 'women'
     if (t.includes('sneakers') || t.includes('shoes') || t.includes('footwear')) return 'shoes'
-    if (t.includes('kids') || t.includes('child') || t.includes('mini mode')) return 'kids-wear'
     return 'men'
   }
 
@@ -110,7 +107,7 @@ export default function CategoryPage() {
   const meta = getCategoryMeta(slug)
   const breadcrumbs = getCategoryBreadcrumbs(slug, dbCategory?.name || meta.title)
   const categoryShops = getCategoryShops(slug)
-  const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
+  const defaultSubs = []
 
   const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
   const [priceMin, setPriceMin] = useState(0)
@@ -124,7 +121,7 @@ export default function CategoryPage() {
 
   useEffect(() => {
     setPage(1)
-    setSelectedSubs(meta.subCategories[0] ? [meta.subCategories[0].id] : [])
+    setSelectedSubs([])
     setFiltersOpen(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset filters when category slug changes
   }, [slug])
