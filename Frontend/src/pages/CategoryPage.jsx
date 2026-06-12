@@ -37,8 +37,6 @@ export default function CategoryPage() {
 
   const [dbCategory, setDbCategory] = useState(null)
   const [products, setProducts] = useState([])
-  const [totalProducts, setTotalProducts] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
