@@ -94,8 +94,23 @@ export default function CategoryPage() {
         if (!active) return
         if (res.data?.success) {
           const { category, listings, pagination } = res.data.data
+          const adaptedListings = (listings || []).map((l) => {
+            const mockProducts = getCategoryProducts(slug) || []
+            const matchedMock =
+              mockProducts.find((mp) => mp.name?.toLowerCase() === l.title?.toLowerCase()) ||
+              mockProducts.find((mp) => l.title?.toLowerCase().includes(mp.name?.toLowerCase())) ||
+              {}
+            return {
+              ...l,
+              name: l.title,
+              image: matchedMock.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60',
+              brand: matchedMock.brand || 'DCC Brand',
+              categoryLabel: category?.name || meta.title,
+              reviews: l.reviewCount ?? 0,
+            }
+          })
           setDbCategory(category)
-          setProducts(listings || [])
+          setProducts(adaptedListings)
           setTotalProducts(pagination.total || 0)
           setTotalPages(pagination.totalPages || 1)
         } else {
