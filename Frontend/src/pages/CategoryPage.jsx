@@ -74,26 +74,15 @@ export default function CategoryPage() {
     if (slug === 'all') {
       const mockList = getCategoryProducts('all')
       setProducts(mockList)
-      setTotalProducts(mockList.length)
-      setTotalPages(Math.ceil(mockList.length / PER_PAGE))
       setLoading(false)
       return
     }
 
-    const params = {
-      minPrice: priceMin > 0 ? priceMin * 1000 : undefined,
-      maxPrice: priceMax < 100 ? priceMax * 1000 : undefined,
-      minRating: minRating > 0 ? minRating : undefined,
-      sort,
-      page,
-      limit: PER_PAGE,
-    }
-
-    categoryApi.getBySlug(slug, params)
+    categoryApi.getBySlug(slug, { limit: 100 })
       .then((res) => {
         if (!active) return
         if (res.data?.success) {
-          const { category, listings, pagination } = res.data.data
+          const { category, listings } = res.data.data
           const adaptedListings = (listings || []).map((l) => {
             const mockProducts = getCategoryProducts(slug) || []
             const matchedMock =
@@ -107,12 +96,12 @@ export default function CategoryPage() {
               brand: matchedMock.brand || 'DCC Brand',
               categoryLabel: category?.name || meta.title,
               reviews: l.reviewCount ?? 0,
+              sellerLocation: matchedMock.sellerLocation || 'colombo',
+              subCategory: matchedMock.categorySlug || slug,
             }
           })
           setDbCategory(category)
           setProducts(adaptedListings)
-          setTotalProducts(pagination.total || 0)
-          setTotalPages(pagination.totalPages || 1)
         } else {
           setError('Failed to fetch category data')
         }
@@ -127,40 +116,57 @@ export default function CategoryPage() {
     return () => {
       active = false
     }
-  }, [slug, priceMin, priceMax, minRating, sort, page, isEnabled])
+  }, [slug, isEnabled])
+
+  const filteredProducts = useMemo(() => {
+    let list = [...products]
+
+    if (selectedSubs.length > 0 && slug !== 'all') {
+      list = list.filter((p) => selectedSubs.includes(p.subCategory))
+    }
+
+    if (minRating > 0) {
+      list = list.filter((p) => p.rating >= minRating)
+    }
+
+    const maxPrice = priceMax * 1000
+    if (priceMax < 100) {
+      list = list.filter((p) => p.price <= maxPrice)
+    }
+    const minPrice = priceMin * 1000
+    if (priceMin > 0) {
+      list = list.filter((p) => p.price >= minPrice)
+    }
+
+    if (location !== 'All Locations') {
+      list = list.filter((p) => p.sellerLocation?.toLowerCase() === location.toLowerCase())
+    }
+
+    switch (sort) {
+      case 'price-low':
+        list.sort((a, b) => a.price - b.price)
+        break
+      case 'price-high':
+        list.sort((a, b) => b.price - a.price)
+        break
+      case 'rating':
+        list.sort((a, b) => b.rating - a.rating)
+        break
+      default:
+        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        break
+    }
+
+    return list
+  }, [products, selectedSubs, minRating, priceMin, priceMax, location, sort, slug])
+
+  const totalProducts = filteredProducts.length
+  const totalPages = Math.ceil(totalProducts / PER_PAGE)
 
   const displayProducts = useMemo(() => {
-    if (slug === 'all') {
-      let list = [...products]
-      if (minRating > 0) {
-        list = list.filter((p) => p.rating >= minRating)
-      }
-      const maxPrice = priceMax * 1000
-      if (priceMax < 100) {
-        list = list.filter((p) => p.price <= maxPrice)
-      }
-      const minPrice = priceMin * 1000
-      if (priceMin > 0) {
-        list = list.filter((p) => p.price >= minPrice)
-      }
-      switch (sort) {
-        case 'price-low':
-          list.sort((a, b) => a.price - b.price)
-          break
-        case 'price-high':
-          list.sort((a, b) => b.price - a.price)
-          break
-        case 'rating':
-          list.sort((a, b) => b.rating - a.rating)
-          break
-        default:
-          break
-      }
-      const startIdx = (page - 1) * PER_PAGE
-      return list.slice(startIdx, startIdx + PER_PAGE)
-    }
-    return products
-  }, [slug, products, priceMin, priceMax, minRating, sort, page])
+    const startIdx = (page - 1) * PER_PAGE
+    return filteredProducts.slice(startIdx, startIdx + PER_PAGE)
+  }, [filteredProducts, page])
 
   const showingStart = totalProducts === 0 ? 0 : (page - 1) * PER_PAGE + 1
   const showingEnd = Math.min(page * PER_PAGE, totalProducts)
