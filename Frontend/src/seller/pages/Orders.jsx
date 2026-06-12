@@ -4,6 +4,7 @@ import { getOrders, updateOrderStatus } from '../../buyer'
 import OrderTable from '../components/OrderTable'
 import { Search, X, Package, Truck, CheckCircle2, ShoppingBag, Printer, AlertTriangle, Check, RefreshCw } from 'lucide-react'
 import DashboardCard from '../components/DashboardCard'
+import { addBuyerNotification, addSellerNotification } from '../../utils/notificationStorage'
 
 export default function Orders() {
   const [orders, setOrders] = useState([])
@@ -95,6 +96,16 @@ export default function Orders() {
     })
     
     toast.success(`Order ${orderId} updated to ${newStatus}`)
+
+    // Trigger dedicated notifications based on new status
+    if (newStatus === 'cancelled') {
+      addBuyerNotification('Order Cancelled', `Order ${orderId} has been cancelled by the seller.`, 'warning')
+      addSellerNotification('Order Cancelled', `You have cancelled Order ${orderId}.`, 'warning')
+    } else if (newStatus === 'shipped') {
+      addBuyerNotification('Order Shipped', `Your order ${orderId} has been shipped and is on its way.`, 'info')
+    } else if (newStatus === 'delivered') {
+      addBuyerNotification('Order Delivered', `Your order ${orderId} has been delivered successfully.`, 'success')
+    }
     
     // Reload state
     const updated = getOrders()
@@ -346,6 +357,15 @@ export default function Orders() {
                         className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition"
                       >
                         Complete Order
+                      </button>
+                    )}
+                    {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && selectedOrder.status !== 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus(selectedOrder.id, 'cancelled')}
+                        className="inline-flex items-center gap-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition px-3 py-1.5 text-xs font-semibold"
+                      >
+                        Cancel Order
                       </button>
                     )}
                   </div>

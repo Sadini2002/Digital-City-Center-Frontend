@@ -7,21 +7,22 @@ const memoryTokens = {
 }
 
 function isSecureContext() {
-  return (
-    window.location.protocol === 'https:' ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  )
+  return true
 }
 
 function buildCookieFlags(maxAgeSeconds) {
-  const flags = ['Path=/', 'SameSite=Strict']
+  const flags = ['Path=/', 'SameSite=Lax']
   if (maxAgeSeconds > 0) flags.push(`Max-Age=${maxAgeSeconds}`)
-  if (isSecureContext()) flags.push('Secure')
+  flags.push('Secure')
   return flags.join('; ')
 }
 
-function clearLegacyClientCookie(name) {
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function clearCookie(name) {
   document.cookie = `${name}=; ${buildCookieFlags(0)}`
 }
 
@@ -51,20 +52,29 @@ async function clearHttpOnlySession(cookieName) {
 
 async function persistToken(kind, token, rememberMe = false) {
   const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
+  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
 
   memoryTokens[kind] = token
-  clearLegacyClientCookie(cookieName)
 
   try {
     const httpOnlySet = await setHttpOnlySession(cookieName, token, rememberMe)
     if (httpOnlySet) return
   } catch {
-    // Session endpoint unavailable — token kept in memory only (not in JS-readable cookies).
+    // Fall back to client-visible secure cookie when session endpoint is unavailable.
   }
+
+  document.cookie = `${cookieName}=${encodeURIComponent(token)}; ${buildCookieFlags(maxAge)}`
 }
 
 function resolveToken(kind) {
   if (memoryTokens[kind]) return memoryTokens[kind]
+
+  const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
+  const cookieToken = readCookie(cookieName)
+  if (cookieToken) {
+    memoryTokens[kind] = cookieToken
+    return cookieToken
+  }
 
   const legacyKey = kind === 'admin' ? 'admin_token' : 'token'
   const legacy = localStorage.getItem(legacyKey)
@@ -82,20 +92,8 @@ async function removeToken(kind) {
   const legacyKey = kind === 'admin' ? 'admin_token' : 'token'
 
   localStorage.removeItem(legacyKey)
-  clearLegacyClientCookie(cookieName)
+  clearCookie(cookieName)
   await clearHttpOnlySession(cookieName)
-}
-
-export async function hydrateAuthFromSession() {
-  try {
-    const response = await fetch('/api/auth/session', { credentials: 'include' })
-    if (!response.ok) return
-    const data = await response.json()
-    if (data.token) memoryTokens.user = data.token
-    if (data.adminToken) memoryTokens.admin = data.adminToken
-  } catch {
-    // Session endpoint may be unavailable outside dev server.
-  }
 }
 
 export async function setAuthToken(token, rememberMe = false) {

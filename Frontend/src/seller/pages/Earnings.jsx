@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { getOrders } from '../../buyer'
 import DashboardCard from '../components/DashboardCard'
 import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send, Calendar } from 'lucide-react'
+import { addSellerNotification } from '../../utils/notificationStorage'
 
 export default function Earnings() {
   const [orders, setOrders] = useState([])
@@ -81,6 +82,19 @@ export default function Earnings() {
       localStorage.setItem('dcc_seller_payouts', JSON.stringify(nextPayouts))
       setPayouts(nextPayouts)
       setRequestingPayout(false)
+
+      // Add Seller notifications for payout initiation and automatic mock clearing
+      addSellerNotification(
+        'Payout Initiated',
+        `Payout request of LKR ${newPayout.amount.toLocaleString()} (ID: ${newPayout.id}) has been submitted.`,
+        'info'
+      )
+      addSellerNotification(
+        'Payout Cleared',
+        `Your payout of LKR ${newPayout.amount.toLocaleString()} (ID: ${newPayout.id}) has been cleared to ${newPayout.account}.`,
+        'success'
+      )
+
       toast.success('Payout request submitted successfully! Funds will clear in 24 hours.')
     }, 1200)
   }

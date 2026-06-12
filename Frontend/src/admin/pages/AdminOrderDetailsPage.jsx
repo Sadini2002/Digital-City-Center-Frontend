@@ -71,6 +71,22 @@ export default function AdminOrderDetailsPage() {
       localStorage.setItem('dcc_delivery_jobs', JSON.stringify(jobs))
       setAssignedJob(newJob)
       
+      // Add assignment notification to delivery provider's panel
+      try {
+        const notifications = JSON.parse(localStorage.getItem('dcc_delivery_notifications') || '[]')
+        const newNotification = {
+          id: `dn-${Date.now()}`,
+          title: 'Delivery Task Assigned',
+          body: `Order ${order.id} has been assigned to your service. Tracking code: ${newJob.trackingCode}.`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        }
+        notifications.unshift(newNotification)
+        localStorage.setItem('dcc_delivery_notifications', JSON.stringify(notifications))
+      } catch (err) {
+        console.error('Failed to create assignment notification', err)
+      }
+      
       // Update order status/trackingStatus in order storage
       const next = updateOrderStatus(order.id, order.status, {
         trackingStatus: 'assigned',

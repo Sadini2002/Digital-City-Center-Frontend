@@ -7,7 +7,8 @@ import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { DISTRICTS, PROVINCES } from '../data/constants'
 import { saveDeliveryApplication } from '../utils/deliveryApplicationStorage'
-import { contactNumberError } from '../../utils/phoneValidation'
+import { authApi } from '../../services/api'
+import { getDeliveryProviders } from '../../admin/utils/adminStorage'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15'
@@ -73,13 +74,12 @@ function DeliveryRegisterHero() {
 export default function DeliveryRegisterPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
-  const [phoneError, setPhoneError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
     email: '',
     password: '',
-    phone: '',
+    contactNumber: '',
     companyName: '',
     businessRegNo: '',
     district: 'Colombo',
@@ -98,17 +98,45 @@ export default function DeliveryRegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    const phoneValidationError = contactNumberError(form.phone)
-    if (phoneValidationError) {
-      setPhoneError(phoneValidationError)
-      setError(phoneValidationError)
+    
+    // Phone validation
+    const phoneRegex = /^\+?[0-9]{9,15}$/
+    if (!phoneRegex.test(form.contactNumber.trim().replace(/[\s-]/g, ''))) {
+      setError('Invalid contact number. Please enter a valid phone number (9-15 digits).')
       return
     }
-    setPhoneError('')
 
     setIsSubmitting(true)
     try {
-      saveDeliveryApplication(form)
+      // Duplicate email check
+      const providers = getDeliveryProviders()
+      const emailExists = providers.some(
+        (p) => p.email.toLowerCase() === form.email.trim().toLowerCase()
+      )
+      if (emailExists) {
+        setError('An account with this email already exists.')
+        setIsSubmitting(false)
+        return
+      }
+
+      // API registration request
+      await authApi.registerDeliveryProvider({
+        companyName: form.companyName,
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        phone: form.contactNumber,
+        businessRegNo: form.businessRegNo,
+        district: form.district,
+        serviceAreas: form.serviceAreas,
+      })
+
+      // Local storage synchronization
+      saveDeliveryApplication({
+        ...form,
+        phone: form.contactNumber,
+      })
+
       navigate('/delivery/application-status', { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed.')
@@ -172,28 +200,14 @@ export default function DeliveryRegisterPage() {
                 required
                 variant="auth"
               />
-              <div>
-                <AuthInput
-                  id="phone"
-                  label="Phone Number"
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => {
-                    setPhoneError('')
-                    setError('')
-                    setForm({ ...form, phone: e.target.value })
-                  }}
-                  onBlur={() => setPhoneError(contactNumberError(form.phone))}
-                  placeholder="0771234567 or +94771234567"
-                  required
-                  variant="auth"
-                />
-                {phoneError && (
-                  <p className="mt-1 text-xs text-rose-600" role="alert">
-                    {phoneError}
-                  </p>
-                )}
-              </div>
+              <AuthInput
+                id="contactNumber"
+                label="Contact Number"
+                value={form.contactNumber}
+                onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
+                required
+                variant="auth"
+              />
               <AuthInput
                 id="businessRegNo"
                 label="Business Registration Number (BRN)"
