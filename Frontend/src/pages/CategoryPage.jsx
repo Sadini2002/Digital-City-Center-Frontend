@@ -18,6 +18,73 @@ import { categoryApi } from '../services/api'
 
 const PER_PAGE = 6
 
+function mapProductToSubcategory(title, categorySlug) {
+  const t = title.toLowerCase()
+  
+  if (categorySlug === 'electronics') {
+    if (t.includes('phone') || t.includes('galaxy s24') || t.includes('iphone') || t.includes('pixel') || t.includes('s24')) return 'smartphones'
+    if (t.includes('laptop') || t.includes('macbook') || t.includes('xps') || t.includes('notebook')) return 'laptops'
+    if (t.includes('watch') || t.includes('wearable') || t.includes('band')) return 'wearables'
+    if (t.includes('camera') || t.includes('lens') || t.includes('eos')) return 'cameras'
+    if (t.includes('headphones') || t.includes('airpods') || t.includes('speaker') || t.includes('earbuds') || t.includes('audio') || t.includes('sound') || t.includes('jbl') || t.includes('flip')) return 'audio'
+    return 'accessories'
+  }
+  
+  if (categorySlug === 'fashion') {
+    if (t.includes('linen') || t.includes('shirt') || t.includes('men')) {
+      if (t.includes('kids') || t.includes('child')) return 'kids-wear'
+      return 'men'
+    }
+    if (t.includes('saree') || t.includes('sari') || t.includes('women') || t.includes('dress') || t.includes('tote') || t.includes('handbag')) return 'women'
+    if (t.includes('sneakers') || t.includes('shoes') || t.includes('footwear')) return 'shoes'
+    if (t.includes('kids') || t.includes('child') || t.includes('mini mode')) return 'kids-wear'
+    return 'men'
+  }
+
+  if (categorySlug === 'groceries') {
+    if (t.includes('rice') || t.includes('grain') || t.includes('dal') || t.includes('lentil') || t.includes('nadu')) return 'rice-grains'
+    if (t.includes('milk') || t.includes('cheese') || t.includes('butter') || t.includes('dairy') || t.includes('egg') || t.includes('anchor')) return 'dairy'
+    if (t.includes('biscuit') || t.includes('snack') || t.includes('chocolate') || t.includes('cookie') || t.includes('maliban')) return 'snacks'
+    if (t.includes('tea') || t.includes('coffee') || t.includes('beverage') || t.includes('drink') || t.includes('dilmah')) return 'beverages'
+    if (t.includes('curry') || t.includes('spice') || t.includes('oil') || t.includes('coconut oil') || t.includes('salt')) return 'spices'
+    return 'rice-grains'
+  }
+
+  if (categorySlug === 'home') {
+    if (t.includes('bedsheet') || t.includes('pillow') || t.includes('blanket') || t.includes('duvet') || t.includes('linen')) return 'bedding'
+    if (t.includes('cookware') || t.includes('pan') || t.includes('pot') || t.includes('kitchen') || t.includes('chef') || t.includes('knife')) return 'kitchen'
+    if (t.includes('lamp') || t.includes('light') || t.includes('curtain') || t.includes('rug') || t.includes('vase') || t.includes('decor')) return 'decor'
+    if (t.includes('box') || t.includes('shelf') || t.includes('storage') || t.includes('table') || t.includes('chair') || t.includes('furniture') || t.includes('ikea')) return 'furniture'
+    if (t.includes('vacuum') || t.includes('cleaner') || t.includes('mop') || t.includes('broom') || t.includes('cleaning')) return 'cleaning'
+    return 'decor'
+  }
+
+  if (categorySlug === 'beauty') {
+    if (t.includes('serum') || t.includes('cream') || t.includes('sunscreen') || t.includes('mask') || t.includes('skincare') || t.includes('moisturizer')) return 'skincare'
+    if (t.includes('lipstick') || t.includes('makeup') || t.includes('mascara') || t.includes('foundation')) return 'makeup'
+    if (t.includes('shampoo') || t.includes('conditioner') || t.includes('hair') || t.includes('haircare')) return 'haircare'
+    if (t.includes('perfume') || t.includes('fragrance') || t.includes('edt') || t.includes('cologne') || t.includes('versace')) return 'fragrance'
+    return 'skincare'
+  }
+
+  if (categorySlug === 'sports') {
+    if (t.includes('yoga') || t.includes('mat') || t.includes('dumbbell') || t.includes('weight') || t.includes('fitness') || t.includes('gym')) return 'fitness'
+    if (t.includes('cricket') || t.includes('bat') || t.includes('football') || t.includes('ball') || t.includes('soccer') || t.includes('sports')) return 'team-sports'
+    if (t.includes('bag') || t.includes('bottle') || t.includes('gear') || t.includes('accessory')) return 'accessories-sport'
+    return 'fitness'
+  }
+
+  if (categorySlug === 'kids') {
+    if (t.includes('lego') || t.includes('block') || t.includes('toy') || t.includes('bear') || t.includes('plush') || t.includes('scooter') || t.includes('puzzle') || t.includes('jigsaw')) return 'toys'
+    if (t.includes('book') || t.includes('story') || t.includes('read')) return 'books'
+    if (t.includes('baby') || t.includes('diaper') || t.includes('stroller')) return 'baby'
+    if (t.includes('art') || t.includes('craft') || t.includes('pencil') || t.includes('crayola') || t.includes('school')) return 'school'
+    return 'toys'
+  }
+
+  return categorySlug
+}
+
 export default function CategoryPage() {
   const { slug = 'electronics' } = useParams()
   
@@ -95,7 +162,7 @@ export default function CategoryPage() {
               categoryLabel: category?.name || meta.title,
               reviews: l.reviewCount ?? 0,
               sellerLocation: matchedMock.sellerLocation || 'colombo',
-              subCategory: matchedMock.categorySlug || slug,
+              subCategory: mapProductToSubcategory(l.title, slug),
             }
           })
           setDbCategory(category)
