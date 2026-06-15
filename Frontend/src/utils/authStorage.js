@@ -123,3 +123,9 @@ export function getAdminToken() {
 export async function clearAdminToken() {
   await removeToken('admin')
 }
+
+/** Restore auth tokens from cookies / legacy storage on app boot. */
+export async function hydrateAuthFromSession() {
+  resolveToken('user')
+  resolveToken('admin')
+}
