@@ -26,6 +26,8 @@ function SearchResultsContent({ query, categorySlug }) {
   const [sort, setSort] = useState('relevant')
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
 
   const matchedProducts = useMemo(
     () => searchProducts(query, { categorySlug: '' }),
