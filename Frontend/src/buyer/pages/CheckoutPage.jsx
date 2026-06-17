@@ -18,6 +18,7 @@ import {
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
 import { getPlatformSettings } from '../../admin/utils/adminStorage'
+import { addBuyerNotification } from '../../utils/notificationStorage'
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -58,6 +59,7 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState(getBuyerEmail)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [customDistance, setCustomDistance] = useState(null)
 
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -99,7 +101,9 @@ export default function CheckoutPage() {
     const district = (addr.district || addr.city || '').trim().toLowerCase()
     
     let distance = 10 // default
-    if (district === 'colombo') {
+    if (customDistance !== null) {
+      distance = Number(customDistance)
+    } else if (district === 'colombo') {
       distance = 5
     } else if (district === 'gampaha') {
       distance = 25
@@ -123,6 +127,41 @@ export default function CheckoutPage() {
 
   const deliveryFee = getCalculatedFee(deliveryMethod)
   const total = subtotal + deliveryFee
+
+  const getValidationWarning = () => {
+    const addr = resolveAddress()
+    if (!addr.line1?.trim() && !addr.city?.trim() && !addr.district?.trim()) {
+      return ''
+    }
+    
+    const settings = getPlatformSettings()
+    
+    // Check keywords
+    const keywords = (settings.unsupportedKeywords || '')
+      .split(',')
+      .map(k => k.trim().toLowerCase())
+      .filter(Boolean)
+      
+    const addressString = `${addr.line1 || ''} ${addr.line2 || ''} ${addr.city || ''} ${addr.district || ''} ${addr.postalCode || ''}`.toLowerCase()
+    
+    for (const kw of keywords) {
+      if (addressString.includes(kw)) {
+        return `Delivery is not supported for the specified address (matched restricted keyword: "${kw}").`
+      }
+    }
+
+    // Check coverage areas
+    const coverage = settings.coverageAreas || []
+    if (coverage.length > 0 && deliveryMethod !== 'pickup') {
+      const districtLower = (addr.district || addr.city || '').trim().toLowerCase()
+      const isCovered = coverage.some(area => area.trim().toLowerCase() === districtLower)
+      if (!isCovered) {
+        return `Delivery is not supported in ${addr.district || addr.city || 'your area'}. We only deliver to: ${coverage.join(', ')}.`
+      }
+    }
+    
+    return ''
+  }
 
   const validate = () => {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -189,6 +228,18 @@ export default function CheckoutPage() {
       }
 
       const result = await placeOrder(order)
+
+      // Trigger order and payment confirmation notifications
+      addBuyerNotification(
+        'Order Confirmed',
+        `Thank you for your order! Your order ${orderId} has been successfully placed.`,
+        'success'
+      )
+      addBuyerNotification(
+        'Payment Confirmed',
+        `Payment of LKR ${total.toLocaleString()} for Order ${orderId} has been processed successfully.`,
+        'success'
+      )
 
       if (result.requiresGateway) {
         setSubmitting(false)
@@ -475,6 +526,68 @@ export default function CheckoutPage() {
               </div>
             </CheckoutSection>
 
+            {/* Coverage and Keyword Address Validation Real-time Warning */}
+            {getValidationWarning() && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex flex-col gap-1" id="realtime-address-warning">
+                <span className="font-bold">Unsupported Delivery Address</span>
+                <span>{getValidationWarning()}</span>
+              </div>
+            )}
+
+            {/* Delivery Pricing Calculator & Override Box */}
+            {deliveryMethod !== 'pickup' && (
+              <CheckoutSection title="Delivery Pricing Details & Distance Override" step={4}>
+                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-4">
+                  <div className="flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                      <h4 className="font-semibold text-slate-800">Pricing Model Info</h4>
+                      <p className="text-xs text-slate-500">
+                        pricing model: <span className="font-bold uppercase text-dcc-primary">{getPlatformSettings().pricingModel}</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">
+                        Base: LKR {getPlatformSettings().baseFee} | Per Km: LKR {getPlatformSettings().perKmFee}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Flat: LKR {getPlatformSettings().flatFee} | Free Over: LKR {getPlatformSettings().freeThreshold}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-3">
+                    <label htmlFor="custom-distance" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Test/Override Distance (km)
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        id="custom-distance"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        placeholder="Calculated automatically from address"
+                        value={customDistance !== null ? customDistance : ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setCustomDistance(val !== '' ? Number(val) : null)
+                        }}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15"
+                      />
+                      {customDistance !== null && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomDistance(null)}
+                          className="text-xs text-dcc-primary font-bold hover:underline shrink-0"
+                        >
+                          Reset Auto
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CheckoutSection>
+            )}
+
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
@@ -487,8 +600,8 @@ export default function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={submitting}
-              className="mt-4 flex w-full items-center justify-center rounded-xl bg-dcc-primary py-3.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={submitting || Boolean(getValidationWarning())}
+              className="mt-4 flex w-full items-center justify-center rounded-xl bg-dcc-primary py-3.5 text-sm font-semibold text-white hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? 'Placing order…'

@@ -12,6 +12,7 @@ import DeliveryAlert from '../components/ui/DeliveryAlert'
 import { DeliveryBlockSkeleton } from '../components/ui/DeliverySkeleton'
 import { ROLES } from '../data/constants'
 import { readDeliveryUser } from '../utils/readDeliveryUser'
+import { contactNumberError } from '../../utils/phoneValidation'
 
 const emptyForm = {
   fullName: '',
@@ -58,6 +59,11 @@ export default function DeliveryDriversPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const phoneValidationError = contactNumberError(form.phone)
+    if (phoneValidationError) {
+      setError(phoneValidationError)
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -101,10 +107,19 @@ export default function DeliveryDriversPage() {
                   {FIELD_LABELS[field]}
                 </label>
                 <input
-                  type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
+                  type={
+                    field === 'password'
+                      ? 'password'
+                      : field === 'email'
+                        ? 'email'
+                        : field === 'phone'
+                          ? 'tel'
+                          : 'text'
+                  }
                   value={form[field]}
                   onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                   className={inputClass}
+                  placeholder={field === 'phone' ? '0771234567 or +94771234567' : undefined}
                   required={['fullName', 'phone', 'email', 'password'].includes(field)}
                   autoComplete={field === 'password' ? 'new-password' : undefined}
                 />

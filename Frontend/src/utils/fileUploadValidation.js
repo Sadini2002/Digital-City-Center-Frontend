@@ -35,7 +35,6 @@ const DANGEROUS_MIME_TYPES = new Set([
   'application/x-msdownload',
   'application/x-msdos-program',
   'application/vnd.microsoft.portable-executable',
-  'application/octet-stream',
   'application/x-executable',
   'application/x-sh',
   'application/javascript',
@@ -66,21 +65,29 @@ export function validateUploadFile(file, options = {}) {
   }
 
   const extension = getExtension(file.name)
-  if (!extension || !ALLOWED_EXTENSIONS.has(extension) || hasBlockedExtension(file.name)) {
+
+  if (BLOCKED_EXTENSIONS.has(extension) || hasBlockedExtension(file.name)) {
     return {
       valid: false,
-      error: `${label}: executable and script files are not allowed.`,
+      error: `${label}: executable files (e.g. .exe) are not allowed.`,
     }
   }
 
-  if (DANGEROUS_MIME_TYPES.has(file.type) && !allowedTypes.has(file.type)) {
+  if (!extension || !ALLOWED_EXTENSIONS.has(extension)) {
     return {
       valid: false,
-      error: `${label}: executable and script files are not allowed.`,
+      error: `${label}: only JPG, PNG, WebP, and GIF images are allowed.`,
     }
   }
 
-  if (allowedTypes.size > 0 && file.type && !allowedTypes.has(file.type)) {
+  if (DANGEROUS_MIME_TYPES.has(file.type)) {
+    return {
+      valid: false,
+      error: `${label}: executable files (e.g. .exe) are not allowed.`,
+    }
+  }
+
+  if (file.type && !allowedTypes.has(file.type)) {
     return {
       valid: false,
       error: `${label}: only JPG, PNG, WebP, and GIF images are allowed.`,
@@ -88,10 +95,10 @@ export function validateUploadFile(file, options = {}) {
   }
 
   if (file.size > maxBytes) {
-    const limitMb = Math.round(maxBytes / (1024 * 1024))
+    const limitMb = maxBytes / (1024 * 1024)
     return {
       valid: false,
-      error: `${label}: exceeds the ${limitMb}MB size limit.`,
+      error: `${label}: file size exceeds the ${limitMb}MB limit. Please choose a smaller image.`,
     }
   }
 

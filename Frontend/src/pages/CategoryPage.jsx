@@ -1,129 +1,147 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Grid3x3, List, SlidersHorizontal } from 'lucide-react'
+import { Grid3x3, List, Loader2, PackageSearch, SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CategoryFilters from '../components/category/CategoryFilters'
 import CategoryProductCard from '../components/category/CategoryProductCard'
 import CategoryPagination from '../components/category/CategoryPagination'
 import CategoryTopShops from '../components/category/CategoryTopShops'
-import {
-  getCategoryBreadcrumbs,
-  getCategoryMeta,
-  getCategoryProducts,
-  getCategoryShops,
-  sortOptions,
-} from '../components/category/categoryData'
+import { getCategoryShops, sortOptions } from '../components/category/categoryData'
+import { categoryApi } from '../services/api/categoryApi'
 
 const PER_PAGE = 6
 
-export default function CategoryPage() {
-  const { slug = 'electronics' } = useParams()
-  
-  const isEnabled = useMemo(() => {
-    try {
-      const stored = localStorage.getItem('dcc_admin_categories')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) {
-          const cat = parsed.find(c => c.slug === slug)
-          if (cat) return cat.enabled !== false
-        }
-      }
-    } catch {}
-    return true
-  }, [slug])
+// Fallback image list (Unsplash) when the API listing has no image
+const FALLBACK_IMAGES = {
+  'electronics-and-gadgets': 'https://images.unsplash.com/photo-1468436139062-f60a71c5c892?w=500&auto=format&fit=crop&q=60',
+  fashion: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&auto=format&fit=crop&q=60',
+  groceries: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=60',
+  'home-and-living': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400&auto=format&fit=crop&q=60',
+  beauty: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&auto=format&fit=crop&q=60',
+  sports: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=60',
+  'kids-and-toys': 'https://images.unsplash.com/photo-1515488042361-404e9250afef?w=400&auto=format&fit=crop&q=60',
+}
 
-  const meta = getCategoryMeta(slug)
-  const breadcrumbs = getCategoryBreadcrumbs(slug, meta.title)
-  const categoryProducts = useMemo(() => getCategoryProducts(slug), [slug])
-  const categoryShops = getCategoryShops(slug)
-  const defaultSubs = meta.subCategories[0] ? [meta.subCategories[0].id] : []
+function normalizeSlug(slug = '') {
+  return slug.toLowerCase().replace(/\s+/g, '-')
+}
 
-  if (!isEnabled) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
-        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
-        <p className="mt-2 text-sm text-slate-600">This category is currently unavailable or has been disabled by the admin.</p>
-        <Link to="/" className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover">
-          Back to Home
-        </Link>
-      </div>
-    )
+function mapApiListing(listing, slug) {
+  const fallback = FALLBACK_IMAGES[normalizeSlug(slug)] ?? 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&auto=format&fit=crop&q=60'
+  // Parse brand from description prefix "BRAND - ..."
+  const descParts = listing.description?.split(' - ')
+  const brand = descParts?.length > 1 ? descParts[0] : ''
+  const description = descParts?.length > 1 ? descParts.slice(1).join(' - ') : listing.description
+
+  return {
+    id: listing.id,
+    name: listing.title,
+    brand,
+    description,
+    price: listing.price,
+    originalPrice: null,
+    rating: listing.rating ?? 4.5,
+    reviews: listing.reviewCount ?? 0,
+    image: fallback,
+    badge: null,
+    categorySlug: slug,
+    shopId: listing.seller?.shopUrl ?? null,
   }
+}
 
-  const [selectedSubs, setSelectedSubs] = useState(defaultSubs)
+export default function CategoryPage() {
+  const { slug = 'electronics-and-gadgets' } = useParams()
+
+  // ─── State ─────────────────────────────────────────────────────────────────
+  const [categoryData, setCategoryData] = useState(null)   // { id, name, icon, slug }
+  const [listings, setListings] = useState([])
+  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
   const [priceMin, setPriceMin] = useState(0)
   const [priceMax, setPriceMax] = useState(100)
-  const [location, setLocation] = useState('All Locations')
   const [minRating, setMinRating] = useState(0)
   const [sort, setSort] = useState('newest')
   const [view, setView] = useState('grid')
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // ─── Fetch listings from API ────────────────────────────────────────────────
+  const fetchListings = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const params = {
+        sort,
+        page,
+        limit: PER_PAGE,
+      }
+      if (priceMin > 0) params.minPrice = priceMin * 1000
+      if (priceMax < 100) params.maxPrice = priceMax * 1000
+      if (minRating > 0) params.minRating = minRating
+
+      const res = await categoryApi.getBySlug(slug, params)
+      const { category, listings: fetchedListings, pagination: pag } = res.data.data
+      setCategoryData(category)
+      setListings(fetchedListings.map((l) => mapApiListing(l, slug)))
+      setPagination(pag)
+    } catch (err) {
+      setError(err.message ?? 'Failed to load category')
+    } finally {
+      setLoading(false)
+    }
+  }, [slug, sort, page, priceMin, priceMax, minRating])
+
+  // Reset to page 1 when filters or slug change (but not page itself)
   useEffect(() => {
     setPage(1)
-    setSelectedSubs(meta.subCategories[0] ? [meta.subCategories[0].id] : [])
     setFiltersOpen(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset filters when category slug changes
-  }, [slug])
+  }, [slug, sort, priceMin, priceMax, minRating])
 
-  const filteredProducts = useMemo(() => {
-    let list = [...categoryProducts]
+  useEffect(() => {
+    fetchListings()
+  }, [fetchListings])
 
-    if (minRating > 0) {
-      list = list.filter((p) => p.rating >= minRating)
-    }
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  const categoryShops = getCategoryShops(slug)
+  const showTopShops = Boolean(categoryShops) && slug !== 'all'
 
-    const maxPrice = priceMax * 1000
-    if (priceMax < 100) {
-      list = list.filter((p) => p.price <= maxPrice)
-    }
-    const minPrice = priceMin * 1000
-    if (priceMin > 0) {
-      list = list.filter((p) => p.price >= minPrice)
-    }
-
-    switch (sort) {
-      case 'price-low':
-        list.sort((a, b) => a.price - b.price)
-        break
-      case 'price-high':
-        list.sort((a, b) => b.price - a.price)
-        break
-      case 'rating':
-        list.sort((a, b) => b.rating - a.rating)
-        break
-      default:
-        break
-    }
-
-    return list
-  }, [categoryProducts, minRating, priceMin, priceMax, sort])
-
-  const start = (page - 1) * PER_PAGE
-  const pageProducts = filteredProducts.slice(start, start + PER_PAGE)
-  const showingStart = filteredProducts.length === 0 ? 0 : start + 1
-  const showingEnd = Math.min(start + PER_PAGE, filteredProducts.length)
-
-  const toggleSub = (id) => {
-    setSelectedSubs((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    )
-  }
+  const breadcrumbs = useMemo(() => [
+    { label: 'Home', to: '/' },
+    { label: 'All Categories', to: '/category/all' },
+    { label: categoryData?.name ?? slug, to: null },
+  ], [categoryData, slug])
 
   const clearFilters = () => {
-    setSelectedSubs([...defaultSubs])
     setPriceMin(0)
     setPriceMax(100)
-    setLocation('All Locations')
     setMinRating(0)
     setSort('newest')
     setPage(1)
   }
 
-  const showTopShops = Boolean(categoryShops) && slug !== 'all'
+  const showingStart = pagination.total === 0 ? 0 : (page - 1) * PER_PAGE + 1
+  const showingEnd = Math.min(page * PER_PAGE, pagination.total)
+
+  // ─── 404-like: category not found ──────────────────────────────────────────
+  if (!loading && error?.toLowerCase().includes('not found')) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
+        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          This category is currently unavailable or has been disabled.
+        </p>
+        <Link
+          to="/"
+          className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+        >
+          Back to Home
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="min-w-0 bg-white">
@@ -134,31 +152,36 @@ export default function CategoryPage() {
       <div className="bg-slate-50/90 pb-10">
         <PageContainer className="py-6 sm:py-8">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
+            {/* ── Sidebar Filters ── */}
             <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
               <CategoryFilters
-                subCategories={meta.subCategories}
-                selectedSubs={selectedSubs}
-                onToggleSub={toggleSub}
+                subCategories={[]}
+                selectedSubs={[]}
+                onToggleSub={() => {}}
                 priceMin={priceMin}
                 priceMax={priceMax}
                 onPriceMinChange={setPriceMin}
                 onPriceMaxChange={setPriceMax}
-                location={location}
-                onLocationChange={setLocation}
+                location="All Locations"
+                onLocationChange={() => {}}
                 minRating={minRating}
                 onMinRatingChange={setMinRating}
                 onClearAll={clearFilters}
               />
             </div>
 
+            {/* ── Main Content ── */}
             <div className="min-w-0 flex-1">
+              {/* Header row */}
               <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.75rem]">
-                    {meta.title}
+                    {categoryData?.name ?? (slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '))}
                   </h1>
                   <p className="mt-1 text-sm text-slate-500">
-                    Showing {showingStart}–{showingEnd} of {meta.totalProducts} products
+                    {loading
+                      ? 'Loading…'
+                      : `Showing ${showingStart}–${showingEnd} of ${pagination.total} products`}
                   </p>
                 </div>
 
@@ -191,11 +214,7 @@ export default function CategoryPage() {
                     <button
                       type="button"
                       onClick={() => setView('grid')}
-                      className={`rounded-md p-2 transition ${
-                        view === 'grid'
-                          ? 'bg-dcc-primary text-white shadow-sm'
-                          : 'text-slate-500 hover:text-dcc-primary'
-                      }`}
+                      className={`rounded-md p-2 transition ${view === 'grid' ? 'bg-dcc-primary text-white shadow-sm' : 'text-slate-500 hover:text-dcc-primary'}`}
                       aria-label="Grid view"
                     >
                       <Grid3x3 className="h-4 w-4" />
@@ -203,11 +222,7 @@ export default function CategoryPage() {
                     <button
                       type="button"
                       onClick={() => setView('list')}
-                      className={`rounded-md p-2 transition ${
-                        view === 'list'
-                          ? 'bg-dcc-primary text-white shadow-sm'
-                          : 'text-slate-500 hover:text-dcc-primary'
-                      }`}
+                      className={`rounded-md p-2 transition ${view === 'list' ? 'bg-dcc-primary text-white shadow-sm' : 'text-slate-500 hover:text-dcc-primary'}`}
                       aria-label="List view"
                     >
                       <List className="h-4 w-4" />
@@ -216,19 +231,66 @@ export default function CategoryPage() {
                 </div>
               </div>
 
-              <div
-                className={
-                  view === 'grid'
-                    ? 'mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
-                    : 'mt-6 flex flex-col gap-4'
-                }
-              >
-                {pageProducts.map((product) => (
-                  <CategoryProductCard key={product.id} product={product} view={view} />
-                ))}
-              </div>
+              {/* ── Loading ── */}
+              {loading && (
+                <div className="mt-16 flex flex-col items-center gap-3 text-slate-500">
+                  <Loader2 className="h-8 w-8 animate-spin text-dcc-primary" />
+                  <p className="text-sm">Loading products…</p>
+                </div>
+              )}
 
-              <CategoryPagination currentPage={page} onPageChange={setPage} />
+              {/* ── Error ── */}
+              {!loading && error && (
+                <div className="mt-16 flex flex-col items-center gap-3 text-red-500">
+                  <p className="text-sm">{error}</p>
+                  <button
+                    type="button"
+                    onClick={fetchListings}
+                    className="rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* ── Empty ── */}
+              {!loading && !error && listings.length === 0 && (
+                <div className="mt-16 flex flex-col items-center gap-3 text-slate-500">
+                  <PackageSearch className="h-10 w-10 text-slate-300" />
+                  <p className="text-sm font-medium">No products match your filters.</p>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-sm font-semibold text-dcc-primary hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+
+              {/* ── Product Grid / List ── */}
+              {!loading && !error && listings.length > 0 && (
+                <div
+                  className={
+                    view === 'grid'
+                      ? 'mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
+                      : 'mt-6 flex flex-col gap-4'
+                  }
+                >
+                  {listings.map((product) => (
+                    <CategoryProductCard key={product.id} product={product} view={view} />
+                  ))}
+                </div>
+              )}
+
+              {/* ── Pagination ── */}
+              {!loading && !error && pagination.totalPages > 1 && (
+                <CategoryPagination
+                  currentPage={page}
+                  onPageChange={setPage}
+                  totalPages={pagination.totalPages}
+                />
+              )}
             </div>
           </div>
         </PageContainer>

@@ -6,6 +6,7 @@ import {
   markBuyerNotificationsAsRead,
   markSellerNotificationsAsRead,
 } from '../../utils/notificationStorage'
+import { getNotifications, markAllNotificationsRead } from '../../delivery/utils/deliveryStorage'
 
 export default function NotificationPanel({ role = 'buyer' }) {
   const [open, setOpen] = useState(false)
@@ -15,6 +16,16 @@ export default function NotificationPanel({ role = 'buyer' }) {
   const fetchNotifs = () => {
     if (role === 'buyer') {
       setNotifs(getBuyerNotifications())
+    } else if (role === 'delivery') {
+      const raw = getNotifications()
+      const mapped = raw.map(n => ({
+        id: n.id,
+        title: n.title,
+        message: n.body,
+        read: n.read,
+        createdAt: n.createdAt
+      }))
+      setNotifs(mapped)
     } else {
       setNotifs(getSellerNotifications())
     }
@@ -43,6 +54,8 @@ export default function NotificationPanel({ role = 'buyer' }) {
   const handleMarkAsRead = () => {
     if (role === 'buyer') {
       markBuyerNotificationsAsRead()
+    } else if (role === 'delivery') {
+      markAllNotificationsRead()
     } else {
       markSellerNotificationsAsRead()
     }

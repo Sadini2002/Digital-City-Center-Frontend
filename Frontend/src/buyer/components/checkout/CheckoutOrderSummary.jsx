@@ -1,7 +1,7 @@
 import CdnImage from '../../../components/common/CdnImage'
 import { formatLkr } from '../../../components/category/categoryData'
 
-export default function CheckoutOrderSummary({ cart, subtotal, deliveryFee }) {
+export default function CheckoutOrderSummary({ cart, subtotal, deliveryFee, distanceKm }) {
   const total = subtotal + deliveryFee
 
   return (
@@ -33,7 +33,14 @@ export default function CheckoutOrderSummary({ cart, subtotal, deliveryFee }) {
           <dd className="font-medium text-slate-900">{formatLkr(subtotal)}</dd>
         </div>
         <div className="flex justify-between text-slate-600">
-          <dt>Delivery fee</dt>
+          <dt>
+            Delivery fee
+            {distanceKm != null && (
+              <span className="mt-0.5 block text-xs font-normal text-slate-400">
+                ~{distanceKm} km
+              </span>
+            )}
+          </dt>
           <dd className="font-medium text-slate-900">
             {deliveryFee === 0 ? 'Free' : formatLkr(deliveryFee)}
           </dd>

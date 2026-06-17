@@ -1,6 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+function parseCookies(cookieHeader = '') {
+  const cookies = {}
+  cookieHeader.split(';').forEach((part) => {
+    const trimmed = part.trim()
+    if (!trimmed) return
+    const separator = trimmed.indexOf('=')
+    if (separator === -1) return
+    const name = trimmed.slice(0, separator)
+    const value = trimmed.slice(separator + 1)
+    cookies[name] = decodeURIComponent(value)
+  })
+  return cookies
+}
+
 function secureAuthCookiePlugin() {
   const buildCookie = (name, value, maxAge, secure) => {
     const flags = [
@@ -30,19 +44,34 @@ function secureAuthCookiePlugin() {
       req.on('error', reject)
     })
 
-  return {
-    name: 'secure-auth-cookie',
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
+  const isSecureRequest = (req) => {
+    const host = req.headers.host || ''
+    const isLocalhost =
+      host.startsWith('localhost') || host.startsWith('127.0.0.1')
+    return (
+      isLocalhost ||
+      req.headers['x-forwarded-proto'] === 'https' ||
+      req.socket?.encrypted === true
+    )
+  }
+
+  const authMiddleware = async (req, res, next) => {
         if (!req.url?.startsWith('/api/auth/')) return next()
 
-        const host = req.headers.host || ''
-        const isLocalhost =
-          host.startsWith('localhost') || host.startsWith('127.0.0.1')
-        const secure =
-          isLocalhost ||
-          req.headers['x-forwarded-proto'] === 'https' ||
-          req.socket?.encrypted === true
+        const secure = isSecureRequest(req)
+
+        if (req.url === '/api/auth/session' && req.method === 'GET') {
+          const cookies = parseCookies(req.headers.cookie)
+          res.setHeader('Content-Type', 'application/json')
+          res.statusCode = 200
+          res.end(
+            JSON.stringify({
+              token: cookies.dcc_token || null,
+              adminToken: cookies.dcc_admin_token || null,
+            }),
+          )
+          return
+        }
 
         if (req.url === '/api/auth/set-session' && req.method === 'POST') {
           try {
@@ -82,7 +111,15 @@ function secureAuthCookiePlugin() {
         }
 
         next()
-      })
+  }
+
+  return {
+    name: 'secure-auth-cookie',
+    configureServer(server) {
+      server.middlewares.use(authMiddleware)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(authMiddleware)
     },
   }
 }
@@ -91,4 +128,3 @@ function secureAuthCookiePlugin() {
 export default defineConfig({
   plugins: [react(), secureAuthCookiePlugin()],
 })
-

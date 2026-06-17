@@ -74,36 +74,89 @@ export function updateDeliveryProviderStatus(id, status, reason) {
   const list = getDeliveryProviders()
   const idx = list.findIndex((p) => p.id === id)
   if (idx < 0) return null
-  const updated = { ...list[idx], status, rejectionReason: reason || undefined, reviewedAt: new Date().toISOString() }
+  const updated = {
+    ...list[idx],
+    status,
+    rejectionReason: reason || undefined,
+    reviewedAt: new Date().toISOString(),
+  }
   list[idx] = updated
   writeJson(ADMIN_DELIVERY_PROVIDERS_KEY, list)
+  syncDeliveryProviderUserFromAdmin(updated)
   return updated
+}
+
+function syncDeliveryProviderUserFromAdmin(providerRecord) {
+  if (!providerRecord?.email) return
+  try {
+    const raw = localStorage.getItem('user')
+    if (!raw) return
+    const user = JSON.parse(raw)
+    if (user?.role !== 'DELIVERY_PROVIDER' || !user.deliveryProvider) return
+    if (user.email !== providerRecord.email && user.deliveryProvider.id !== providerRecord.id) return
+
+    if (providerRecord.status === 'approved') {
+      user.deliveryProvider.status = 'ACTIVE'
+      delete user.deliveryProvider.rejectionReason
+    } else if (providerRecord.status === 'rejected') {
+      user.deliveryProvider.status = 'REJECTED'
+      user.deliveryProvider.rejectionReason =
+        providerRecord.rejectionReason || 'Your application was not approved. Please contact support.'
+    }
+    localStorage.setItem('user', JSON.stringify(user))
+  } catch {
+    // Ignore invalid cached user payload.
+  }
 }
 
 const ADMIN_PLATFORM_SETTINGS_KEY = 'dcc_admin_platform_settings'
 
-export function getPlatformSettings() {
-  const existing = readJson(ADMIN_PLATFORM_SETTINGS_KEY, null)
-  if (existing) return existing
-
-  const defaultSettings = {
-    platformName: 'Digital City Center',
-    contactEmail: 'admin@digitalcity.lk',
-    pricingModel: 'distance',
-    baseFee: 250,
-    outOfColomboFee: 150,
-    perKmFee: 50,
-    flatFee: 350,
-    freeThreshold: 5000,
-    coverageAreas: ['Colombo', 'Gampaha', 'Kalutara'],
-    unsupportedKeywords: 'india, bengaluru, mumbai',
-  }
-  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, defaultSettings)
-  return defaultSettings
+const DEFAULT_PLATFORM_SETTINGS = {
+  platformName: 'Digital City Center',
+  contactEmail: 'admin@digitalcity.lk',
+  pricingModel: 'distance',
+  baseFee: 250,
+  outOfColomboFee: 150,
+  perKmFee: 50,
+  flatFee: 350,
+  freeThreshold: 5000,
+  coverageAreas: ['Colombo', 'Gampaha', 'Kalutara', 'Kandy'],
+  unsupportedKeywords: 'india, bengaluru, bangalore, mumbai',
 }
 
+export function getPlatformSettings() {
+  const existing = readJson(ADMIN_PLATFORM_SETTINGS_KEY, null)
+  if (existing) {
+    return {
+      ...DEFAULT_PLATFORM_SETTINGS,
+      ...existing,
+      coverageAreas:
+        Array.isArray(existing.coverageAreas) && existing.coverageAreas.length > 0
+          ? existing.coverageAreas
+          : DEFAULT_PLATFORM_SETTINGS.coverageAreas,
+      unsupportedKeywords:
+        typeof existing.unsupportedKeywords === 'string' && existing.unsupportedKeywords.trim()
+          ? existing.unsupportedKeywords
+          : DEFAULT_PLATFORM_SETTINGS.unsupportedKeywords,
+    }
+  }
+
+  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, DEFAULT_PLATFORM_SETTINGS)
+  return { ...DEFAULT_PLATFORM_SETTINGS }
+}
+
+export const PLATFORM_SETTINGS_UPDATED_EVENT = 'dcc-platform-settings-updated'
+
 export function savePlatformSettings(settings) {
-  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, settings)
+  const payload = {
+    ...settings,
+    updatedAt: new Date().toISOString(),
+  }
+  writeJson(ADMIN_PLATFORM_SETTINGS_KEY, payload)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(PLATFORM_SETTINGS_UPDATED_EVENT))
+  }
+  return payload
 }
 
 

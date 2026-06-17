@@ -7,13 +7,13 @@ const memoryTokens = {
 }
 
 function isSecureContext() {
-  return window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+  return true
 }
 
 function buildCookieFlags(maxAgeSeconds) {
-  const flags = ['Path=/', 'SameSite=Strict']
+  const flags = ['Path=/', 'SameSite=Lax']
   if (maxAgeSeconds > 0) flags.push(`Max-Age=${maxAgeSeconds}`)
-  if (isSecureContext()) flags.push('Secure')
+  flags.push('Secure')
   return flags.join('; ')
 }
 
@@ -122,4 +122,10 @@ export function getAdminToken() {
 
 export async function clearAdminToken() {
   await removeToken('admin')
+}
+
+/** Restore auth tokens from cookies / legacy storage on app boot. */
+export async function hydrateAuthFromSession() {
+  resolveToken('user')
+  resolveToken('admin')
 }

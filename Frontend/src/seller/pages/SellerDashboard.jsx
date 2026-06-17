@@ -4,6 +4,7 @@ import { ArrowRight, Package, ShoppingBag, Star, Wallet } from 'lucide-react'
 import { getOrders } from '../../buyer'
 import DashboardCard from '../components/DashboardCard'
 import StatusBadge from '../components/StatusBadge'
+import { addSellerNotification, getSellerNotifications } from '../../utils/notificationStorage'
 
 function readUser() {
   try {
@@ -85,13 +86,44 @@ export default function SellerDashboard() {
     if (localProducts.length > 0) {
       setProductsCount(localProducts.length)
       setActiveProductsCount(localProducts.filter(p => p.isAvailable && p.stock > 0).length)
-      setLowStockProducts(localProducts.filter(p => p.itemType === 'physical' && p.stock <= 5))
+      const low = localProducts.filter(p => p.itemType === 'physical' && p.stock <= 5)
+      setLowStockProducts(low)
+      
+      // Trigger critical low stock alerts (1 unit remaining)
+      localProducts.forEach(p => {
+        if (p.stock !== undefined && p.stock <= 1 && p.stock > 0) {
+          const name = p.name || p.title
+          const notifs = getSellerNotifications()
+          const exists = notifs.some(n => n.title === 'Low Stock Alert' && n.message.includes(name))
+          if (!exists) {
+            addSellerNotification(
+              'Low Stock Alert',
+              `Product "${name}" has reached a critical stock level of ${p.stock} unit(s).`,
+              'warning'
+            )
+          }
+        }
+      })
     } else {
       setProductsCount(4)
       setActiveProductsCount(3)
-      setLowStockProducts([
+      const defaultLow = [
         { id: 'canon-eos-r50', name: 'Canon EOS R50 Mirrorless Camera', stock: 1 }
-      ])
+      ]
+      setLowStockProducts(defaultLow)
+      
+      // Trigger alert for default low stock product
+      defaultLow.forEach(p => {
+        const notifs = getSellerNotifications()
+        const exists = notifs.some(n => n.title === 'Low Stock Alert' && n.message.includes(p.name))
+        if (!exists) {
+          addSellerNotification(
+            'Low Stock Alert',
+            `Product "${p.name}" has reached a critical stock level of ${p.stock} unit(s).`,
+            'warning'
+          )
+        }
+      })
     }
   }, [])
 

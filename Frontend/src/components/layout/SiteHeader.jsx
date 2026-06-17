@@ -78,7 +78,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth >= 768) setMobileOpen(false)
+      if (window.innerWidth >= 1024) setMobileOpen(false)
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -92,7 +92,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
         <div className="mx-auto flex h-16 max-w-7xl min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="touch-target shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-50 md:hidden"
+            className="touch-target shrink-0 rounded-lg p-2 text-slate-700 hover:bg-slate-50 lg:hidden"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((o) => !o)}
@@ -102,7 +102,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
 
           <BrandLogo />
 
-          <div className="hidden min-w-0 flex-1 md:block lg:mx-6">
+          <div className="hidden min-w-0 flex-1 lg:block lg:mx-6">
             <HeaderSearch />
           </div>
 
@@ -158,7 +158,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
         </div>
       </div>
 
-      <div className="hidden border-b border-slate-100 md:block">
+      <div className="hidden border-b border-slate-100 lg:block">
         <nav
           className="mx-auto flex max-w-7xl items-center gap-7 px-6 lg:gap-9 lg:px-8"
           aria-label="Main"
@@ -170,7 +170,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" style={{ top: 'var(--header-offset, 7rem)' }}>
+        <div className="fixed inset-0 z-40 lg:hidden" style={{ top: 'var(--header-offset, 7rem)' }}>
           <button
             type="button"
             className="absolute inset-0 bg-slate-900/40"

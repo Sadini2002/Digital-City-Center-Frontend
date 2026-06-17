@@ -1,8 +1,20 @@
 import { Link } from 'react-router-dom'
 import { formatLkr } from '../../../components/category/categoryData'
+import { savedAddresses } from '../../data/checkoutData'
+import { calculateDeliveryFee } from '../../utils/deliveryPricing'
+import { usePlatformSettings } from '../../../hooks/usePlatformSettings'
 
 export default function CartSummary({ subtotal, itemCount, onClear }) {
-  const delivery = itemCount > 0 ? 450 : 0
+  const { settings } = usePlatformSettings()
+  const defaultAddress =
+    savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0] ?? null
+  const deliveryQuote = calculateDeliveryFee({
+    address: defaultAddress,
+    methodId: 'platform',
+    subtotal,
+    settings,
+  })
+  const delivery = itemCount > 0 ? deliveryQuote.fee : 0
   const total = subtotal + delivery
 
   return (
@@ -14,7 +26,14 @@ export default function CartSummary({ subtotal, itemCount, onClear }) {
           <dd className="font-medium text-slate-900">{formatLkr(subtotal)}</dd>
         </div>
         <div className="flex justify-between text-slate-600">
-          <dt>Estimated delivery</dt>
+          <dt>
+            Estimated delivery
+            {deliveryQuote.distanceKm != null && (
+              <span className="mt-0.5 block text-xs font-normal text-slate-400">
+                ~{deliveryQuote.distanceKm} km to {defaultAddress?.district || 'destination'}
+              </span>
+            )}
+          </dt>
           <dd className="font-medium text-slate-900">
             {delivery === 0 ? '—' : formatLkr(delivery)}
           </dd>

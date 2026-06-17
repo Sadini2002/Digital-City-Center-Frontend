@@ -16,7 +16,7 @@ function writeJson(key, val) {
 
 export function getBuyerNotifications() {
   const notifs = readJson(BUYER_NOTIFS_KEY)
-  // If empty, seed with some welcome notifications
+  // If empty, seed with welcome and untestable notifications
   if (notifs.length === 0) {
     const seed = [
       {
@@ -26,6 +26,38 @@ export function getBuyerNotifications() {
         type: 'info',
         read: false,
         createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'n-buyer-promo',
+        title: 'Mega Summer Sale!',
+        message: 'Get up to 50% off on all electronics items this week. Use code SUMMER50.',
+        type: 'info',
+        read: false,
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+      },
+      {
+        id: 'n-buyer-failed-payment',
+        title: 'Payment Failed',
+        message: 'Your recent payment attempt for order DCC-992183 was declined by the bank. Please try again.',
+        type: 'warning',
+        read: false,
+        createdAt: new Date(Date.now() - 7200000).toISOString(),
+      },
+      {
+        id: 'n-buyer-refund',
+        title: 'Refund Processed',
+        message: 'A refund of LKR 12,500 has been credited back to your account for order DCC-118290.',
+        type: 'success',
+        read: false,
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+      },
+      {
+        id: 'n-buyer-delayed',
+        title: 'Delivery Delayed',
+        message: 'Your delivery for order DCC-58291 has been delayed due to severe weather. New ETA is tomorrow.',
+        type: 'warning',
+        read: false,
+        createdAt: new Date(Date.now() - 1200000).toISOString(),
       }
     ]
     writeJson(BUYER_NOTIFS_KEY, seed)

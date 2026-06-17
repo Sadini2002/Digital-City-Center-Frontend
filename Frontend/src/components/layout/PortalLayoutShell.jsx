@@ -5,6 +5,7 @@ import BrandLogo from './BrandLogo'
 import PageContainer from './PageContainer'
 import ProductBreadcrumbs from '../product/ProductBreadcrumbs'
 import { clearAuthToken } from '../../utils/authStorage'
+import NotificationPanel from './NotificationPanel'
 
 /**
  * Shared chrome for seller + delivery dashboards: marketplace header/footer
@@ -70,6 +71,7 @@ export default function PortalLayoutShell({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {portalHeaderExtra}
+              <NotificationPanel role={portalLabel?.toLowerCase().includes('delivery') ? 'delivery' : 'seller'} />
               <Link
                 to="/"
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
