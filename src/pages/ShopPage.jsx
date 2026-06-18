@@ -96,6 +96,20 @@ const products = useMemo(() => {
                   {shop.location} · Member since {shop.memberSince}
                 </p>
               </div>
+              <div>
+                <span className="text-sm font-semibold text-slate-800">Operating Hours:</span>
+                <p>{shop.operatingHours}</p>
+               </div>
+
+               <div>
+                <span className="text-sm font-semibold text-slate-800">Phone:</span>
+                 <p>{shop.phone}</p>
+               </div>
+
+               <div>
+                <span className="text-sm font-semibold text-slate-800">Email:</span>
+                 <p>{shop.email}</p>
+               </div>
             </div>
             <Link
               to={`/category/${shop.categorySlug}`}
