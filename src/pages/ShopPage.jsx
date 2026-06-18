@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { useState } from 'react'
+import { Search } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
@@ -11,8 +13,39 @@ import NotFoundPage from './NotFoundPage'
 export default function ShopPage() {
   const shopname = useParams().shopname
   const shop = getShopBySlug(shopname)
-  const products = useMemo(() => (shop ? getShopProducts(shop) : []), [shop])
+  const [searchTerm, setSearchTerm] = useState('')
+const [sortBy, setSortBy] = useState('newest')
 
+const products = useMemo(() => {
+  if (!shop) return []
+
+  let filtered = getShopProducts(shop)
+
+  if (searchTerm) {
+    filtered = filtered.filter((p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }
+
+  switch (sortBy) {
+    case 'price-low':
+      filtered.sort((a, b) => a.price - b.price)
+      break
+
+    case 'price-high':
+      filtered.sort((a, b) => b.price - a.price)
+      break
+
+    case 'rating':
+      filtered.sort((a, b) => b.rating - a.rating)
+      break
+
+    default:
+      break
+  }
+
+  return filtered
+}, [shop, searchTerm, sortBy])
   if (!shop) {
     return <NotFoundPage />
   }
@@ -73,14 +106,48 @@ export default function ShopPage() {
           </div>
         </div>
 
-        <h2 className="mt-8 text-lg font-bold text-slate-900">All listings</h2>
-        <p className="mt-1 text-sm text-slate-600">{products.length} products from this shop</p>
+        <div className="mt-8 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
 
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <CategoryProductCard key={product.id} product={product} />
-          ))}
+            <input
+               type="text"
+              placeholder="Search products in this shop..."
+              value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-xl border pl-10 pr-4 py-2"
+            />
+          </div>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="rounded-xl border px-4 py-2"
+          >
+            <option value="newest">Newest</option>
+            <option value="price-low">Price Low to High</option>
+            <option value="price-high">Price High to Low</option>
+            <option value="rating">Highest Rating</option>
+          </select>
         </div>
+
+        {products.length === 0 ? (
+          <div className="mt-8 rounded-2xl border bg-white p-10 text-center">
+            <h3 className="font-bold text-lg">
+              No products found
+            </h3>
+
+            <p className="text-slate-500 mt-2">
+              Try another search term.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <CategoryProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </PageContainer>
     </div>
   )
