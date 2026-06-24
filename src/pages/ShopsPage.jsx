@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { getAllShops } from "../services/shopService";
 import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CdnImage from '../components/common/CdnImage'
-import { getAllShops } from '../data/shopsData'
+
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -11,7 +13,33 @@ const breadcrumbs = [
 ]
 
 export default function ShopsPage() {
-  const shops = getAllShops()
+  const [shops, setShops] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  loadShops();
+}, []);
+
+const loadShops = async () => {
+  try {
+    const response = await getAllShops();
+    console.log(response.data);
+
+    setShops(response.data.data);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+if (loading) {
+  return (
+    <div className="flex justify-center items-center h-[60vh]">
+      Loading...
+    </div>
+  );
+}
 
   return (
     <div className="min-w-0 bg-slate-50/50">
@@ -23,8 +51,8 @@ export default function ShopsPage() {
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {shops.map((shop) => (
             <Link
-              key={shop.slug}
-              to={`/shop/${shop.slug}`}
+              key={shop.shopUrl}
+              to={`/shop/${shop.shopUrl}`}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.03)] transition duration-300 hover:-translate-y-1 hover:shadow-md"
             >
               {/* Banner Area */}
@@ -46,12 +74,12 @@ export default function ShopsPage() {
               <div className="relative flex flex-1 flex-col px-5 pb-5 pt-7">
                 {/* Logo Avatar overlapping banner */}
                 <div className="absolute -top-6 left-5 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-dcc-primary to-violet-600 font-bold text-white shadow-md">
-                  {shop.logo}
+                  {shop.shopName?.charAt(0)}
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-900 group-hover:text-dcc-primary transition-colors">
-                    {shop.name}
+                    {shop.shopName}
                   </span>
                   {shop.verified && (
                     <BadgeCheck className="h-4 w-4 shrink-0 text-dcc-primary fill-violet-100" aria-label="Verified" />
