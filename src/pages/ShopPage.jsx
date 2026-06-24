@@ -29,10 +29,12 @@ const loadShop = async () => {
     console.log("Products Response:", productsRes)
 
     setShop(shopRes.data.data)
-    setShopProducts(productsRes.data.data)
+    setShopProducts(productsRes.data.data || [])
   } catch (error) {
     console.error("ERROR:", error)
     setNotFound(true)
+  } finally {
+    setLoading(false)
   }
 }
   const [shop, setShop] = useState(null)
@@ -115,7 +117,7 @@ if (notFound) {
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold text-slate-900">{shop.shopname}</h1>
+                  <h1 className="text-2xl font-bold text-slate-900">{shop.shopName}</h1>
                   {shop.verified && (
                     <BadgeCheck className="h-6 w-6 text-dcc-primary" aria-label="Verified seller" />
                   )}
