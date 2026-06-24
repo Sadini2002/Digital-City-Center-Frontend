@@ -1,9 +1,11 @@
-import axios from "axios"
+import axios from "axios";
 
-export const getShop = (shopUrl) => {
-  return axios.get(`/api/shops/${shopUrl}`)
-}
+const API = "http://localhost:5000/api/v1/shops";
 
-export const getShopProducts = (shopUrl) => {
-  return axios.get(`/api/shops/${shopUrl}/products`)
-}
+export const getAllShops = () => axios.get(API);
+
+export const getShop = (shopUrl) =>
+  axios.get(`${API}/${shopUrl}`);
+
+export const getShopProducts = (shopUrl) =>
+  axios.get(`${API}/${shopUrl}/products`);
