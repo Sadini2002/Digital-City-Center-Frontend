@@ -58,11 +58,11 @@ if (loading) {
               {/* Banner Area */}
               <div className="relative h-28 w-full overflow-hidden bg-slate-100">
                 {shop.image ? (
-                  <CdnImage
-                    src={shop.image}
-                    alt=""
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+                  <img
+                      src={shop.image}
+                      alt={shop.shopName}
+                      className="h-full w-full object-cover"
+                    />
                 ) : (
                   <div className={`h-full w-full bg-gradient-to-br ${shop.hue}`} />
                 )}
