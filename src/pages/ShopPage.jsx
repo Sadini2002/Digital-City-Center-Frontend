@@ -178,6 +178,7 @@ if (notFound) {
             onChange={(e) => setSortBy(e.target.value)}
             className="rounded-xl border px-4 py-2"
           >
+            
             <option value="newest">Newest</option>
             <option value="price-low">Price Low to High</option>
             <option value="price-high">Price High to Low</option>

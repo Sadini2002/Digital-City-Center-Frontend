@@ -86,12 +86,38 @@ if (loading) {
                   )}
                 </div>
 
-                <div className="mt-1.5 flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-semibold text-slate-700">{shop.rating}</span>
-                  <span className="text-slate-300 mx-1.5">|</span>
-                  <span className="text-xs text-slate-500">{shop.productsLabel}</span>
-                </div>
+                <div className="mt-2">
+  <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700">
+    {shop.businessType}
+  </span>
+</div>
+
+<div className="mt-2 flex items-center gap-1">
+  {[1, 2, 3, 4, 5].map((star) => (
+    <Star
+      key={star}
+      className={`h-4 w-4 ${
+        star <= Math.round(shop.rating || 0)
+          ? "fill-amber-400 text-amber-400"
+          : "text-slate-300"
+      }`}
+    />
+  ))}
+</div>
+
+<p className="mt-2 text-xs text-slate-500">
+  📦 {shop._count?.listings || 0} Products
+</p>
+
+<p className="mt-1 text-xs text-slate-500">
+  📞 {shop.user?.phone}
+</p>
+
+<p className="mt-1 text-xs text-slate-500">
+  Member Since {new Date(shop.createdAt).getFullYear()}
+</p>
+
+                
 
                 <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500 flex-1">
                   {shop.description}
