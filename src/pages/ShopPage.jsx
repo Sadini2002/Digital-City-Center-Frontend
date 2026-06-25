@@ -12,31 +12,35 @@ import { useEffect } from 'react'
 import { getShop, getShopProducts } from '../services/shopService'
 import { getShopBySlug } from '../data/shopsData'
 
+
+
 export default function ShopPage() {
-  const { shopUrl } = useParams()
+  const { shopname } = useParams();
   useEffect(() => {
-  loadShop()
-}, [shopUrl])
+  loadShop(shopname);
+}, [shopname]);
 
 const loadShop = async () => {
   try {
-    console.log("Shop URL:", shopUrl)
+    console.log("Shop Name:", shopname);
 
-    const shopRes = await getShop(shopUrl)
-    console.log("Shop Response:", shopRes)
+    const shopResponse = await getShop(shopname);
+    console.log("Shop Response:", shopResponse.data);
 
-    const productsRes = await getShopProducts(shopUrl)
-    console.log("Products Response:", productsRes)
+    const productsRes = await getShopProducts(shopname);
+    console.log("Products Response:", productsRes.data);
 
-    setShop(shopRes.data.data)
-    setShopProducts(productsRes.data.data || [])
+    setShop(shopResponse.data.data);
+    setShopProducts(productsRes.data.data || []);
   } catch (error) {
-    console.error("ERROR:", error)
-    setNotFound(true)
+    console.error("ERROR:", error);
+    console.error("ERROR RESPONSE:", error.response?.data);
+
+    setNotFound(true);
   } finally {
-    setLoading(false)
+    setLoading(false);
   }
-}
+};
   const [shop, setShop] = useState(null)
 const [shopProducts, setShopProducts] = useState([])
 const [loading, setLoading] = useState(true)
@@ -51,7 +55,7 @@ const products = useMemo(() => {
 
   if (searchTerm) {
     filtered = filtered.filter((p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.title || "").toLowerCase().includes(searchTerm.toLowerCase())
     )
   }
 
@@ -204,7 +208,9 @@ if (notFound) {
                     name: product.title || product.name,
                     description: product.description,
                     price: firstVariant?.price || 0,
-                    image: product.image || "",
+                    image:
+                        product.variants?.[0]?.images?.[0]?.url ||
+                        "https://via.placeholder.com/400",
                     rating: product.rating || 0,
                   }}
                 />
