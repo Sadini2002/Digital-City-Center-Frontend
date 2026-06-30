@@ -97,12 +97,16 @@ if (notFound) {
 ]
 
   return (
-    <div className="min-w-0 bg-slate-50/50">
+    <div className="min-w-0 bg-slate-50">
       <PageContainer className="pb-12">
+
         <ProductBreadcrumbs items={breadcrumbs} />
 
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="relative h-36 w-full overflow-hidden bg-slate-100 sm:h-48">
+        {/* HERO HEADER (MATCH UI IMAGE STYLE) */}
+        <div className="mt-4 overflow-hidden rounded-3xl border bg-white shadow-sm">
+
+          {/* Banner */}
+          <div className="relative h-52 w-full sm:h-64">
             {shop.image ? (
               <CdnImage
                 src={shop.image}
@@ -112,7 +116,7 @@ if (notFound) {
             ) : (
               <div className={`h-full w-full bg-gradient-to-br ${shop.hue}`} />
             )}
-            <div className="absolute inset-0 bg-slate-950/10" />
+            <div className="absolute inset-0 bg-black/30" />
           </div>
           <div className="flex flex-col gap-4 border-t border-slate-100 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
             <div className="flex gap-4">
@@ -126,10 +130,28 @@ if (notFound) {
                     <BadgeCheck className="h-6 w-6 text-dcc-primary" aria-label="Verified seller" />
                   )}
                 </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="text-sm font-semibold text-slate-800">{shop.rating}</span>
-                  <span className="text-sm text-slate-500">· {shop.productsLabel}</span>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-slate-900">
+                      {shop.name}
+                    </h1>
+                    {shop.verified && (
+                      <BadgeCheck className="h-5 w-5 text-dcc-primary" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <span className="font-semibold text-slate-800">
+                      {shop.rating}
+                    </span>
+                    <span>• {shop.productsLabel}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-500">
+                    {shop.location} • Member since {shop.memberSince}
+                  </p>
                 </div>
                 <p className="mt-2 max-w-2xl text-sm text-slate-600">{shop.businessType}</p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -151,12 +173,6 @@ if (notFound) {
                  <p>{shop.user?.email}</p>
                </div>
             </div>
-            <Link
-              to={`/category/${shop.categorySlug}`}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Browse category
-            </Link>
           </div>
         </div>
 
