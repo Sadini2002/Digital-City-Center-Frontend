@@ -7,7 +7,11 @@ export default function ProductGallery({ images, badges, product, activeIndex: p
   const galleryImages = images.filter(Boolean)
   const [localActiveIndex, setLocalActiveIndex] = useState(0)
   
-  const activeIndex = propsActiveIndex !== undefined ? propsActiveIndex : localActiveIndex
+  const rawActiveIndex = propsActiveIndex !== undefined ? propsActiveIndex : localActiveIndex
+  
+  // 🛡️ SANITY FIX: If the active index is out of bounds for the newly swapped image array, reset to 0
+  const activeIndex = rawActiveIndex >= galleryImages.length ? 0 : rawActiveIndex
+  
   const setActiveIndex = onChangeActiveIndex || setLocalActiveIndex
 
   const [isZoomed, setIsZoomed] = useState(false)
@@ -47,7 +51,7 @@ export default function ProductGallery({ images, badges, product, activeIndex: p
           <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover cursor-zoom-in" onClick={() => setIsZoomed(true)} />
         ) : (
           <div className="aspect-square w-full bg-slate-100" aria-hidden />
-        )}
+        )/* Fallback container slot safely preserved */}
         {product && (
           <div className="absolute right-3 top-3 z-10">
             <WishlistButton product={product} size="md" className="shadow-sm" />
