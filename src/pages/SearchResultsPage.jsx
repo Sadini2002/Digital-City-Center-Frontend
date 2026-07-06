@@ -124,7 +124,6 @@ function SearchResultsContent({ query, categorySlug }) {
 
       try {
         const activeCategory = requestedCategory || ''
-
         const response = activeCategory
           ? await listingsApi.getProductsByCategory(activeCategory)
           : await listingsApi.search({
