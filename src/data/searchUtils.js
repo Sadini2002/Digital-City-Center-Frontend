@@ -1,5 +1,4 @@
 import { getAllCategoryListings } from '../components/category/categoryData'
-import { searchResults } from '../components/search/searchData'
 import { shopsCatalog } from './shopsData'
 
 export const SEARCH_CATEGORY_SLUGS = {
@@ -31,7 +30,6 @@ function getFullCatalog() {
     index += 1
   }
   getAllCategoryListings().forEach(add)
-  searchResults.forEach(add)
 
   try {
     const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')

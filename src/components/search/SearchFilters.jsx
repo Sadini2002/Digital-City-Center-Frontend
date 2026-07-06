@@ -1,13 +1,13 @@
 import { Star } from 'lucide-react'
 import {
   searchDeliveryOptions,
-  searchFilterCategories,
-  searchLocations,
-  searchRatingFilters,
 } from './searchData'
 
 export default function SearchFilters({
   categories,
+  categoryOptions = [],
+  locationOptions = [],
+  ratingOptions = [],
   onToggleCategory,
   priceMin,
   priceMax,
@@ -41,13 +41,13 @@ export default function SearchFilters({
             Category
           </h3>
           <ul className="mt-3 space-y-3">
-            {searchFilterCategories.map((cat) => (
+            {categoryOptions.map((cat) => (
               <li key={cat.id}>
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
                   <input
                     type="checkbox"
-                    checked={categories.includes(cat.id)}
-                    onChange={() => onToggleCategory(cat.id)}
+                    checked={categories.includes(cat.slug)}
+                    onChange={() => onToggleCategory(cat.slug)}
                     className="h-4 w-4 rounded border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
                   />
                   {cat.label}
@@ -91,7 +91,7 @@ export default function SearchFilters({
             Seller Location
           </h3>
           <ul className="mt-3 space-y-3">
-            {searchLocations.map((loc) => (
+            {locationOptions.map((loc) => (
               <li key={loc.id}>
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
                   <input
@@ -112,7 +112,7 @@ export default function SearchFilters({
             Customer Rating
           </h3>
           <ul className="mt-3 space-y-2.5">
-            {searchRatingFilters.map((filter) => (
+            {ratingOptions.map((filter) => (
               <li key={filter.stars}>
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm">
                   <input

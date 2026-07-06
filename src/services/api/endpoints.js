@@ -14,3 +14,10 @@ export const authApi = {
 export const usersApi = {
   getProfile: () => api.get('/users/me'),
 }
+
+export const listingsApi = {
+  search: (params) => api.get('/search', { params }),
+  getCategories: () => api.get('/search/categories'),
+  getProductsByCategory: (slug) => api.get(`/search/category/${encodeURIComponent(slug)}`),
+  suggestions: (params, config = {}) => api.get('/search/suggestions', { params, ...config }),
+}

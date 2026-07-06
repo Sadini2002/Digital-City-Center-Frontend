@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { SEARCH_CATEGORY_SLUGS } from '../../data/searchUtils'
-import { getAllCategoryListings } from '../category/categoryData'
+import { listingsApi } from '../../services/api'
 
 function getVisibleCategoryOptions() {
   const allSlugs = Object.entries(SEARCH_CATEGORY_SLUGS)
@@ -28,52 +28,57 @@ function categoryFromSlug(slug) {
   return entry ? entry[0] : 'All Categories'
 }
 
-function getSuggestions(term, categoryLabel) {
-  const q = term.trim().toLowerCase()
-  if (!q) return []
+function useBackendSuggestions(term) {
+  const [suggestions, setSuggestions] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  const staticListings = getAllCategoryListings()
-  let localProducts = []
-  try {
-    localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-  } catch {}
+  useEffect(() => {
+    const q = term.trim()
 
-  const combined = [
-    ...staticListings.map(p => ({ id: p.id, name: p.name, categorySlug: p.categorySlug })),
-    ...localProducts.map(p => ({ id: p.productId || p._id || p.id, name: p.name, categorySlug: p.itemType }))
-  ]
-
-  const categorySlug = SEARCH_CATEGORY_SLUGS[categoryLabel] || ''
-  const filtered = categorySlug 
-    ? combined.filter(p => p.categorySlug === categorySlug)
-    : combined
-
-  const seen = new Set()
-  const result = []
-
-  for (const item of filtered) {
-    if (item.name && item.name.toLowerCase().includes(q)) {
-      if (!seen.has(item.name.toLowerCase())) {
-        seen.add(item.name.toLowerCase())
-        result.push(item)
-      }
+    if (q.length < 2) {
+      setSuggestions([])
+      setLoading(false)
+      return undefined
     }
-  }
 
-  return result.slice(0, 6)
+    const controller = new AbortController()
+
+    const timeoutId = setTimeout(async () => {
+      setLoading(true)
+
+      try {
+        const response = await listingsApi.suggestions({ q }, { signal: controller.signal })
+        const values = response.data?.suggestions ?? []
+        setSuggestions(values.map((value, index) => ({ id: `${value}-${index}`, name: value })))
+      } catch (error) {
+        if (error?.name !== 'CanceledError' && error?.name !== 'AbortError') {
+          setSuggestions([])
+        }
+      } finally {
+        setLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [term])
+
+  return { suggestions, loading, clearSuggestions: () => setSuggestions([]) }
 }
 
 function SearchPageBar({ className, query, category }) {
   const navigate = useNavigate()
   const [term, setTerm] = useState(query)
   const [selectedCategory, setSelectedCategory] = useState(category)
-  const [suggestions, setSuggestions] = useState([])
   const dropdownRef = useRef(null)
+  const { suggestions, loading, clearSuggestions } = useBackendSuggestions(term)
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setSuggestions([])
+        clearSuggestions()
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -87,7 +92,7 @@ function SearchPageBar({ className, query, category }) {
     const params = new URLSearchParams({ q })
     if (slug) params.set('category', slug)
     navigate(`/search?${params.toString()}`)
-    setSuggestions([])
+    clearSuggestions()
   }
 
   const handleSubmit = (e) => {
@@ -96,9 +101,7 @@ function SearchPageBar({ className, query, category }) {
   }
 
   const handleInputChange = (e) => {
-    const val = e.target.value
-    setTerm(val)
-    setSuggestions(getSuggestions(val, selectedCategory))
+    setTerm(e.target.value)
   }
 
   return (
@@ -111,7 +114,6 @@ function SearchPageBar({ className, query, category }) {
           value={selectedCategory}
           onChange={(e) => {
             setSelectedCategory(e.target.value)
-            setSuggestions(getSuggestions(term, e.target.value))
           }}
           className="hidden shrink-0 border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 focus:outline-none sm:block"
           aria-label="Search category"
@@ -146,9 +148,9 @@ function SearchPageBar({ className, query, category }) {
               <button
                 type="button"
                 onClick={() => {
-                  navigate(`/product/${item.id}`)
-                  setSuggestions([])
-                  setTerm('')
+                  runSearch(item.name, selectedCategory)
+                  setTerm(item.name)
+                  clearSuggestions()
                 }}
                 className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 text-slate-800 font-medium transition"
               >
@@ -158,6 +160,12 @@ function SearchPageBar({ className, query, category }) {
           ))}
         </ul>
       )}
+
+      {loading && suggestions.length === 0 && term.trim().length >= 2 && (
+        <div className="absolute top-12 left-0 right-0 z-50 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-lg">
+          Searching...
+        </div>
+      )}
     </div>
   )
 }
@@ -166,13 +174,13 @@ function DefaultSearchBar({ className }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All Categories')
-  const [suggestions, setSuggestions] = useState([])
   const dropdownRef = useRef(null)
+  const { suggestions, loading, clearSuggestions } = useBackendSuggestions(query)
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setSuggestions([])
+        clearSuggestions()
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -187,13 +195,11 @@ function DefaultSearchBar({ className }) {
     const params = new URLSearchParams({ q: term })
     if (slug) params.set('category', slug)
     navigate(`/search?${params.toString()}`)
-    setSuggestions([])
+    clearSuggestions()
   }
 
   const handleInputChange = (e) => {
-    const val = e.target.value
-    setQuery(val)
-    setSuggestions(getSuggestions(val, category))
+    setQuery(e.target.value)
   }
 
   return (
@@ -203,7 +209,6 @@ function DefaultSearchBar({ className }) {
           value={category}
           onChange={(e) => {
             setCategory(e.target.value)
-            setSuggestions(getSuggestions(query, e.target.value))
           }}
           className="hidden shrink-0 border-r border-slate-200 bg-slate-50/80 pl-4 pr-2 text-xs font-medium text-slate-700 focus:outline-none lg:block"
           aria-label="Search category"
@@ -237,9 +242,12 @@ function DefaultSearchBar({ className }) {
               <button
                 type="button"
                 onClick={() => {
-                  navigate(`/product/${item.id}`)
-                  setSuggestions([])
-                  setQuery('')
+                  const params = new URLSearchParams({ q: item.name })
+                  const slug = SEARCH_CATEGORY_SLUGS[category] || ''
+                  if (slug) params.set('category', slug)
+                  navigate(`/search?${params.toString()}`)
+                  setQuery(item.name)
+                  clearSuggestions()
                 }}
                 className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 text-slate-800 font-medium transition"
               >
@@ -248,6 +256,12 @@ function DefaultSearchBar({ className }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {loading && suggestions.length === 0 && query.trim().length >= 2 && (
+        <div className="absolute top-12 left-0 right-0 z-50 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-lg">
+          Searching...
+        </div>
       )}
     </div>
   )

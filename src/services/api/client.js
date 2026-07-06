@@ -15,7 +15,7 @@ export const api = axios.create({
 
 // Frontend GET Request Cache (10 seconds TTL)
 const getCache = new Map()
-const defaultAdapter = api.defaults.adapter || axios.defaults.adapter
+const defaultAdapter = axios.getAdapter(api.defaults.adapter || axios.defaults.adapter)
 
 api.defaults.adapter = async function (config) {
   if (config.method?.toLowerCase() === 'get') {
