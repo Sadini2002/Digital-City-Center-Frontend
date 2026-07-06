@@ -30,6 +30,12 @@ function collectShops() {
         location: shop.location ?? 'Colombo',
         memberSince: shop.memberSince ?? '2022',
         image: shop.image ?? '',
+        operatingHours: shop.operatingHours ?? '9:00 AM - 8:00 PM',
+        phone: shop.phone ?? '+94 77 123 4567',
+        email: shop.email ?? 'shop@digitalcity.lk',
+        totalOrders: shop.totalOrders ?? 0,
+        totalProducts: shop.totalProducts ?? 0,
+        responseRate: shop.responseRate ?? '98%',
       })
     }
 
