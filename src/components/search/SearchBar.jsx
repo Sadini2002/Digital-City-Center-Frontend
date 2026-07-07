@@ -1,11 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Search, Sparkles, Tag, X } from 'lucide-react'
 import { cn } from '@/../../src/utils/cn'
-import { categories } from '../home/homeData'
-import { searchResults } from './searchData'
-
-const quickSearches = ['wireless headphones', 'smart watch', 'fashion deals', 'home essentials']
+import { listingsApi } from '../../services/api'
 
 function normalizeSuggestion(value) {
   return value.toLowerCase().trim()
@@ -18,32 +15,84 @@ export default function SearchBar({ className, compact = false, onSearch }) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [categorySuggestions, setCategorySuggestions] = useState([])
+  const [searchSuggestions, setSearchSuggestions] = useState([])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadCategories() {
+      try {
+        const response = await listingsApi.getCategories()
+        const categories = response.data?.categories ?? []
+
+        if (!active) return
+
+        setCategorySuggestions(
+          categories.map((category) => ({
+            label: category.name,
+            meta: 'Category',
+            type: 'category',
+            to: `/category/${category.slug || category.name}`,
+          })),
+        )
+      } catch {
+        if (!active) return
+
+        setCategorySuggestions([])
+      }
+    }
+
+    loadCategories()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const typed = normalizeSuggestion(query)
+
+    async function loadSuggestions() {
+      if (typed.length < 2) {
+        if (!active) return
+
+        setSearchSuggestions([])
+        return
+      }
+
+      try {
+        const response = await listingsApi.suggestions({ q: typed })
+        const items = response.data?.suggestions ?? []
+
+        if (!active) return
+
+        setSearchSuggestions(
+          items.map((item) => ({
+            label: item,
+            meta: 'Search suggestion',
+            type: 'trend',
+          })),
+        )
+      } catch {
+        if (!active) return
+
+        setSearchSuggestions([])
+      }
+    }
+
+    loadSuggestions()
+
+    return () => {
+      active = false
+    }
+  }, [query])
 
   const suggestions = useMemo(() => {
     const typed = normalizeSuggestion(query)
 
-    const source = [
-      ...searchResults.map((item) => ({
-        label: item.name,
-        meta: item.categoryLabel || item.brand,
-        type: 'product',
-      })),
-
-      ...categories
-        .filter((category) => category.slug !== 'more')
-        .map((category) => ({
-          label: category.label,
-          meta: category.count,
-          type: 'category',
-          to: `/category/${category.slug}`,
-        })),
-
-      ...quickSearches.map((label) => ({
-        label,
-        meta: 'Popular search',
-        type: 'trend',
-      })),
-    ]
+    const source = typed.length < 2 ? categorySuggestions : searchSuggestions
 
     const unique = new Map()
 
@@ -55,14 +104,8 @@ export default function SearchBar({ className, compact = false, onSearch }) {
       }
     })
 
-    const ranked = Array.from(unique.values()).filter((item) => {
-      if (!typed) return item.type !== 'product'
-
-      return normalizeSuggestion(item.label).includes(typed)
-    })
-
-    return ranked.slice(0, compact ? 5 : 7)
-  }, [compact, query])
+    return Array.from(unique.values()).slice(0, compact ? 5 : 7)
+  }, [categorySuggestions, compact, query, searchSuggestions])
 
   const submitSearch = (value = query) => {
     const term = value.trim()
