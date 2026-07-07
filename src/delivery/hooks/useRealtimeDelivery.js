@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { addTrackingBatch, getDeliveryLive } from '../utils/deliveryStorage'
+import { deliveryApi } from '../services/deliveryApi'
+import { trackingApi } from '../services/trackingApi'
 import { isActiveStatus, isGpsActiveStatus } from '../utils/deliveryStatus'
 
 const POLL_MS = 15000
 
 /**
  * Generic live delivery hook (buyer order detail, admin widgets, etc.).
- *
- * BACKEND:
- *   - Poll: GET /tracking/delivery/:deliveryId or GET /delivery/deliveries/:id
- *   - GPS upload (driver only): POST /delivery/deliveries/:id/tracking/batch when enableGps=true
- *   - Realtime: Firebase (srcc) — replace polling when RealtimeContext is added
  */
 export default function useRealtimeDelivery(deliveryId, { enableGps = false, poll = true } = {}) {
   const [liveDelivery, setLiveDelivery] = useState(null)
@@ -22,7 +18,7 @@ export default function useRealtimeDelivery(deliveryId, { enableGps = false, pol
   const refreshFromApi = async () => {
     if (!deliveryId) return
     try {
-      const data = getDeliveryLive(deliveryId)
+      const data = await trackingApi.getDeliveryLive(deliveryId)
       setLiveDelivery(data)
       if (data.location) setLocation(data.location)
       if (data.route) setRoute(data.route)
@@ -50,7 +46,7 @@ export default function useRealtimeDelivery(deliveryId, { enableGps = false, pol
     const flush = () => {
       if (!buffer.length) return
       const points = buffer.splice(0, buffer.length)
-      addTrackingBatch(deliveryId, points)
+      deliveryApi.addTrackingBatch(deliveryId, points)
     }
 
     watchRef.current = navigator.geolocation.watchPosition(

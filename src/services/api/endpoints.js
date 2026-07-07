@@ -14,3 +14,7 @@ export const authApi = {
 export const usersApi = {
   getProfile: () => api.get('/users/me'),
 }
+
+export const supportApi = {
+  submitContact: (payload) => api.post('/support/contact', payload),
+}

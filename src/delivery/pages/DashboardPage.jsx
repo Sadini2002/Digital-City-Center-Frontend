@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CheckCircle, Clock, Package, Truck } from 'lucide-react'
-import { getDashboardStats } from '../utils/deliveryStorage'
+import { deliveryApi } from '../services/deliveryApi'
 import DashboardCard from '../../seller/components/DashboardCard'
 import DeliveryStatusBadge from '../components/DeliveryStatusBadge'
 import DeliveryWelcomeBanner from '../components/ui/DeliveryWelcomeBanner'
@@ -20,9 +20,20 @@ export default function DeliveryDashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
-    setData(getDashboardStats())
-    setLoading(false)
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const result = await deliveryApi.getDashboard()
+        if (!cancelled) setData(result)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (loading) {

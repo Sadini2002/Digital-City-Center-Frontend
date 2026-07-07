@@ -1,5 +1,5 @@
 /** BACKEND: GET /users/me — provider/driver status ACTIVE unlocks /delivery */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Ban, Clock, XCircle } from 'lucide-react'
 import {
@@ -7,10 +7,11 @@ import {
   isDeliveryDriverActive,
   isDeliveryProviderActive,
 } from '../utils/deliveryAuth'
-import { syncUserApprovalFromAdmin } from '../utils/deliveryApplicationStorage'
 import { usersApi } from '../../services/api'
 import SiteLayout from '../../layouts/SiteLayout'
 import PageContainer from '../../components/layout/PageContainer'
+
+const STATUS_POLL_MS = 15000
 
 function readUser() {
   try {
@@ -25,6 +26,22 @@ export default function DeliveryApplicationStatusPage() {
   const [user, setUser] = useState(readUser)
   const [refreshing, setRefreshing] = useState(true)
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const res = await usersApi.getProfile()
+      const profile = res.data?.data ?? res.data
+      if (profile) {
+        localStorage.setItem('user', JSON.stringify(profile))
+        setUser(profile)
+        if (isDeliveryProviderActive(profile) || isDeliveryDriverActive(profile)) {
+          navigate('/delivery', { replace: true })
+        }
+      }
+    } finally {
+      setRefreshing(false)
+    }
+  }, [navigate])
+
   useEffect(() => {
     let cancelled = false
     const refresh = async () => {
@@ -36,8 +53,7 @@ export default function DeliveryApplicationStatusPage() {
           if (!cancelled) setUser(profile)
         }
       } catch {
-        const synced = syncUserApprovalFromAdmin()
-        if (synced && !cancelled) setUser(synced)
+        if (!cancelled) setUser(readUser())
       }
       if (!cancelled) {
         const current = readUser()
@@ -50,10 +66,19 @@ export default function DeliveryApplicationStatusPage() {
       }
     }
     refresh()
+
+    const poll = setInterval(() => {
+      if (cancelled) return
+      refreshProfile().catch(() => {
+        // keep previous local snapshot if profile check fails temporarily
+      })
+    }, STATUS_POLL_MS)
+
     return () => {
       cancelled = true
+      clearInterval(poll)
     }
-  }, [navigate])
+  }, [navigate, refreshProfile])
 
   if (refreshing) {
     return (
@@ -118,12 +143,9 @@ export default function DeliveryApplicationStatusPage() {
 
   const handleRefresh = () => {
     setRefreshing(true)
-    const synced = syncUserApprovalFromAdmin()
-    if (synced) setUser(synced)
-    setRefreshing(false)
-    if (isDeliveryProviderActive(synced || user) || isDeliveryDriverActive(synced || user)) {
-      navigate('/delivery', { replace: true })
-    }
+    refreshProfile().catch(() => {
+      setRefreshing(false)
+    })
   }
 
   return (
