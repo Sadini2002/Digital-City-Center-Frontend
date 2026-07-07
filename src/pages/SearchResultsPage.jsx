@@ -212,6 +212,10 @@ function SearchResultsContent({ query, categorySlug }) {
       active = false
     }
   }, [])
+  const matchedProducts = useMemo(
+    () => searchProducts(query, { categorySlug: '' }),
+    [query],
+  )
 
   const filteredProducts = useMemo(() => {
     let list = applySearchFilters(products, {
