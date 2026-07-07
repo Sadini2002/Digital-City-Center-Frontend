@@ -1,53 +1,49 @@
-/**
- * Tracking helpers — localStorage mocks (same pattern as buyer orderStorage).
- * Buyer hooks import this module; wire to GET /orders/:id/tracking when backend is ready.
- */
-
-import {
-  addTrackingBatch,
-  getDeliveryLive,
-  getTrackingPoints,
-  getDeliveries,
-  trackOrderLive,
-  trackPublic,
-  trackSubOrderLive,
-} from '../utils/deliveryStorage'
+import { api } from '../../services/api/client'
+import { tryApi, unwrap } from '../utils/deliveryApiHelpers'
+import * as store from '../utils/deliveryStorage'
 
 export const trackingApi = {
-  getDeliveryTracking: (id) => Promise.resolve(getDeliveryLive(id)),
+  getDeliveryTracking: (id) => api.get(`/delivery/deliveries/${id}/live`).then(unwrap),
 
-  updateDeliveryTracking: (id, payload) =>
-    Promise.resolve(addTrackingBatch(id, payload.points ?? [payload])),
+  updateDeliveryTracking: (id, payload) => api.patch(`/delivery/deliveries/${id}/track`, payload).then(unwrap),
 
-  getOrderTracking: (orderId) => Promise.resolve(trackOrderLive(orderId)),
+  getOrderTracking: (orderId) =>
+    tryApi(
+      () => api.get(`/orders/track/${orderId}`).then(unwrap),
+      () => store.trackOrderLive(orderId)
+    ),
 
-  getOrderDeliveryStatus: (orderId) => {
-    const live = trackOrderLive(orderId)
-    return Promise.resolve({
+  getOrderDeliveryStatus: async (orderId) => {
+    const live = await trackingApi.getOrderTracking(orderId)
+    return {
       orderId,
       status: live.delivery?.status,
       delivery: live.delivery,
-    })
+    }
   },
 
-  getDeliveryLive: (id) => Promise.resolve(getDeliveryLive(id)),
+  getDeliveryLive: (id) => trackingApi.getDeliveryTracking(id),
 
-  getPublic: (trackingCode) => Promise.resolve(trackPublic(trackingCode)),
+  getPublic: (trackingCode) => api.get(`/delivery/track/${encodeURIComponent(trackingCode.trim())}`).then(unwrap),
 
-  getPublicViaDelivery: (trackingCode) => Promise.resolve(trackPublic(trackingCode)),
+  getPublicViaDelivery: (trackingCode) => trackingApi.getPublic(trackingCode),
 
-  getHistory: (deliveryId) => Promise.resolve(getTrackingPoints(deliveryId)),
+  getHistory: (deliveryId) =>
+    api.get(`/delivery/deliveries/${deliveryId}/live`).then((res) => res.data?.route ?? []),
 
-  getOrderLive: (orderId) => Promise.resolve(trackOrderLive(orderId)),
+  getOrderLive: (orderId) => trackingApi.getOrderTracking(orderId),
 
-  getSubOrderLive: (subOrderId) => Promise.resolve(trackSubOrderLive(subOrderId)),
+  getSubOrderLive: (subOrderId) =>
+    tryApi(
+      () => Promise.reject(new Error('Sub-order tracking not implemented')),
+      () => store.trackSubOrderLive(subOrderId)
+    ),
 
   getAdminLive: () =>
-    Promise.resolve(
-      getDeliveries().filter((d) =>
-        ['PROCESSING', 'DISPATCHED', 'OUT_FOR_DELIVERY'].includes(d.status)
-      )
-    ),
+    api.get('/delivery/assigned', { params: { limit: 100 } }).then((res) => {
+      const list = res.data?.data ?? res.data?.deliveries ?? []
+      return list.filter((d) => ['PROCESSING', 'DISPATCHED', 'OUT_FOR_DELIVERY'].includes(d.status))
+    }),
 }
 
 export default trackingApi
