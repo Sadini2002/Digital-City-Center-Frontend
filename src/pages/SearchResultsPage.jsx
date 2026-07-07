@@ -63,10 +63,20 @@ function getListingPrice(listing) {
   return 0
 }
 
+function getListingStock(listing) {
+  if (listing.stock != null) return Number(listing.stock)
+
+  const activeVariants = listing.variants?.filter((variant) => variant.status !== 'inactive') ?? listing.variants ?? []
+  const variantStock = activeVariants.reduce((total, variant) => total + Number(variant.stock ?? 0), 0)
+
+  return variantStock
+}
+
 function mapListingToProduct(listing, categoryOverride = '') {
   const sellerName = listing.seller?.shopName || listing.seller?.name || 'Marketplace Seller'
   const categoryName = listing.category?.name || listing.category?.label || normalizeCategoryLabel(categoryOverride)
   const price = getListingPrice(listing)
+  const stock = getListingStock(listing)
   const originalPrice = listing.originalPrice ?? listing.compareAtPrice ?? null
   const sellerLocation = normalizeFilterValue(listing.seller?.location || listing.seller?.city || '')
   const sellerRating = Number(listing.seller?.rating ?? listing.rating ?? listing.averageRating ?? 0)
@@ -84,6 +94,7 @@ function mapListingToProduct(listing, categoryOverride = '') {
     rating: sellerRating,
     reviews: sellerReviewCount,
     sales: Number(listing.sales ?? listing.soldCount ?? 0),
+    stock,
     badge: listing.badge ?? null,
     image: pickListingImage(listing),
     seller: sellerName,
@@ -107,7 +118,7 @@ function SearchResultsContent({ query, categorySlug }) {
   const [appliedMax, setAppliedMax] = useState('')
   const [locations, setLocations] = useState([])
   const [minRating, setMinRating] = useState(0)
-  const [delivery, setDelivery] = useState([])
+  const [availability, setAvailability] = useState([])
   const [sort, setSort] = useState('relevant')
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -212,10 +223,6 @@ function SearchResultsContent({ query, categorySlug }) {
       active = false
     }
   }, [])
-  const matchedProducts = useMemo(
-    () => searchProducts(query, { categorySlug: '' }),
-    [query],
-  )
 
   const filteredProducts = useMemo(() => {
     let list = applySearchFilters(products, {
@@ -224,7 +231,7 @@ function SearchResultsContent({ query, categorySlug }) {
       priceMax: appliedMax,
       locations,
       minRating,
-      delivery,
+      availability,
     })
 
     switch (sort) {
@@ -245,7 +252,7 @@ function SearchResultsContent({ query, categorySlug }) {
     }
 
     return list
-  }, [products, categories, appliedMin, appliedMax, locations, minRating, delivery, sort])
+  }, [products, categories, appliedMin, appliedMax, locations, minRating, availability, sort])
 
   const locationOptions = useMemo(() => {
     const uniqueLocations = new Map()
@@ -282,6 +289,10 @@ function SearchResultsContent({ query, categorySlug }) {
       }))
   }, [products])
 
+  const availabilityOptions = useMemo(() => [
+    { id: 'in-stock', label: 'In Stock Only' },
+  ], [])
+
   const bestMatch = useMemo(() => toBestMatch(filteredProducts[0]), [filteredProducts])
 
   const start = (page - 1) * SEARCH_PER_PAGE
@@ -312,7 +323,7 @@ function SearchResultsContent({ query, categorySlug }) {
     setAppliedMax('')
     setLocations([])
     setMinRating(0)
-    setDelivery([])
+    setAvailability([])
     setSort('relevant')
     setPage(1)
   }
@@ -357,6 +368,7 @@ function SearchResultsContent({ query, categorySlug }) {
             categoryOptions={categoryOptions}
             locationOptions={locationOptions}
             ratingOptions={ratingOptions}
+              availabilityOptions={availabilityOptions}
             onToggleCategory={handleCategoryToggle}
             priceMin={priceMin}
             priceMax={priceMax}
@@ -374,8 +386,8 @@ function SearchResultsContent({ query, categorySlug }) {
               setMinRating(stars)
               bumpPage()
             }}
-            delivery={delivery}
-            onToggleDelivery={(id) => toggle(setDelivery, id)}
+              availability={availability}
+              onToggleAvailability={(id) => toggle(setAvailability, id)}
             onClearAll={clearFilters}
           />
         </div>

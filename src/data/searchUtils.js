@@ -19,6 +19,7 @@ function enrichProduct(product, index) {
     sellerLocation: product.sellerLocation ?? SELLER_LOCATIONS[index % SELLER_LOCATIONS.length],
     freeDelivery: product.freeDelivery ?? index % 2 === 0,
     islandwideDelivery: product.islandwideDelivery ?? true,
+    stock: Number(product.stock ?? 0),
   }
 }
 
@@ -107,7 +108,7 @@ export function searchProducts(query, options = {}) {
  *   priceMax?: string | number,
  *   locations?: string[],
  *   minRating?: number,
- *   delivery?: string[],
+ *   availability?: string[],
  * }} filters
  */
 export function applySearchFilters(products, filters) {
@@ -135,12 +136,8 @@ export function applySearchFilters(products, filters) {
     list = list.filter((p) => p.rating >= filters.minRating)
   }
 
-  if (filters.delivery?.includes('free')) {
-    list = list.filter((p) => p.freeDelivery)
-  }
-
-  if (filters.delivery?.includes('islandwide')) {
-    list = list.filter((p) => p.islandwideDelivery)
+  if (filters.availability?.includes('in-stock')) {
+    list = list.filter((p) => Number(p.stock ?? 0) > 0)
   }
 
   return list

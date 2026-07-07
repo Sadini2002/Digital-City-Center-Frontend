@@ -1,13 +1,11 @@
 import { Star } from 'lucide-react'
-import {
-  searchDeliveryOptions,
-} from './searchData'
 
 export default function SearchFilters({
   categories,
   categoryOptions = [],
   locationOptions = [],
   ratingOptions = [],
+  availabilityOptions = [],
   onToggleCategory,
   priceMin,
   priceMax,
@@ -18,8 +16,8 @@ export default function SearchFilters({
   onToggleLocation,
   minRating,
   onMinRatingChange,
-  delivery,
-  onToggleDelivery,
+  availability,
+  onToggleAvailability,
   onClearAll,
 }) {
   return (
@@ -149,16 +147,16 @@ export default function SearchFilters({
 
         <div className="mt-6">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Delivery Options
+            Availability
           </h3>
           <ul className="mt-3 space-y-3">
-            {searchDeliveryOptions.map((opt) => (
+            {availabilityOptions.map((opt) => (
               <li key={opt.id}>
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
                   <input
                     type="checkbox"
-                    checked={delivery.includes(opt.id)}
-                    onChange={() => onToggleDelivery(opt.id)}
+                    checked={availability.includes(opt.id)}
+                    onChange={() => onToggleAvailability(opt.id)}
                     className="h-4 w-4 rounded border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
                   />
                   {opt.label}
