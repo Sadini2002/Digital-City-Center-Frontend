@@ -1,24 +1,45 @@
 /** BACKEND: PATCH /delivery/drivers/:id — availability flag */
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Bike, Mail, Phone, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { updateDriver } from '../utils/deliveryStorage'
+import { deliveryApi } from '../services/deliveryApi'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryAlert from '../components/ui/DeliveryAlert'
 import { readDeliveryUser } from '../utils/readDeliveryUser'
+import { usersApi } from '../../services/api'
 
 export default function DeliveryDriverProfilePage() {
-  const user = readDeliveryUser()
+  const [user, setUser] = useState(() => readDeliveryUser())
   const driver = user?.deliveryDriver
   const [isAvailable, setIsAvailable] = useState(driver?.isAvailable ?? false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const refreshProfile = useCallback(async () => {
+    const res = await usersApi.getProfile()
+    const profile = res.data?.data ?? res.data
+    if (profile) {
+      localStorage.setItem('user', JSON.stringify(profile))
+      setUser(profile)
+      setIsAvailable(Boolean(profile?.deliveryDriver?.isAvailable))
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshProfile().catch(() => {
+      // keep local snapshot when profile refresh is temporarily unavailable
+    })
+  }, [refreshProfile])
 
   const handleAvailability = async () => {
     if (!driver?.id) return
     setSaving(true)
+    setError('')
     try {
-      updateDriver(driver.id, { isAvailable: !isAvailable })
-      setIsAvailable((v) => !v)
+      await deliveryApi.updateDriver(driver.id, { isAvailable: !isAvailable })
+      await refreshProfile()
+    } catch (err) {
+      setError(err.message || 'Could not update availability. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -30,6 +51,8 @@ export default function DeliveryDriverProfilePage() {
         When you are <strong>available</strong>, you can accept new jobs from the pool. Mark yourself
         busy while on an active run.
       </DeliveryAlert>
+
+      {error && <DeliveryAlert variant="error">{error}</DeliveryAlert>}
 
       <DeliveryPanel>
         <div className="flex flex-wrap items-start justify-between gap-4">

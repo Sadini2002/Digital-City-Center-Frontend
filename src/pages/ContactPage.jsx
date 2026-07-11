@@ -11,6 +11,7 @@ import {
   Phone,
 } from 'lucide-react'
 import contactHero from '../assets/images/contact-hero.jpg'
+import { supportApi } from '../services/api'
 
 const subjectOptions = [
   { value: 'customer-support', label: 'Customer Support' },
@@ -76,18 +77,36 @@ export default function ContactPage() {
   const [subject, setSubject] = useState('customer-support')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [openFaq, setOpenFaq] = useState(-1)
 
   const inputClass =
     'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/15'
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSent(true)
-    setName('')
-    setEmail('')
-    setMessage('')
-    setSubject('customer-support')
+    setError('')
+    setSent(false)
+
+    setLoading(true)
+    try {
+      await supportApi.submitContact({
+        name: name.trim(),
+        email: email.trim(),
+        subject,
+        message: message.trim(),
+      })
+      setSent(true)
+      setName('')
+      setEmail('')
+      setMessage('')
+      setSubject('customer-support')
+    } catch (err) {
+      setError(err.message || 'Could not send your message. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -118,6 +137,12 @@ export default function ContactPage() {
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl lg:grid lg:grid-cols-[1.35fr_1fr]">
           <form onSubmit={handleSubmit} className="border-b border-slate-100 p-6 sm:p-8 lg:border-b-0 lg:border-r">
             <h2 className="text-xl font-bold text-slate-900">Send Us a Message</h2>
+
+            {error && (
+              <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {error}
+              </p>
+            )}
 
             {sent && (
               <p className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -186,9 +211,10 @@ export default function ContactPage() {
             <div className="mt-6 flex justify-end">
               <button
                 type="submit"
-                className="rounded-xl bg-dcc-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-dcc-primary-hover"
+                disabled={loading}
+                className="rounded-xl bg-dcc-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send Message
+                {loading ? 'Sending…' : 'Send Message'}
               </button>
             </div>
           </form>
