@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Grid3x3, List, Loader2, PackageSearch, SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
@@ -7,7 +7,8 @@ import CategoryFilters from '../components/category/CategoryFilters'
 import CategoryProductCard from '../components/category/CategoryProductCard'
 import CategoryPagination from '../components/category/CategoryPagination'
 import CategoryTopShops from '../components/category/CategoryTopShops'
-import { getCategoryShops, sortOptions } from '../components/category/categoryData'
+import CategoryHero from '../components/category/CategoryHero'
+import { getCategoryShops, sortOptions, getCategoryMeta } from '../components/category/categoryData'
 import { categoryApi } from '../services/api/categoryApi'
 
 const PER_PAGE = 6
@@ -63,6 +64,9 @@ export default function CategoryPage() {
   const [priceMin, setPriceMin] = useState(0)
   const [priceMax, setPriceMax] = useState(100)
   const [minRating, setMinRating] = useState(0)
+  const [selectedSubs, setSelectedSubs] = useState([])
+  const [location, setLocation] = useState('All Locations')
+  const [availability, setAvailability] = useState('All')
   const [sort, setSort] = useState('newest')
   const [view, setView] = useState('grid')
   const [page, setPage] = useState(1)
@@ -81,6 +85,9 @@ export default function CategoryPage() {
       if (priceMin > 0) params.minPrice = priceMin * 1000
       if (priceMax < 100) params.maxPrice = priceMax * 1000
       if (minRating > 0) params.minRating = minRating
+      if (selectedSubs.length > 0) params.subCategories = selectedSubs.join(',')
+      if (location !== 'All Locations') params.location = location
+      if (availability !== 'All') params.availability = availability
 
       const res = await categoryApi.getBySlug(slug, params)
       const { category, listings: fetchedListings, pagination: pag } = res.data.data
@@ -92,19 +99,20 @@ export default function CategoryPage() {
     } finally {
       setLoading(false)
     }
-  }, [slug, sort, page, priceMin, priceMax, minRating])
+  }, [slug, sort, page, priceMin, priceMax, minRating, selectedSubs, location, availability])
 
   // Reset to page 1 when filters or slug change (but not page itself)
   useEffect(() => {
     setPage(1)
     setFiltersOpen(false)
-  }, [slug, sort, priceMin, priceMax, minRating])
+  }, [slug, sort, priceMin, priceMax, minRating, selectedSubs, location, availability])
 
   useEffect(() => {
     fetchListings()
   }, [fetchListings])
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
+  const meta = getCategoryMeta(slug)
   const categoryShops = getCategoryShops(slug)
   const showTopShops = Boolean(categoryShops) && slug !== 'all'
 
@@ -118,6 +126,9 @@ export default function CategoryPage() {
     setPriceMin(0)
     setPriceMax(100)
     setMinRating(0)
+    setSelectedSubs([])
+    setLocation('All Locations')
+    setAvailability('All')
     setSort('newest')
     setPage(1)
   }
@@ -125,23 +136,7 @@ export default function CategoryPage() {
   const showingStart = pagination.total === 0 ? 0 : (page - 1) * PER_PAGE + 1
   const showingEnd = Math.min(page * PER_PAGE, pagination.total)
 
-  // ─── 404-like: category not found ──────────────────────────────────────────
-  if (!loading && error?.toLowerCase().includes('not found')) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50 px-4">
-        <h2 className="text-xl font-bold text-slate-800">Category Not Found</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          This category is currently unavailable or has been disabled.
-        </p>
-        <Link
-          to="/"
-          className="mt-4 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
-        >
-          Back to Home
-        </Link>
-      </div>
-    )
-  }
+
 
   return (
     <div className="min-w-0 bg-white">
@@ -149,23 +144,29 @@ export default function CategoryPage() {
         <ProductBreadcrumbs items={breadcrumbs} />
       </PageContainer>
 
+      <CategoryHero categoryData={categoryData ?? meta} slug={slug} />
+
       <div className="bg-slate-50/90 pb-10">
         <PageContainer className="py-6 sm:py-8">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">
             {/* ── Sidebar Filters ── */}
             <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
               <CategoryFilters
-                subCategories={[]}
-                selectedSubs={[]}
-                onToggleSub={() => {}}
+                subCategories={meta.subCategories || []}
+                selectedSubs={selectedSubs}
+                onToggleSub={(id) => {
+                  setSelectedSubs(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+                }}
                 priceMin={priceMin}
                 priceMax={priceMax}
                 onPriceMinChange={setPriceMin}
                 onPriceMaxChange={setPriceMax}
-                location="All Locations"
-                onLocationChange={() => {}}
+                location={location}
+                onLocationChange={setLocation}
                 minRating={minRating}
                 onMinRatingChange={setMinRating}
+                availability={availability}
+                onAvailabilityChange={setAvailability}
                 onClearAll={clearFilters}
               />
             </div>
@@ -239,8 +240,8 @@ export default function CategoryPage() {
                 </div>
               )}
 
-              {/* ── Error ── */}
-              {!loading && error && (
+              {/* ── Error (real server errors only, not "not found") ── */}
+              {!loading && error && !error.toLowerCase().includes('not found') && (
                 <div className="mt-16 flex flex-col items-center gap-3 text-red-500">
                   <p className="text-sm">{error}</p>
                   <button
@@ -253,8 +254,8 @@ export default function CategoryPage() {
                 </div>
               )}
 
-              {/* ── Empty ── */}
-              {!loading && !error && listings.length === 0 && (
+              {/* ── Empty (no products or category not in DB yet) ── */}
+              {!loading && ((!error && listings.length === 0) || error?.toLowerCase().includes('not found')) && (
                 <div className="mt-16 flex flex-col items-center gap-3 text-slate-500">
                   <PackageSearch className="h-10 w-10 text-slate-300" />
                   <p className="text-sm font-medium">No products match your filters.</p>

@@ -47,6 +47,8 @@ export default function CategoryFilters({
   onLocationChange,
   minRating,
   onMinRatingChange,
+  availability,
+  onAvailabilityChange,
   onClearAll,
 }) {
   return (
@@ -128,6 +130,28 @@ export default function CategoryFilters({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mt-6">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Availability
+          </h3>
+          <ul className="mt-3 space-y-2.5">
+            {['All', 'In Stock', 'Out of Stock'].map((opt) => (
+              <li key={opt}>
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                  <input
+                    type="radio"
+                    name="availability"
+                    checked={availability === opt}
+                    onChange={() => onAvailabilityChange(opt)}
+                    className="h-4 w-4 border-slate-300 text-dcc-primary focus:ring-dcc-primary/30"
+                  />
+                  <span className="text-slate-600">{opt}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="mt-6">
