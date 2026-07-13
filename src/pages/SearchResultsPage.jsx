@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
@@ -8,40 +8,230 @@ import CategoryPagination from '../components/category/CategoryPagination'
 import SearchFilters from '../components/search/SearchFilters'
 import SearchBestMatch from '../components/search/SearchBestMatch'
 import { searchSortOptions } from '../components/search/searchData'
-import { applySearchFilters, searchProducts, toBestMatch } from '../data/searchUtils'
+import { applySearchFilters, toBestMatch } from '../data/searchUtils'
+import { listingsApi } from '../services/api'
 
 const SEARCH_PER_PAGE = 6
+
+function pickListingImage(listing) {
+  const variantImages = listing.variants?.flatMap((variant) => variant.images || []) || []
+
+  return (
+    listing.image ||
+    listing.thumbnail ||
+    variantImages[0]?.url ||
+    variantImages[0]?.imageUrl ||
+    variantImages[0]?.src ||
+    ''
+  )
+}
+
+function normalizeCategoryLabel(value = '') {
+  return value
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim()
+}
+
+function normalizeFilterValue(value = '') {
+  return value.toString().trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+function formatFilterLabel(value = '') {
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatRatingLabel(stars) {
+  if (stars <= 0) return 'Any rating'
+
+  const value = Number.isInteger(stars) ? `${stars}` : stars.toFixed(1)
+  return `${value} Stars & Up`
+}
+
+function getListingPrice(listing) {
+  if (listing.price != null) return Number(listing.price)
+  if (listing.salePrice != null) return Number(listing.salePrice)
+
+  const primaryVariant = listing.variants?.find((variant) => variant.status !== 'inactive') ?? listing.variants?.[0]
+
+  if (primaryVariant?.price != null) return Number(primaryVariant.price)
+
+  return 0
+}
+
+function getListingStock(listing) {
+  if (listing.stock != null) return Number(listing.stock)
+
+  const activeVariants = listing.variants?.filter((variant) => variant.status !== 'inactive') ?? listing.variants ?? []
+  const variantStock = activeVariants.reduce((total, variant) => total + Number(variant.stock ?? 0), 0)
+
+  return variantStock
+}
+
+function mapListingToProduct(listing, categoryOverride = '') {
+  const sellerName = listing.seller?.shopName || listing.seller?.name || 'Marketplace Seller'
+  const categoryName = listing.category?.name || listing.category?.label || normalizeCategoryLabel(categoryOverride)
+  const price = getListingPrice(listing)
+  const stock = getListingStock(listing)
+  const originalPrice = listing.originalPrice ?? listing.compareAtPrice ?? null
+  const sellerLocation = normalizeFilterValue(listing.seller?.location || listing.seller?.city || '')
+  const sellerRating = Number(listing.seller?.rating ?? listing.rating ?? listing.averageRating ?? 0)
+  const sellerReviewCount = Number(listing.seller?.reviewCount ?? listing.reviewsCount ?? listing.reviewCount ?? 0)
+
+  return {
+    ...listing,
+    id: listing.id ?? listing.listingId,
+    name: listing.title ?? listing.name ?? 'Untitled product',
+    brand: sellerName,
+    categorySlug: listing.category?.slug || listing.category?.name || categoryOverride,
+    categoryLabel: categoryName,
+    price,
+    originalPrice: originalPrice != null ? Number(originalPrice) : null,
+    rating: sellerRating,
+    reviews: sellerReviewCount,
+    sales: Number(listing.sales ?? listing.soldCount ?? 0),
+    stock,
+    badge: listing.badge ?? null,
+    image: pickListingImage(listing),
+    seller: sellerName,
+    sellerLocation: sellerLocation,
+    sellerLocationLabel: formatFilterLabel(listing.seller?.location || listing.seller?.city || 'Unknown'),
+    freeDelivery: Boolean(listing.freeDelivery),
+    islandwideDelivery: listing.islandwideDelivery ?? true,
+    description: listing.description ?? '',
+  }
+}
 
 function SearchResultsContent({ query, categorySlug }) {
   const initialCategories = categorySlug ? [categorySlug] : []
 
   const [categories, setCategories] = useState(initialCategories)
+  const [requestedCategory, setRequestedCategory] = useState(categorySlug || '')
+  const [categoryOptions, setCategoryOptions] = useState([])
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [appliedMin, setAppliedMin] = useState('')
   const [appliedMax, setAppliedMax] = useState('')
   const [locations, setLocations] = useState([])
   const [minRating, setMinRating] = useState(0)
-  const [delivery, setDelivery] = useState([])
+  const [availability, setAvailability] = useState([])
   const [sort, setSort] = useState('relevant')
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const matchedProducts = useMemo(
-    () => searchProducts(query, { categorySlug: '' }),
-    [query],
-  )
+  useEffect(() => {
+    let active = true
+
+    async function loadResults() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const activeCategory = requestedCategory || ''
+        const response = activeCategory
+          ? await listingsApi.getProductsByCategory(activeCategory)
+          : await listingsApi.search({
+              q: query,
+            })
+
+        const listings = response.data?.results ?? []
+        const normalizedQuery = query.trim().toLowerCase()
+        const mappedProducts = listings.map((listing) => mapListingToProduct(listing, activeCategory))
+        const visibleProducts =
+          activeCategory && normalizedQuery
+            ? mappedProducts.filter((product) => {
+                const haystack = `${product.name} ${product.brand} ${product.description}`.toLowerCase()
+                return haystack.includes(normalizedQuery)
+              })
+            : mappedProducts
+
+        if (!active) return
+
+        setProducts(visibleProducts)
+
+        if (!activeCategory && !categorySlug) {
+          const uniqueCategories = [...new Set(mappedProducts.map((product) => product.categorySlug).filter(Boolean))]
+
+          if (uniqueCategories.length === 1) {
+            setCategories([uniqueCategories[0]])
+          }
+        }
+      } catch (requestError) {
+        if (!active) return
+
+        setProducts([])
+        setError(requestError.message || 'Unable to load search results')
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadResults()
+
+    return () => {
+      active = false
+    }
+  }, [query, categorySlug, requestedCategory])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadCategories() {
+      try {
+        const response = await listingsApi.getCategories()
+        const backendCategories = response.data?.categories ?? []
+        const uniqueCategories = []
+        const seen = new Set()
+
+        backendCategories.forEach((category) => {
+          const key = (category.slug || category.name || '').trim().toLowerCase()
+
+          if (!key || seen.has(key)) return
+
+          seen.add(key)
+          uniqueCategories.push(category)
+        })
+
+        if (!active) return
+
+        setCategoryOptions(
+          uniqueCategories.map((category) => ({
+            id: category.slug || category.name,
+            slug: category.slug || category.name,
+            label: category.name,
+          })),
+        )
+      } catch {
+        if (!active) return
+
+        setCategoryOptions([])
+      }
+    }
+
+    loadCategories()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const filteredProducts = useMemo(() => {
-    let list = applySearchFilters(matchedProducts, {
+    let list = applySearchFilters(products, {
       categorySlugs: categories,
       priceMin: appliedMin,
       priceMax: appliedMax,
       locations,
       minRating,
-      delivery,
+      availability,
     })
 
     switch (sort) {
@@ -62,7 +252,46 @@ function SearchResultsContent({ query, categorySlug }) {
     }
 
     return list
-  }, [matchedProducts, categories, appliedMin, appliedMax, locations, minRating, delivery, sort])
+  }, [products, categories, appliedMin, appliedMax, locations, minRating, availability, sort])
+
+  const locationOptions = useMemo(() => {
+    const uniqueLocations = new Map()
+
+    products.forEach((product) => {
+      if (!product.sellerLocation) return
+
+      if (!uniqueLocations.has(product.sellerLocation)) {
+        uniqueLocations.set(product.sellerLocation, {
+          id: product.sellerLocation,
+          label: product.sellerLocationLabel || formatFilterLabel(product.sellerLocation),
+        })
+      }
+    })
+
+    return [...uniqueLocations.values()].sort((a, b) => a.label.localeCompare(b.label))
+  }, [products])
+
+  const ratingOptions = useMemo(() => {
+    const ratings = new Set([0])
+
+    products.forEach((product) => {
+      const rating = Number(product.rating || 0)
+      if (!rating) return
+
+      ratings.add(Math.floor(rating))
+    })
+
+    return [...ratings]
+      .sort((a, b) => b - a)
+      .map((stars) => ({
+        stars,
+        label: formatRatingLabel(stars),
+      }))
+  }, [products])
+
+  const availabilityOptions = useMemo(() => [
+    { id: 'in-stock', label: 'In Stock Only' },
+  ], [])
 
   const bestMatch = useMemo(() => toBestMatch(filteredProducts[0]), [filteredProducts])
 
@@ -75,19 +304,26 @@ function SearchResultsContent({ query, categorySlug }) {
   const bumpPage = () => setPage(1)
 
   const toggle = (setter, id) => {
-    setter((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+    setter((prev) => (prev.includes(id) ? [] : [id]))
+    bumpPage()
+  }
+
+  const handleCategoryToggle = (id) => {
+    setCategories((prev) => (prev.includes(id) ? [] : [id]))
+    setRequestedCategory((prev) => (prev === id ? '' : id))
     bumpPage()
   }
 
   const clearFilters = () => {
     setCategories([])
+    setRequestedCategory('')
     setPriceMin('')
     setPriceMax('')
     setAppliedMin('')
     setAppliedMax('')
     setLocations([])
     setMinRating(0)
-    setDelivery([])
+    setAvailability([])
     setSort('relevant')
     setPage(1)
   }
@@ -129,7 +365,11 @@ function SearchResultsContent({ query, categorySlug }) {
         <div className={`${filtersOpen ? 'block' : 'hidden'} lg:block`}>
           <SearchFilters
             categories={categories}
-            onToggleCategory={(id) => toggle(setCategories, id)}
+            categoryOptions={categoryOptions}
+            locationOptions={locationOptions}
+            ratingOptions={ratingOptions}
+              availabilityOptions={availabilityOptions}
+            onToggleCategory={handleCategoryToggle}
             priceMin={priceMin}
             priceMax={priceMax}
             onPriceMinChange={setPriceMin}
@@ -146,8 +386,8 @@ function SearchResultsContent({ query, categorySlug }) {
               setMinRating(stars)
               bumpPage()
             }}
-            delivery={delivery}
-            onToggleDelivery={(id) => toggle(setDelivery, id)}
+              availability={availability}
+              onToggleAvailability={(id) => toggle(setAvailability, id)}
             onClearAll={clearFilters}
           />
         </div>
@@ -162,7 +402,17 @@ function SearchResultsContent({ query, categorySlug }) {
             Filters
           </button>
 
-          {bestMatch && <SearchBestMatch product={bestMatch} />}
+          {loading ? (
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+              Loading search results...
+            </div>
+          ) : error ? (
+            <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
+              {error}
+            </div>
+          ) : null}
+
+          {!loading && !error && bestMatch && <SearchBestMatch product={bestMatch} />}
 
           {pageProducts.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

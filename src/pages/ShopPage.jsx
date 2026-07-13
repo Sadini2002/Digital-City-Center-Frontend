@@ -1,100 +1,27 @@
 import { useMemo } from 'react'
-import { useState } from 'react'
-import { Search } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CategoryProductCard from '../components/category/CategoryProductCard'
 import CdnImage from '../components/common/CdnImage'
+import { getShopBySlug, getShopProducts } from '../data/shopsData'
 import NotFoundPage from './NotFoundPage'
-import { useEffect } from 'react'
-import { getShop, getShopProducts } from '../services/shopService'
-import { getShopBySlug } from '../data/shopsData'
-
-
 
 export default function ShopPage() {
-  const { shopname } = useParams();
-  useEffect(() => {
-  loadShop(shopname);
-}, [shopname]);
+  const shopname = useParams().shopname
+  const shop = getShopBySlug(shopname)
+  const products = useMemo(() => (shop ? getShopProducts(shop) : []), [shop])
 
-const loadShop = async () => {
-  try {
-    console.log("Shop Name:", shopname);
-
-    const shopResponse = await getShop(shopname);
-    console.log("Shop Response:", shopResponse.data);
-
-    const productsRes = await getShopProducts(shopname);
-    console.log("Products Response:", productsRes.data);
-
-    setShop(shopResponse.data.data);
-    setShopProducts(productsRes.data.data || []);
-  } catch (error) {
-    console.error("ERROR:", error);
-    console.error("ERROR RESPONSE:", error.response?.data);
-
-    setNotFound(true);
-  } finally {
-    setLoading(false);
+  if (!shop) {
+    return <NotFoundPage />
   }
-};
-  const [shop, setShop] = useState(null)
-const [shopProducts, setShopProducts] = useState([])
-const [loading, setLoading] = useState(true)
-const [notFound, setNotFound] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-const [sortBy, setSortBy] = useState('newest')
-
-const products = useMemo(() => {
-  if (!shop) return []
-
-  let filtered = [...shopProducts]
-
-  if (searchTerm) {
-    filtered = filtered.filter((p) =>
-      (p.title || "").toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }
-
-  switch (sortBy) {
-    case 'price-low':
-      filtered.sort((a, b) => a.price - b.price)
-      break
-
-    case 'price-high':
-      filtered.sort((a, b) => b.price - a.price)
-      break
-
-    case 'rating':
-      filtered.sort((a, b) => b.rating - a.rating)
-      break
-
-    default:
-      break
-  }
-
-  return filtered
-}, [shop, searchTerm, sortBy])
-  if (loading) {
-  return (
-    <div className="flex justify-center items-center h-[60vh]">
-      Loading...
-    </div>
-  )
-}
-
-if (notFound) {
-  return <NotFoundPage />
-}
 
   const breadcrumbs = [
-  { label: 'Home', to: '/' },
-  { label: 'Shops', to: '/shops' },
-  { label: shop.shopName || shop.shopname, to: null },
-]
+    { label: 'Home', to: '/' },
+    { label: 'Shops', to: '/shops' },
+    { label: shop.name, to: null },
+  ]
 
   return (
     <div className="min-w-0 bg-slate-50">
@@ -118,17 +45,15 @@ if (notFound) {
             )}
             <div className="absolute inset-0 bg-black/30" />
           </div>
-          <div className="flex flex-col gap-4 border-t border-slate-100 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-            <div className="flex gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-dcc-primary to-violet-600 text-lg font-bold text-white shadow-md">
-                {shop.logo}
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold text-slate-900">{shop.shopName}</h1>
-                  {shop.verified && (
-                    <BadgeCheck className="h-6 w-6 text-dcc-primary" aria-label="Verified seller" />
-                  )}
+
+          {/* SHOP INFO OVERLAY SECTION */}
+          <div className="relative -mt-16 px-6 pb-6">
+            <div className="flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-md sm:flex-row sm:items-center sm:justify-between">
+
+              {/* LEFT */}
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-dcc-primary to-violet-600 text-lg font-bold text-white shadow">
+                  {shop.logo}
                 </div>
 
                 <div>
@@ -153,88 +78,34 @@ if (notFound) {
                     {shop.location} • Member since {shop.memberSince}
                   </p>
                 </div>
-                <p className="mt-2 max-w-2xl text-sm text-slate-600">{shop.businessType}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {shop.location} · Member since {shop.memberSince}
-                </p>
               </div>
-              <div>
-                <span className="text-sm font-semibold text-slate-800">Operating Hours:</span>
-                <p>{shop.operatingHours}</p>
-               </div>
 
-               <div>
-                <span className="text-sm font-semibold text-slate-800">Phone:</span>
-                 <p>{shop.user?.phone}</p>
-               </div>
-
-               <div>
-                <span className="text-sm font-semibold text-slate-800">Email:</span>
-                 <p>{shop.user?.email}</p>
-               </div>
+              {/* RIGHT BUTTON */}
+              <Link
+                to={`/category/${shop.categorySlug}`}
+                className="rounded-xl bg-dcc-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Browse category
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-
-            <input
-               type="text"
-              placeholder="Search products in this shop..."
-              value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border pl-10 pr-4 py-2"
-            />
-          </div>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="rounded-xl border px-4 py-2"
-          >
-            
-            <option value="newest">Newest</option>
-            <option value="price-low">Price Low to High</option>
-            <option value="price-high">Price High to Low</option>
-            <option value="rating">Highest Rating</option>
-          </select>
+        {/* SECTION TITLE */}
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-slate-900">All Listings</h2>
+          <p className="text-sm text-slate-600">
+            {products.length} products from this shop
+          </p>
         </div>
 
-        {products.length === 0 ? (
-          <div className="mt-8 rounded-2xl border bg-white p-10 text-center">
-            <h3 className="font-bold text-lg">
-              No products found
-            </h3>
+        {/* PRODUCT GRID (MATCH MARKETPLACE STYLE) */}
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <CategoryProductCard key={product.id} product={product} />
+          ))}
+        </div>
 
-            <p className="text-slate-500 mt-2">
-              Try another search term.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((product) => {
-              const firstVariant = product.variants?.[0]
-
-              return (
-                <CategoryProductCard
-                  key={product.id}
-                  product={{
-                    id: product.id,
-                    name: product.title || product.name,
-                    description: product.description,
-                    price: firstVariant?.price || 0,
-                    image:
-                        product.variants?.[0]?.images?.[0]?.url ||
-                        "https://via.placeholder.com/400",
-                    rating: product.rating || 0,
-                  }}
-                />
-              )
-            })}
-          </div>
-        )}
       </PageContainer>
     </div>
   )

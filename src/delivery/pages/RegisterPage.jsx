@@ -6,9 +6,8 @@ import AuthPageLayout from '../../components/auth/AuthPageLayout'
 import AuthFormCard from '../../components/auth/AuthFormCard'
 import AuthInput from '../../components/auth/AuthInput'
 import { DISTRICTS, PROVINCES } from '../data/constants'
-import { saveDeliveryApplication } from '../utils/deliveryApplicationStorage'
 import { authApi } from '../../services/api'
-import { getDeliveryProviders } from '../../admin/utils/adminStorage'
+import { setAuthToken } from '../../utils/authStorage'
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/15'
@@ -108,19 +107,7 @@ export default function DeliveryRegisterPage() {
 
     setIsSubmitting(true)
     try {
-      // Duplicate email check
-      const providers = getDeliveryProviders()
-      const emailExists = providers.some(
-        (p) => p.email.toLowerCase() === form.email.trim().toLowerCase()
-      )
-      if (emailExists) {
-        setError('An account with this email already exists.')
-        setIsSubmitting(false)
-        return
-      }
-
-      // API registration request
-      await authApi.registerDeliveryProvider({
+      const response = await authApi.registerDeliveryProvider({
         companyName: form.companyName,
         fullName: form.fullName,
         email: form.email,
@@ -131,11 +118,13 @@ export default function DeliveryRegisterPage() {
         serviceAreas: form.serviceAreas,
       })
 
-      // Local storage synchronization
-      saveDeliveryApplication({
-        ...form,
-        phone: form.contactNumber,
-      })
+      if (response.data?.token) {
+        await setAuthToken(response.data.token, true)
+      }
+
+      if (response.data?.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user))
+      }
 
       navigate('/delivery/application-status', { replace: true })
     } catch (err) {
