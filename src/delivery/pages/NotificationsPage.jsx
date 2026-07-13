@@ -1,12 +1,7 @@
 /** BACKEND: GET/PATCH/DELETE /delivery/notifications/* */
 import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
-import {
-  deleteNotification,
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../utils/deliveryStorage'
+import { deliveryApi } from '../services/deliveryApi'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryEmptyState from '../components/ui/DeliveryEmptyState'
 import { DeliveryBlockSkeleton } from '../components/ui/DeliverySkeleton'
@@ -15,30 +10,33 @@ export default function DeliveryNotificationsPage() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const load = () => {
+  const load = async () => {
     setLoading(true)
-    const { data } = listNotifications({ limit: 50 })
-    setItems(data)
-    setLoading(false)
+    try {
+      const { data } = await deliveryApi.listNotifications({ limit: 50 })
+      setItems(data)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     load()
   }, [])
 
-  const markRead = (id) => {
-    markNotificationRead(id)
-    load()
+  const markRead = async (id) => {
+    await deliveryApi.markNotificationRead(id)
+    await load()
   }
 
-  const markAllRead = () => {
-    markAllNotificationsRead()
-    load()
+  const markAllRead = async () => {
+    await deliveryApi.markAllNotificationsRead()
+    await load()
   }
 
-  const remove = (id) => {
-    deleteNotification(id)
-    load()
+  const remove = async (id) => {
+    await deliveryApi.deleteNotification(id)
+    await load()
   }
 
   const unreadCount = items.filter((n) => !n.read).length

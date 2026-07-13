@@ -4,6 +4,7 @@ import { MapPin, DollarSign, ShieldCheck, Save, Plus, Trash2, Map } from 'lucide
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryAlert from '../components/ui/DeliveryAlert'
 import { readDeliveryUser } from '../utils/readDeliveryUser'
+import { deliveryApi } from '../services/deliveryApi'
 
 const DEFAULT_AREAS = ['Colombo', 'Gampaha', 'Kandy', 'Galle', 'Negombo']
 
@@ -20,31 +21,32 @@ export default function DeliverySettingsPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    // Load existing settings
-    const stored = localStorage.getItem('dcc_delivery_provider_settings')
-    if (stored) {
+    let cancelled = false
+    async function loadSettings() {
       try {
-        const parsed = JSON.parse(stored)
+        const parsed = await deliveryApi.getSettings()
+        if (cancelled) return
         setCoverageAreas(parsed.coverageAreas || DEFAULT_AREAS)
         setPricingModel(parsed.pricingModel || 'distance')
         setBaseFee(parsed.baseFee ?? 250)
         setPerKmFee(parsed.perKmFee ?? 50)
         setFreeThreshold(parsed.freeThreshold ?? 10000)
         setFlatFee(parsed.flatFee ?? 450)
-      } catch (e) {
-        setCoverageAreas(DEFAULT_AREAS)
+        setIsApproved(parsed.status === 'ACTIVE' || parsed.status === 'APPROVED')
+      } catch {
+        if (!cancelled) setCoverageAreas(DEFAULT_AREAS)
+        if (!cancelled && user?.deliveryProvider) {
+          setIsApproved(user.deliveryProvider.status === 'ACTIVE' || user.deliveryProvider.status === 'APPROVED')
+        } else if (!cancelled) {
+          setIsApproved(true)
+        }
       }
-    } else {
-      setCoverageAreas(DEFAULT_AREAS)
     }
-
-    // Determine approval status
-    if (user?.deliveryProvider) {
-      setIsApproved(user.deliveryProvider.status === 'ACTIVE' || user.deliveryProvider.status === 'APPROVED')
-    } else {
-      setIsApproved(true) // Fallback for testing/admins
+    loadSettings()
+    return () => {
+      cancelled = true
     }
-  }, [])
+  }, [user])
 
   const handleAddArea = (e) => {
     e.preventDefault()
@@ -64,9 +66,9 @@ export default function DeliverySettingsPage() {
     toast.success(`${areaName} removed from coverage areas.`)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
-    setTimeout(() => {
+    try {
       const settings = {
         coverageAreas,
         pricingModel,
@@ -75,10 +77,20 @@ export default function DeliverySettingsPage() {
         freeThreshold: Number(freeThreshold),
         flatFee: Number(flatFee),
       }
-      localStorage.setItem('dcc_delivery_provider_settings', JSON.stringify(settings))
-      setSaving(false)
+      const saved = await deliveryApi.updateSettings(settings)
+      if (saved?.coverageAreas) setCoverageAreas(saved.coverageAreas)
+      if (saved?.pricingModel) setPricingModel(saved.pricingModel)
+      if (saved?.baseFee != null) setBaseFee(saved.baseFee)
+      if (saved?.perKmFee != null) setPerKmFee(saved.perKmFee)
+      if (saved?.freeThreshold != null) setFreeThreshold(saved.freeThreshold)
+      if (saved?.flatFee != null) setFlatFee(saved.flatFee)
+      if (saved?.status) setIsApproved(saved.status === 'ACTIVE' || saved.status === 'APPROVED')
       toast.success('Delivery settings saved successfully!')
-    }, 800)
+    } catch (err) {
+      toast.error(err.message || 'Could not save settings.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

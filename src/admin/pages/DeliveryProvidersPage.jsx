@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
-import { getDeliveryProviders, updateDeliveryProviderStatus } from '../utils/adminStorage'
+import { adminDeliveryApi } from '../../delivery/services/adminDeliveryApi'
 
 function pill(status) {
   if (status === 'approved') return 'bg-dcc-primary/10 text-dcc-primary'
@@ -9,29 +9,64 @@ function pill(status) {
 }
 
 export default function DeliveryProvidersPage() {
-  const [providers, setProviders] = useState(() => getDeliveryProviders())
+  const [providers, setProviders] = useState([])
   const [rejectingId, setRejectingId] = useState(null)
   const [reasonInput, setReasonInput] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [actingId, setActingId] = useState(null)
 
-  const act = (id, status) => {
+  const loadProviders = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const result = await adminDeliveryApi.listProviders({ limit: 100 })
+      setProviders(result?.data || [])
+    } catch (err) {
+      setError(err.message || 'Failed to load providers')
+      setProviders([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProviders()
+  }, [])
+
+  const act = async (id, status) => {
     if (status === 'rejected') {
       setRejectingId(id)
       setReasonInput('')
       return
     }
-    updateDeliveryProviderStatus(id, status)
-    setProviders(getDeliveryProviders())
+    setActingId(id)
+    try {
+      await adminDeliveryApi.approveProvider(id, {})
+      await loadProviders()
+    } catch (err) {
+      alert(err.message || 'Failed to approve provider')
+    } finally {
+      setActingId(null)
+    }
   }
 
-  const handleConfirmRejection = () => {
+  const handleConfirmRejection = async () => {
     if (!reasonInput.trim()) {
       alert('Rejection reason is required.')
       return
     }
-    updateDeliveryProviderStatus(rejectingId, 'rejected', reasonInput.trim())
-    setProviders(getDeliveryProviders())
-    setRejectingId(null)
-    setReasonInput('')
+    setActingId(rejectingId)
+    try {
+      await adminDeliveryApi.rejectProvider(rejectingId, { reason: reasonInput.trim() })
+      await loadProviders()
+      setRejectingId(null)
+      setReasonInput('')
+    } catch (err) {
+      alert(err.message || 'Failed to reject provider')
+    } finally {
+      setActingId(null)
+    }
   }
 
   return (
@@ -39,8 +74,24 @@ export default function DeliveryProvidersPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Delivery provider management</h1>
         <p className="mt-1 text-sm text-slate-600">Approve or reject delivery company registrations.</p>
+        {error && (
+          <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
       </div>
 
+      {loading ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+          Loading delivery providers...
+        </div>
+      ) : providers.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+          No delivery providers registered yet.
+        </div>
+      ) : null}
+
+      {!loading && providers.length > 0 && (
       <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
@@ -58,7 +109,7 @@ export default function DeliveryProvidersPage() {
                 <tr key={p.id} className="border-b border-dcc-primary/10">
                   <td className="py-3 font-medium text-slate-900">
                     <div>{p.name}</div>
-                    {p.status === 'rejected' && p.rejectionReason && (
+                    {p.rejectionReason && (
                       <div className="text-xs text-rose-500 italic mt-0.5" id={`rejection-reason-display-${p.id}`}>
                         Reason: {p.rejectionReason}
                       </div>
@@ -75,16 +126,18 @@ export default function DeliveryProvidersPage() {
                     <div className="inline-flex gap-2">
                       <button
                         type="button"
+                        disabled={actingId === p.id || p.status === 'approved'}
                         onClick={() => act(p.id, 'approved')}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-3 py-2 text-xs font-semibold text-white hover:bg-dcc-primary-hover"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-3 py-2 text-xs font-semibold text-white hover:bg-dcc-primary-hover disabled:opacity-60"
                       >
                         <Check className="h-4 w-4" />
-                        Approve
+                        {actingId === p.id ? 'Processing...' : 'Approve'}
                       </button>
                       <button
                         type="button"
+                        disabled={actingId === p.id}
                         onClick={() => act(p.id, 'rejected')}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-dcc-primary/25 bg-dcc-primary/5 px-3 py-2 text-xs font-semibold text-dcc-primary hover:bg-dcc-primary/10"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-dcc-primary/25 bg-dcc-primary/5 px-3 py-2 text-xs font-semibold text-dcc-primary hover:bg-dcc-primary/10 disabled:opacity-60"
                       >
                         <X className="h-4 w-4" />
                         Reject
@@ -97,6 +150,7 @@ export default function DeliveryProvidersPage() {
           </table>
         </div>
       </section>
+      )}
 
       {/* Rejection Reason Modal */}
       {rejectingId && (

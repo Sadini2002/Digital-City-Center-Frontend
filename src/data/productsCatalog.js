@@ -1,5 +1,4 @@
 import { getAllCategoryListings, getCategoryMeta } from '../components/category/categoryData'
-import { searchResults } from '../components/search/searchData'
 import { IMG } from '../config/images'
 import { shopsCatalog } from './shopsData'
 
@@ -629,7 +628,6 @@ function registerListing(listing) {
 }
 
 getAllCategoryListings().forEach(registerListing)
-searchResults.forEach(registerListing)
 
 function buildBadges(listing, extension) {
   if (extension.badges?.length) return extension.badges

@@ -1,29 +1,44 @@
-/** BACKEND: Wire PDF /api/v1 routes here when server is ready. Pages use deliveryStorage directly. */
+import { api } from '../../services/api/client'
+import { unwrap, unwrapMeta } from '../utils/deliveryApiHelpers'
 
-import * as store from '../utils/deliveryStorage'
-
-/** @deprecated Use deliveryStorage in pages. Async wrappers for legacy imports only. */
 export const deliveryApi = {
-  getDashboard: () => Promise.resolve(store.getDashboardStats()),
-  listDeliveries: (params) => Promise.resolve(store.listAssignedDeliveries(params)),
-  listPool: (params) => Promise.resolve(store.listPoolDeliveries(params)),
-  getDelivery: (id) => {
-    const d = store.getDeliveryById(id)
-    if (!d) return Promise.reject(new Error('Delivery not found'))
-    return Promise.resolve(d)
-  },
-  acceptDelivery: (id) => Promise.resolve(store.acceptDeliveryForCurrentDriver(id)),
-  updateStatus: (id, payload) => Promise.resolve(store.updateDeliveryStatus(id, payload)),
-  addTrackingBatch: (id, points) => Promise.resolve(store.addTrackingBatch(id, points)),
-  getEarnings: (params) => Promise.resolve(store.getEarnings(params)),
-  getAnalytics: (params) => Promise.resolve(store.getAnalytics(params)),
-  listDrivers: () => Promise.resolve(store.getDrivers()),
-  createDriver: (payload) => Promise.resolve(store.createDriver(payload)),
-  updateDriver: (id, payload) => Promise.resolve(store.updateDriver(id, payload)),
-  listNotifications: (params) => Promise.resolve(store.listNotifications(params)),
-  markNotificationRead: (id) => Promise.resolve(store.markNotificationRead(id)),
-  markAllNotificationsRead: () => Promise.resolve(store.markAllNotificationsRead()),
-  deleteNotification: (id) => Promise.resolve(store.deleteNotification(id)),
+  getDashboard: () => api.get('/delivery/dashboard').then(unwrap),
+
+  listDeliveries: (params) => api.get('/delivery/assigned', { params }).then(unwrapMeta),
+
+  listPool: (params) => api.get('/delivery/pool', { params }).then(unwrapMeta),
+
+  getDelivery: (id) => api.get(`/delivery/deliveries/${id}`).then(unwrap),
+
+  acceptDelivery: (id) => api.post(`/delivery/${id}/accept`).then(unwrap),
+
+  updateStatus: (id, payload) => api.put(`/delivery/deliveries/${id}/status`, payload).then(unwrap),
+
+  addTrackingBatch: (id, points) => api.patch(`/delivery/deliveries/${id}/track`, { points }).then(unwrap),
+
+  getEarnings: (params) => api.get('/delivery/earnings', { params }).then(unwrap),
+
+  getAnalytics: (params) => api.get('/delivery/analytics', { params }).then(unwrap),
+
+  listDrivers: () => api.get('/delivery/drivers').then(unwrap),
+
+  createDriver: (payload) => api.post('/delivery/drivers', payload).then(unwrap),
+
+  updateDriver: (id, payload) => api.patch(`/delivery/drivers/${id}`, payload).then(unwrap),
+
+  listNotifications: (params) => api.get('/delivery/notifications', { params }).then(unwrapMeta),
+
+  getUnreadNotificationCount: () => api.get('/delivery/notifications/unread-count').then((res) => res.data?.count ?? 0),
+
+  markNotificationRead: (id) => api.put(`/delivery/notifications/${id}/read`).then(unwrap),
+
+  markAllNotificationsRead: () => api.put('/delivery/notifications/read-all').then(unwrap),
+
+  deleteNotification: (id) => api.delete(`/delivery/notifications/${id}`).then(unwrap),
+
+  getSettings: () => api.get('/delivery/settings').then(unwrap),
+
+  updateSettings: (payload) => api.put('/delivery/settings', payload).then(unwrap),
 }
 
 export default deliveryApi

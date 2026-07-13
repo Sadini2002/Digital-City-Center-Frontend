@@ -8,17 +8,9 @@ import {
 } from '../utils/deliveryAuth'
 import { getAuthToken } from '../../utils/authStorage'
 
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}')
-  } catch {
-    return {}
-  }
-}
-
 export default function DeliveryApprovedRoute() {
   const [checking, setChecking] = useState(true)
-  const [user, setUser] = useState(getStoredUser)
+  const [user, setUser] = useState(null)
   const token = getAuthToken()
 
   // BACKEND: GET /users/me — refresh approval status before rendering portal
@@ -33,7 +25,9 @@ export default function DeliveryApprovedRoute() {
           setUser(profile)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setUser(null)
+      })
       .finally(() => {
         if (!cancelled) setChecking(false)
       })
