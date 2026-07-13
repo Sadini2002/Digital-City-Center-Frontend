@@ -79,7 +79,7 @@ export default function ShopCard({ shop }) {
 
           <div className="flex items-center gap-2">
             <Package className="h-3.5 w-3.5" />
-            <span>{shop.productCount || 0} Products</span>
+            <span>{shop._count?.listings || 0} Products</span>
           </div>
 
           <div className="flex items-center gap-2">
