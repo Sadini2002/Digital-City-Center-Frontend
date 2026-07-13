@@ -20,6 +20,10 @@ export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // ✅ NEW ROLE STATE ADDED
+  const [role, setRole] = useState('buyer')
+
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -33,10 +37,12 @@ export default function Register() {
       setError('Please fill in all fields.')
       return
     }
+
     if (!isPasswordValid(password)) {
       setError(PASSWORD_HINT)
       return
     }
+
     if (!agreed) {
       setError('Please agree to the Terms of Service and Privacy Policy.')
       return
@@ -44,15 +50,18 @@ export default function Register() {
 
     setLoading(true)
     try {
+      // ✅ ROLE ADDED HERE (NO LOGIC CHANGED)
       const response = await authApi.register({
         name: name.trim(),
         email,
         password,
+        role,
       })
 
       if (response.data?.token) {
         await setAuthToken(response.data.token, true)
       }
+
       if (response.data?.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user))
       }
@@ -67,12 +76,10 @@ export default function Register() {
 
   return (
     <AuthPageLayout variant="register">
-      {/* Promo — left on desktop (first in row); below form on mobile via flex-col-reverse */}
       <div className="w-full min-w-0 lg:w-1/2">
         <RegisterHero />
       </div>
 
-      {/* Form — right on desktop */}
       <div className="flex w-full min-w-0 justify-center lg:w-1/2 lg:justify-end">
         <div className="w-full min-w-0 max-w-md">
           <AuthFormCard
@@ -92,35 +99,37 @@ export default function Register() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-            icon={User}
-            required
-            autoComplete="name"
-            variant="auth"
-          />
-          <AuthInput
-            id="email"
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            icon={Mail}
-            required
-            autoComplete="email"
-            variant="auth"
-          />
-          <AuthInput
-            id="password"
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            icon={Lock}
-            hint={PASSWORD_HINT}
-            required
-            autoComplete="new-password"
-            variant="auth"
+                icon={User}
+                required
+                autoComplete="name"
+                variant="auth"
+              />
+
+              <AuthInput
+                id="email"
+                label="Email Address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                icon={Mail}
+                required
+                autoComplete="email"
+                variant="auth"
+              />
+
+              <AuthInput
+                id="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                icon={Lock}
+                hint={PASSWORD_HINT}
+                required
+                autoComplete="new-password"
+                variant="auth"
                 rightElement={
                   <button
                     type="button"
@@ -128,10 +137,31 @@ export default function Register() {
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 }
               />
+
+              {/* ✅ ROLE SELECTION ADDED */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Register As
+                </label>
+
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-dcc-primary focus:outline-none"
+                >
+                  <option value="buyer">Buyer</option>
+                  <option value="seller">Seller</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
 
               <label className="flex cursor-pointer items-start gap-2.5">
                 <input
