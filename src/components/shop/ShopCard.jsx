@@ -1,3 +1,5 @@
+// ShopCard.jsx
+
 import { Link } from "react-router-dom";
 import {
   BadgeCheck,

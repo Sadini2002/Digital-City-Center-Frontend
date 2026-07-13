@@ -1,3 +1,5 @@
+// ShopStats.jsx
+
 import {
 
 Package,
