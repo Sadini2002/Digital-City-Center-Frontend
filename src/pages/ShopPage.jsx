@@ -1,19 +1,64 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CategoryProductCard from '../components/category/CategoryProductCard'
 import CdnImage from '../components/common/CdnImage'
-import { getShopBySlug, getShopProducts } from '../data/shopsData'
+import { shopApi, normalizeShop, normalizeListing } from '../services/api/shopApi'
 import NotFoundPage from './NotFoundPage'
 
 export default function ShopPage() {
   const shopname = useParams().shopname
-  const shop = getShopBySlug(shopname)
-  const products = useMemo(() => (shop ? getShopProducts(shop) : []), [shop])
+  const [shop, setShop] = useState(null)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
-  if (!shop) {
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadShop() {
+      setLoading(true)
+      setNotFound(false)
+      try {
+        const [shopRes, productsRes] = await Promise.all([
+          shopApi.getByUrl(shopname),
+          shopApi.getProductsByUrl(shopname).catch(() => ({ data: { data: [] } })),
+        ])
+        if (cancelled) return
+        const rawShop = shopRes?.data?.data
+        if (!rawShop) {
+          setNotFound(true)
+        } else {
+          setShop(normalizeShop(rawShop))
+          const rawProducts = productsRes?.data?.data ?? []
+          setProducts(rawProducts.map(normalizeListing).filter(Boolean))
+        }
+      } catch {
+        if (!cancelled) setNotFound(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadShop()
+    return () => {
+      cancelled = true
+    }
+  }, [shopname])
+
+  if (loading) {
+    return (
+      <div className="min-w-0 bg-slate-50">
+        <PageContainer className="pb-12">
+          <div className="mt-4 h-64 animate-pulse rounded-3xl border bg-white" />
+        </PageContainer>
+      </div>
+    )
+  }
+
+  if (notFound || !shop) {
     return <NotFoundPage />
   }
 
@@ -69,23 +114,24 @@ export default function ShopPage() {
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                     <span className="font-semibold text-slate-800">
-                      {shop.rating}
+                      {shop.rating != null ? shop.rating.toFixed(1) : 'New'}
                     </span>
                     <span>• {shop.productsLabel}</span>
                   </div>
 
                   <p className="text-xs text-slate-500">
-                    {shop.location} • Member since {shop.memberSince}
+                    {shop.businessType ? `${shop.businessType} • ` : ''}
+                    {shop.memberSince ? `Member since ${shop.memberSince}` : ''}
                   </p>
                 </div>
               </div>
 
               {/* RIGHT BUTTON */}
               <Link
-                to={`/category/${shop.categorySlug}`}
+                to="/shops"
                 className="rounded-xl bg-dcc-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
               >
-                Browse category
+                All shops
               </Link>
             </div>
           </div>

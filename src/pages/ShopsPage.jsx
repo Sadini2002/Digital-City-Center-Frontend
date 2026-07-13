@@ -1,9 +1,16 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BadgeCheck, Star } from 'lucide-react'
 import PageContainer from '../components/layout/PageContainer'
 import ProductBreadcrumbs from '../components/product/ProductBreadcrumbs'
 import CdnImage from '../components/common/CdnImage'
-import { getAllShops } from '../data/shopsData'
+import { shopApi, normalizeShop } from '../services/api/shopApi'
+import NotFoundPage from './NotFoundPage'
+import { formatLkr } from '../data/productsCatalog'
+import { slugifyShopName } from '../data/shopsData'
+import ShopStats from '../components/shop/ShopStats'
+import StarRating from '../components/shop/StarRating'
+
 
 const breadcrumbs = [
   { label: 'Home', to: '/' },
@@ -11,7 +18,36 @@ const breadcrumbs = [
 ]
 
 export default function ShopsPage() {
-  const shops = getAllShops()
+  const [shops, setShops] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadShops() {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await shopApi.getAll()
+        const rawShops = response?.data?.data ?? []
+        if (!cancelled) {
+          setShops(rawShops.map(normalizeShop).filter(Boolean))
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err?.response?.data?.error || err?.message || 'Failed to load shops.')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadShops()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="min-w-0 bg-slate-50/50">
@@ -20,6 +56,27 @@ export default function ShopsPage() {
         <h1 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">Marketplace shops</h1>
         <p className="mt-1 text-sm text-slate-600">Browse verified sellers across Sri Lanka.</p>
 
+        {loading && (
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+            ))}
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && shops.length === 0 && (
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            No shops found yet.
+          </div>
+        )}
+
+        {!loading && !error && shops.length > 0 && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {shops.map((shop) => (
             <Link
@@ -60,7 +117,9 @@ export default function ShopsPage() {
 
                 <div className="mt-1.5 flex items-center gap-1">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-semibold text-slate-700">{shop.rating}</span>
+                  <span className="text-xs font-semibold text-slate-700">
+                    {shop.rating != null ? shop.rating.toFixed(1) : 'New'}
+                  </span>
                   <span className="text-slate-300 mx-1.5">|</span>
                   <span className="text-xs text-slate-500">{shop.productsLabel}</span>
                 </div>
@@ -72,6 +131,7 @@ export default function ShopsPage() {
             </Link>
           ))}
         </div>
+        )}
       </PageContainer>
     </div>
   )
