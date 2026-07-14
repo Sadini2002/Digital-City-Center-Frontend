@@ -1,3 +1,21 @@
+import { getAuthToken } from '../../utils/authStorage'
+
+const DEMO_TOKENS = ['demo-delivery-token', 'demo-driver-token']
+
+/** Returns true when the active session is a local demo (no real backend JWT). */
+export function isDemoDelivery() {
+  return DEMO_TOKENS.includes(getAuthToken())
+}
+
+/** Returns the user stored in localStorage (used as fallback in demo mode). */
+export function getStoredDeliveryUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    return null
+  }
+}
+
 /** Delivery provider profile is ready for the portal */
 export function isDeliveryProviderActive(user) {
   const provider = user?.deliveryProvider
