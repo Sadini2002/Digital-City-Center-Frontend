@@ -1,17 +1,12 @@
 import { api } from '../../services/api/client'
-import { tryApi, unwrap } from '../utils/deliveryApiHelpers'
-import * as store from '../utils/deliveryStorage'
+import { unwrap } from '../utils/deliveryApiHelpers'
 
 export const trackingApi = {
   getDeliveryTracking: (id) => api.get(`/delivery/deliveries/${id}/live`).then(unwrap),
 
   updateDeliveryTracking: (id, payload) => api.patch(`/delivery/deliveries/${id}/track`, payload).then(unwrap),
 
-  getOrderTracking: (orderId) =>
-    tryApi(
-      () => api.get(`/orders/track/${orderId}`).then(unwrap),
-      () => store.trackOrderLive(orderId)
-    ),
+  getOrderTracking: (orderId) => api.get(`/orders/track/${orderId}`).then(unwrap),
 
   getOrderDeliveryStatus: async (orderId) => {
     const live = await trackingApi.getOrderTracking(orderId)
@@ -33,11 +28,8 @@ export const trackingApi = {
 
   getOrderLive: (orderId) => trackingApi.getOrderTracking(orderId),
 
-  getSubOrderLive: (subOrderId) =>
-    tryApi(
-      () => Promise.reject(new Error('Sub-order tracking not implemented')),
-      () => store.trackSubOrderLive(subOrderId)
-    ),
+  // Backend currently exposes order-level tracking; use the same endpoint for sub-order IDs.
+  getSubOrderLive: (subOrderId) => api.get(`/orders/track/${subOrderId}`).then(unwrap),
 
   getAdminLive: () =>
     api.get('/delivery/assigned', { params: { limit: 100 } }).then((res) => {
