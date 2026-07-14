@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, Zap } from 'lucide-react'
 import CdnImage from '../common/CdnImage'
 
-// Backend එකෙන් එන endTime එකට අනුව ගණනය කරන Dynamic Countdown Hook එකක්
 function useCountdown(endTimeString) {
   const [timeLeft, setTimeLeft] = useState('')
 
@@ -39,7 +38,6 @@ export default function FlashDealsCard() {
   const [flashSaleData, setFlashSaleData] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // 1. Backend API එකෙන් දත්ත ලබා ගැනීම
   useEffect(() => {
     fetch('http://localhost:5000/api/v1/home/flash-sale')
       .then((res) => res.json())
@@ -55,10 +53,8 @@ export default function FlashDealsCard() {
       })
   }, [])
 
-  // Countdown එක ක්‍රියාත්මක කිරීම
   const countdown = useCountdown(flashSaleData?.endTime)
 
-  // Card එක බැක්ග්‍රවුන්ඩ් කලර්ස් මාරුවෙන් මාරුවට ලස්සනට පේන්න (UI gradient loop)
   const hueGradients = [
     'from-purple-100 to-purple-200 text-purple-600',
     'from-blue-100 to-blue-200 text-blue-600',
@@ -75,12 +71,12 @@ export default function FlashDealsCard() {
   }
 
   if (!flashSaleData || !flashSaleData.products || flashSaleData.products.length === 0) {
-    return null // Active Flash Sale එකක් නැත්නම් component එක hide කරන්න
+    return null 
   }
 
   return (
     <div className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
-      {/* Header කොටස */}
+      {/* Header  */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50">
@@ -102,10 +98,9 @@ export default function FlashDealsCard() {
         </Link>
       </div>
 
-      {/* Products Grid කොටස */}
+      {/* Products Grid  */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-2.5 lg:gap-3">
         {flashSaleData.products.map((product, index) => {
-          // හැම කාඩ් එකකටම මාරුවෙන් මාරුවට gradient එකක් සෙට් කිරීම
           const currentHue = hueGradients[index % hueGradients.length]
 
           return (
