@@ -8,6 +8,7 @@ import CdnImage from '../components/common/CdnImage'
 import { shopApi, normalizeShop, normalizeListing } from '../services/api/shopApi'
 import NotFoundPage from './NotFoundPage'
 
+
 export default function ShopPage() {
   const shopname = useParams().shopname
   const [shop, setShop] = useState(null)

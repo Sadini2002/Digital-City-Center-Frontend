@@ -1,88 +1,143 @@
-import { api } from './client'
+import api from "./axios";
 
-/**
- * Backend routes (src/routes/shopRoutes.js):
- *   GET  /shops                      -> getAllShops
- *   GET  /shops/url/:shopUrl         -> getShopByUrl
- *   GET  /shops/url/:shopUrl/products-> getShopProductsBySlug
- *   GET  /shops/:id                  -> getShopById
- */
+/*
+|--------------------------------------------------------------------------
+| Shop API
+|--------------------------------------------------------------------------
+*/
+
 export const shopApi = {
-  getAll: (params) => api.get('/shops', { params }),
-  getByUrl: (shopUrl) => api.get(`/shops/url/${encodeURIComponent(shopUrl)}`),
-  getProductsByUrl: (shopUrl) => api.get(`/shops/url/${encodeURIComponent(shopUrl)}/products`),
-  getById: (id) => api.get(`/shops/${id}`),
+  // Get all shops
+  getAll: () => api.get("/shops"),
+
+  // Search shops
+  search: (query) =>
+    api.get(`/shops/search?q=${encodeURIComponent(query)}`),
+
+  // Get shop details by slug/url
+  getByUrl: (shopUrl) =>
+    api.get(`/shops/url/${shopUrl}`),
+
+  // Get products of a shop
+  getProductsByUrl: (shopUrl) =>
+    api.get(`/shops/url/${shopUrl}/products`),
+
+  // Favourite APIs
+  toggleFavourite: (shopId) =>
+    api.post(`/shops/${shopId}/favourite`),
+
+  getFavouriteStatus: (shopId) =>
+    api.get(`/shops/${shopId}/favourite`),
+
+  getFavouriteCount: (shopId) =>
+    api.get(`/shops/${shopId}/favourites/count`),
+
+  // Get shop by ID
+  getById: (id) =>
+    api.get(`/shops/${id}`),
+
+  // Update shop
+  update: (id, data) =>
+    api.put(`/shops/${id}`, data),
 }
 
-/**
- * The backend serves uploaded images from an absolute or root-relative path
- * (see src/utils/media.js). This resolves a root-relative "/uploads/..." path
- * against the API's origin so <img> tags work regardless of environment.
- */
-export function resolveMediaUrl(path) {
-  if (!path) return ''
-  if (/^https?:\/\//i.test(path)) return path
+/*
+|--------------------------------------------------------------------------
+| Normalizers
+|--------------------------------------------------------------------------
+*/
 
-  const base = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1'
-  const origin = base.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '')
-  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`
-}
-
-/**
- * Maps a raw `Seller` record from the backend into the shape the shop UI
- * components expect (previously supplied by the static src/data/shopsData.js).
- */
-export function normalizeShop(seller) {
-  if (!seller) return null
-
-  const productsCount = seller._count?.listings ?? seller.listings?.length ?? 0
+export const normalizeShop = (
+  shop
+) => {
+  if (!shop) return null
 
   return {
-    id: seller.id,
-    slug: seller.shopUrl || String(seller.id),
-    name: seller.shopName,
-    businessType: seller.businessType,
-    description: seller.user?.bio || `${seller.shopName} on Digital City Center.`,
-    logo: (seller.shopName || '?').slice(0, 2).toUpperCase(),
-    image: resolveMediaUrl(seller.bannerImage || seller.image),
-    verified: seller.status === 'ACTIVE' || seller.status === 'active',
-    status: seller.status,
-    // Computed server-side from the shop's listings' reviews (Review model).
-    // null when the shop has no reviews yet - render conditionally.
-    rating: seller.rating ?? null,
-    reviewCount: seller.reviewCount ?? 0,
-    productsLabel: `${productsCount}+ products`,
-    productsCount,
-    hue: 'from-violet-200 to-violet-300',
-    memberSince: seller.createdAt ? new Date(seller.createdAt).getFullYear() : undefined,
+    id: shop.id,
+
+    slug:
+  shop.shopUrl ||
+  shop.shop_url ||
+  shop.slug ||
+  "",
+
+    name:
+      shop.shopName ||
+      "Unnamed Shop",
+
+    description:
+      shop.description ||
+      "",
+
+    image:
+      shop.image ||
+      null,
+
+    logo:
+      (
+        shop.shopName ||
+        "S"
+      )[0],
+
+    verified: true,
+
+    rating: 5,
+
+    productsLabel:
+      `${shop?._count?.listings || 0
+      } Products`,
+
+    hue:
+      "from-dcc-primary to-violet-600",
   }
 }
 
-/**
- * Maps a raw `Listing` record (with `variants.images` and `reviews` included,
- * see getShopProductsBySlug) into the shape CategoryProductCard expects.
- */
-export function normalizeListing(listing) {
+export const normalizeListing = (listing) => {
   if (!listing) return null
 
-  const variant = listing.variants?.[0]
-  const mainImage =
-    variant?.images?.find((img) => img.isMain)?.url ?? variant?.images?.[0]?.url ?? ''
+  const firstVariant =
+    listing.variants?.[0]
 
-  const reviews = listing.reviews ?? []
-  const avgRating = reviews.length
-    ? reviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / reviews.length
-    : 0
+  const firstImage =
+    firstVariant?.images?.[0]
 
   return {
     id: listing.id,
-    name: listing.title,
-    image: resolveMediaUrl(mainImage),
-    price: variant?.price ?? 0,
-    originalPrice: null,
-    rating: avgRating,
-    reviews: reviews.length,
-    badge: null,
-    categoryLabel: undefined,
+
+    name:
+      listing.title ||
+      listing.name ||
+      "Product",
+
+    slug:
+      listing.slug ||
+      "",
+
+    image:
+      firstImage?.url ||
+      listing.image ||
+      null,
+
+    price:
+      firstVariant?.price ||
+      listing.price ||
+      0,
+
+    rating:
+      listing.reviews?.length
+        ? (
+            listing.reviews.reduce(
+              (sum, review) =>
+                sum + review.rating,
+              0
+            ) / listing.reviews.length
+          )
+        : null,
+
+    reviewCount:
+      listing.reviews?.length || 0,
+
+    stock:
+      listing.stock || 0,
   }
 }
