@@ -10,6 +10,7 @@ import { formatLkr } from '../data/productsCatalog'
 import { slugifyShopName } from '../data/shopsData'
 import ShopStats from '../components/shop/ShopStats'
 import StarRating from '../components/shop/StarRating'
+import { Search } from "lucide-react"
 
 
 const breadcrumbs = [
@@ -21,6 +22,37 @@ export default function ShopsPage() {
   const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [search, setSearch] = useState("")
+
+  useEffect(() => {
+  const delay = setTimeout(async () => {
+    try {
+      if (search.trim() === "") {
+        const response = await shopApi.getAll()
+        const rawShops = response?.data?.data ?? []
+
+        setShops(
+          rawShops.map(normalizeShop).filter(Boolean)
+        )
+      } else {
+        const response =
+          await shopApi.search(search)
+
+        const rawShops =
+          response?.data?.data ?? []
+
+        setShops(
+          rawShops.map(normalizeShop).filter(Boolean)
+        )
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }, 400)
+
+  return () => clearTimeout(delay)
+}, [search])
+
 
   useEffect(() => {
     let cancelled = false
@@ -30,7 +62,12 @@ export default function ShopsPage() {
       setError(null)
       try {
         const response = await shopApi.getAll()
+        console.log("SHOP RESPONSE", response)
+
         const rawShops = response?.data?.data ?? []
+
+        console.log("RAW SHOPS", rawShops)
+
         if (!cancelled) {
           setShops(rawShops.map(normalizeShop).filter(Boolean))
         }
@@ -50,6 +87,25 @@ export default function ShopsPage() {
   }, [])
 
   return (
+    <div className="mt-6">
+  <input
+    type="text"
+    value={search}
+    onChange={(e) =>
+      setSearch(e.target.value)
+    }
+    placeholder="Search shops..."
+    className="
+      w-full rounded-xl border
+      border-slate-200 bg-white
+      px-4 py-3 text-sm
+      outline-none
+      focus:border-dcc-primary
+      focus:ring-2
+      focus:ring-dcc-primary/20
+    "
+  />
+</div>,
     <div className="min-w-0 bg-slate-50/50">
       <PageContainer className="pb-12">
         <ProductBreadcrumbs items={breadcrumbs} />
@@ -80,8 +136,8 @@ export default function ShopsPage() {
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {shops.map((shop) => (
             <Link
-              key={shop.slug}
-              to={`/shop/${shop.slug}`}
+              key={shop.id}
+              to={`/shop/${shop.id}`}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.03)] transition duration-300 hover:-translate-y-1 hover:shadow-md"
             >
               {/* Banner Area */}
