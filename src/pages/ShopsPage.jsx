@@ -137,7 +137,7 @@ export default function ShopsPage() {
           {shops.map((shop) => (
             <Link
               key={shop.id}
-              to={`/shop/${shop.id}`}
+              to={`/shop/${shop.slug || shop.id}`}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.03)] transition duration-300 hover:-translate-y-1 hover:shadow-md"
             >
               {/* Banner Area */}

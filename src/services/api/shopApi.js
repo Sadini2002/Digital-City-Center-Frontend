@@ -56,7 +56,10 @@ export const normalizeShop = (
     id: shop.id,
 
     slug:
-      shop.shopUrl || "",
+  shop.shopUrl ||
+  shop.shop_url ||
+  shop.slug ||
+  "",
 
     name:
       shop.shopName ||
