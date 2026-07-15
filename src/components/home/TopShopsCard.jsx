@@ -16,7 +16,7 @@ export default function TopShopsCard() {
           setShops(res.data.featured) 
         } 
         setLoading(false)
-      }) 
+      })  
       .catch(err => {
         console.error("Error fetching featured shops:", err)
         setLoading(false)
