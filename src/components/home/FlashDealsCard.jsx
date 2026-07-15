@@ -140,7 +140,7 @@ export default function FlashDealsCard() {
                 <p className="mt-1.5 text-sm font-bold text-indigo-600">
                   LKR {Number(product.flashPrice).toLocaleString()}
                 </p>
-                 
+                   
                 {/* Original Price (Line-through) */}
                 {product.originalPrice && (
                   <p className="text-[11px] text-slate-400 line-through">

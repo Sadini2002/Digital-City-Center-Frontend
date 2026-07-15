@@ -143,4 +143,4 @@ export default function CategoriesSection() {
       </div>
     </section>
   )
-} 
+}  

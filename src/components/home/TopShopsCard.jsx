@@ -68,7 +68,7 @@ export default function TopShopsCard() {
                 alt={shopName}
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               />
-            ) : (
+            ) : ( 
               <div className={`h-full w-full bg-gradient-to-br ${index % 2 === 0 ? 'from-purple-500 to-indigo-600' : 'from-emerald-400 to-teal-600'}`} />
             )}
           </div>
