@@ -24,8 +24,6 @@ export { default as LiveDeliveryPanel } from './components/tracking/LiveDelivery
 export { deliveryApi } from './services/deliveryApi'
 export { trackingApi } from './services/trackingApi'
 export { adminDeliveryApi } from './services/adminDeliveryApi'
-export * from './utils/deliveryStorage'
-export * from './utils/deliveryApplicationStorage'
 export * from './utils/deliveryAuth'
 
 export { default as useOrderLiveTracking } from './hooks/useOrderLiveTracking'
