@@ -1,0 +1,90 @@
+import { useState } from 'react'
+import { ZoomIn } from 'lucide-react'
+import CdnImage from '../common/CdnImage'
+import WishlistButton from '../common/WishlistButton'
+
+export default function ProductGallery({ images, badges, product, activeIndex: propsActiveIndex, onChangeActiveIndex }) {
+  const galleryImages = images.filter(Boolean)
+  const [localActiveIndex, setLocalActiveIndex] = useState(0)
+  
+  const activeIndex = propsActiveIndex !== undefined ? propsActiveIndex : localActiveIndex
+  const setActiveIndex = onChangeActiveIndex || setLocalActiveIndex
+
+  const [isZoomed, setIsZoomed] = useState(false)
+  const activeSrc = galleryImages[activeIndex]
+
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row">
+      {galleryImages.length > 1 && (
+        <div className="order-2 flex gap-2 sm:order-1 sm:flex-col">
+          {galleryImages.map((src, index) => (
+            <button
+              key={`${src}-${index}`}
+              type="button"
+              onClick={() => setActiveIndex(index)}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-slate-50 sm:h-20 sm:w-20 ${
+                activeIndex === index ? 'border-dcc-primary' : 'border-transparent'
+              }`}
+            >
+              <CdnImage src={src} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="relative order-1 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 sm:order-2">
+        <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+          {badges.map((badge) => (
+            <span
+              key={badge.label}
+              className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          ))}
+        </div>
+        {activeSrc ? (
+          <CdnImage src={activeSrc} alt="Product" className="aspect-square w-full object-cover cursor-zoom-in" onClick={() => setIsZoomed(true)} />
+        ) : (
+          <div className="aspect-square w-full bg-slate-100" aria-hidden />
+        )}
+        {product && (
+          <div className="absolute right-3 top-3 z-10">
+            <WishlistButton product={product} size="md" className="shadow-sm" />
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setIsZoomed(true)}
+          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-slate-600 shadow-sm hover:bg-white transition"
+          aria-label="Zoom image"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Fullscreen Zoom Modal */}
+      {isZoomed && activeSrc && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 cursor-zoom-out"
+          onClick={() => setIsZoomed(false)}
+        >
+          <div className="relative max-w-4xl w-full h-[80vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-white hover:text-slate-300 font-bold text-xl bg-slate-900/60 p-2 rounded-full h-10 w-10 flex items-center justify-center transition shadow-md"
+              onClick={() => setIsZoomed(false)}
+            >
+              ✕
+            </button>
+            <img 
+              src={activeSrc} 
+              alt="Zoomed Product View" 
+              className="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition duration-300" 
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
