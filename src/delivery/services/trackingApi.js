@@ -1,17 +1,28 @@
 import { api } from '../../services/api/client'
-import { tryApi, unwrap } from '../utils/deliveryApiHelpers'
-import * as store from '../utils/deliveryStorage'
+import { unwrap } from '../utils/deliveryApiHelpers'
+import { isDemoDelivery } from '../utils/deliveryAuth'
+import {
+  getDeliveryLive as demoGetDeliveryLive,
+  trackPublic as demoTrackPublic,
+  getTrackingPoints,
+  addTrackingBatch,
+} from '../utils/deliveryStorage'
 
 export const trackingApi = {
-  getDeliveryTracking: (id) => api.get(`/delivery/deliveries/${id}/live`).then(unwrap),
+  getDeliveryTracking: (id) => {
+    if (isDemoDelivery()) return Promise.resolve(demoGetDeliveryLive(id))
+    return api.get(`/delivery/deliveries/${id}/live`).then(unwrap)
+  },
 
-  updateDeliveryTracking: (id, payload) => api.patch(`/delivery/deliveries/${id}/track`, payload).then(unwrap),
+  updateDeliveryTracking: (id, payload) => {
+    if (isDemoDelivery()) {
+      const points = Array.isArray(payload.points) ? payload.points : [payload]
+      return Promise.resolve(addTrackingBatch(id, points))
+    }
+    return api.patch(`/delivery/deliveries/${id}/track`, payload).then(unwrap)
+  },
 
-  getOrderTracking: (orderId) =>
-    tryApi(
-      () => api.get(`/orders/track/${orderId}`).then(unwrap),
-      () => store.trackOrderLive(orderId)
-    ),
+  getOrderTracking: (orderId) => api.get(`/orders/track/${orderId}`).then(unwrap),
 
   getOrderDeliveryStatus: async (orderId) => {
     const live = await trackingApi.getOrderTracking(orderId)
@@ -24,20 +35,24 @@ export const trackingApi = {
 
   getDeliveryLive: (id) => trackingApi.getDeliveryTracking(id),
 
-  getPublic: (trackingCode) => api.get(`/delivery/track/${encodeURIComponent(trackingCode.trim())}`).then(unwrap),
+  getPublic: (trackingCode) => {
+    if (isDemoDelivery()) {
+      try { return Promise.resolve(demoTrackPublic(trackingCode)) }
+      catch (e) { return Promise.reject(e) }
+    }
+    return api.get(`/delivery/track/${encodeURIComponent(trackingCode.trim())}`).then(unwrap)
+  },
 
   getPublicViaDelivery: (trackingCode) => trackingApi.getPublic(trackingCode),
 
-  getHistory: (deliveryId) =>
-    api.get(`/delivery/deliveries/${deliveryId}/live`).then((res) => res.data?.route ?? []),
+  getHistory: (deliveryId) => {
+    if (isDemoDelivery()) return Promise.resolve(getTrackingPoints(deliveryId))
+    return api.get(`/delivery/deliveries/${deliveryId}/live`).then((res) => res.data?.route ?? [])
+  },
 
   getOrderLive: (orderId) => trackingApi.getOrderTracking(orderId),
 
-  getSubOrderLive: (subOrderId) =>
-    tryApi(
-      () => Promise.reject(new Error('Sub-order tracking not implemented')),
-      () => store.trackSubOrderLive(subOrderId)
-    ),
+  getSubOrderLive: (subOrderId) => api.get(`/orders/track/${subOrderId}`).then(unwrap),
 
   getAdminLive: () =>
     api.get('/delivery/assigned', { params: { limit: 100 } }).then((res) => {
