@@ -95,7 +95,7 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
 
       <div className="mt-5 flex flex-wrap items-baseline gap-3">
         <span className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          {formatLkr(product.price)}
+          {formatLkr(product.price ?? 0)}
         </span>
         {product.originalPrice != null && product.originalPrice > product.price && (
           <span className="text-lg text-slate-400 line-through">
