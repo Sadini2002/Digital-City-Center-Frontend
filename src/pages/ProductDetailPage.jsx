@@ -65,11 +65,65 @@ export default function ProductDetailPage() {
   sizes: [],
   badges: [],
   breadcrumbs: [],
-  description: p.description || "",
-  featureCards: [],
-  highlights: [],
-  specifications: [],
-  relatedProducts: [],
+  description:
+  p.description ||
+  "No product description available.",
+
+featureCards: [
+  {
+    title: "Premium Quality",
+    description: "Carefully selected high-quality materials.",
+    icon: "battery",
+  },
+  {
+    title: "Trusted Seller",
+    description: p.seller?.shopName || "Verified Seller",
+    icon: "heart",
+  },
+],
+
+highlights: [
+  `Category: ${p.category?.name || "N/A"}`,
+  `Seller: ${p.seller?.shopName || "Unknown Seller"}`,
+  `Stock: ${p.variants?.[0]?.stock ?? 0} available`,
+  `Status: ${p.status || "Available"}`,
+],
+
+specifications: [
+  {
+    label: "Category",
+    value: p.category?.name || "N/A",
+  },
+  {
+    label: "Seller",
+    value: p.seller?.shopName || "N/A",
+  },
+  {
+    label: "Price",
+    value: `LKR ${Number(p.variants?.[0]?.price || 0).toLocaleString()}`,
+  },
+  {
+    label: "Stock",
+    value: `${p.variants?.[0]?.stock ?? 0}`,
+  },
+  {
+    label: "SKU",
+    value: p.variants?.[0]?.sku || "N/A",
+  },
+  {
+    label: "Status",
+    value: p.status || "Active",
+  },
+
+  ...(p.variants?.[0]?.attributes
+    ? Object.entries(p.variants[0].attributes).map(([key, value]) => ({
+        label: key,
+        value: String(value),
+      }))
+    : []),
+],
+
+relatedProducts: [],
 });
   } catch (error) {
     console.error("Product fetch error:", error);
