@@ -43,10 +43,13 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
       {activeTab === 'description' && (
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{product.description}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-line text-slate-600 sm:text-base">
+                  {product.description || "No description available."}
+            </p>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {product.featureCards.map((card) => (
+              {product.featureCards?.length > 0 &&
+                  product .featureCards.map((card) => (
                 <div
                   key={card.title}
                   className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
@@ -63,7 +66,8 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
             <div>
               <h3 className="font-semibold text-slate-900">Product Highlights</h3>
               <ul className="mt-3 space-y-2">
-                {product.highlights.map((item) => (
+                {product.highlights?.length > 0 &&
+                  product.highlights.map((item) => (
                   <li key={item} className="flex gap-2 text-sm text-slate-600">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-dcc-primary" />
                     {item}
@@ -123,7 +127,8 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
 
       {activeTab === 'specifications' && (
         <dl className="mt-8 grid gap-3 sm:grid-cols-2">
-          {product.specifications.map((row) => (
+          {product.specifications?.length > 0 ? (
+           product.specifications.map((row) => (
             <div
               key={row.label}
               className="flex flex-col rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:gap-4"
@@ -131,7 +136,12 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
               <dt className="text-sm font-semibold text-slate-700 sm:w-36">{row.label}</dt>
               <dd className="text-sm text-slate-600">{row.value}</dd>
             </div>
-          ))}
+          ))
+          ) : (
+              <p className="text-slate-500">
+                  No specifications available.
+              </p>
+          )}
         </dl>
       )}
 
