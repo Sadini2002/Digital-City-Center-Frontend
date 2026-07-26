@@ -50,6 +50,10 @@ async function clearHttpOnlySession(cookieName) {
   }
 }
 
+function notifyAuthChange() {
+  window.dispatchEvent(new Event('dcc-auth-change'))
+}
+
 async function persistToken(kind, token, rememberMe = false) {
   const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
   const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
@@ -58,12 +62,14 @@ async function persistToken(kind, token, rememberMe = false) {
 
   try {
     const httpOnlySet = await setHttpOnlySession(cookieName, token, rememberMe)
+    notifyAuthChange()
     if (httpOnlySet) return
   } catch {
     // Fall back to client-visible secure cookie when session endpoint is unavailable.
   }
 
   document.cookie = `${cookieName}=${encodeURIComponent(token)}; ${buildCookieFlags(maxAge)}`
+  notifyAuthChange()
 }
 
 function resolveToken(kind) {
@@ -94,6 +100,7 @@ async function removeToken(kind) {
   localStorage.removeItem(legacyKey)
   clearCookie(cookieName)
   await clearHttpOnlySession(cookieName)
+  notifyAuthChange()
 }
 
 export async function setAuthToken(token, rememberMe = false) {

@@ -50,8 +50,7 @@ export default function TrackDeliveryPage() {
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-2 text-2xl font-bold text-slate-900">Track your delivery</h1>
           <p className="mb-8 text-sm text-slate-600">
-            Enter your tracking code to see status and location.{' '}
-            <span className="text-slate-400">Try DCC-DLV-1001 or DCC-DLV-0998 (demo).</span>
+            Enter your tracking code to see status and location.
           </p>
 
           <form onSubmit={handleSubmit} className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end">

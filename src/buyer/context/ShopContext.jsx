@@ -1,10 +1,21 @@
-import { createContext, useCallback, useMemo, useSyncExternalStore } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import toast from 'react-hot-toast'
-import { getProductById } from '../../data/productsCatalog'
-import { toCartLine, toShopSnapshot } from './shopUtils'
+import { getAuthToken } from '../../utils/authStorage'
+import { cartService } from '../services/cartService'
+import { toShopSnapshot } from './shopUtils'
 
 const CART_KEY = 'dcc_cart'
 const WISHLIST_KEY = 'dcc_wishlist'
+
+const EMPTY_SUMMARY = {
+  itemCount: 0,
+  uniqueItems: 0,
+  subtotal: 0,
+  deliveryFee: 0,
+  discount: 0,
+  total: 0,
+  currency: 'LKR',
+}
 
 const ShopContext = createContext(null)
 
@@ -22,12 +33,10 @@ function writeStorage(key, value) {
   window.dispatchEvent(new Event('dcc-shop-update'))
 }
 
-let cartCache = readStorage(CART_KEY, [])
 let wishlistCache = readStorage(WISHLIST_KEY, [])
 
-function subscribe(callback) {
+function subscribeWishlist(callback) {
   const handler = () => {
-    cartCache = readStorage(CART_KEY, [])
     wishlistCache = readStorage(WISHLIST_KEY, [])
     callback()
   }
@@ -39,97 +48,193 @@ function subscribe(callback) {
   }
 }
 
-function getCart() {
-  return cartCache
-}
-
-function getWishlist() {
+function getWishlistSnapshot() {
   return wishlistCache
 }
 
+function isAuthenticated() {
+  return Boolean(getAuthToken())
+}
+
+function resolveProductIds(product) {
+  const listingId = product?.listingId ?? product?.productId ?? product?.id
+  const variantId =
+    product?.variantId ??
+    product?.selectedVariantId ??
+    product?.variants?.find((v) => v.status !== 'inactive')?.id ??
+    product?.variants?.[0]?.id
+
+  return { listingId, variantId }
+}
+
 export function ShopProvider({ children }) {
-  const cart = useSyncExternalStore(subscribe, getCart, () => [])
-  const wishlist = useSyncExternalStore(subscribe, getWishlist, () => [])
+  const [cart, setCart] = useState([])
+  const [cartSummary, setCartSummary] = useState(EMPTY_SUMMARY)
+  const [cartLoading, setCartLoading] = useState(false)
+  const [cartReady, setCartReady] = useState(false)
 
-  const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
-    [cart],
-  )
+  const wishlist = useSyncExternalStore(subscribeWishlist, getWishlistSnapshot, () => [])
 
-  const getProductStock = (productId) => {
-    try {
-      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-      const match = local.find(p => (p.productId || p._id || p.id) === productId)
-      if (match) return match.stock ?? 0
-    } catch {}
+  const applyServerCart = useCallback((payload) => {
+    setCart(payload.items || [])
+    setCartSummary(payload.summary || EMPTY_SUMMARY)
+  }, [])
 
-    const match = getProductById(productId)
-    return match ? match.stock ?? 0 : 0
-  }
+  const migrateGuestCart = useCallback(async () => {
+    const guestCart = readStorage(CART_KEY, [])
+    if (!guestCart.length) return
 
-  const addToCart = useCallback((product, quantity = 1, color = '', size = '') => {
-    const snapshot = toShopSnapshot(product)
-    const lineId = color || size ? `${snapshot.id}::${color}::${size}` : snapshot.id
-    const next = [...readStorage(CART_KEY, [])]
-    const index = next.findIndex((line) => (line.lineId || line.id) === lineId)
-
-    const currentQty = index >= 0 ? next[index].quantity : 0
-    const newQty = currentQty + quantity
-    const maxStock = getProductStock(snapshot.id)
-
-    if (newQty > maxStock) {
-      toast.error(`Cannot add to cart. Only ${maxStock} units available in stock.`)
-      return
-    }
-
-    if (index >= 0) {
-      next[index] = {
-        ...next[index],
-        quantity: newQty,
+    for (const line of guestCart) {
+      const listingId = Number(line.productId || line.listingId || line.id)
+      const variantId = Number(line.variantId)
+      // Only migrate real backend ids; skip legacy demo/localStorage entries.
+      if (!Number.isInteger(listingId) && !Number.isInteger(variantId)) continue
+      try {
+        await cartService.addItem({
+          variantId: Number.isInteger(variantId) && variantId > 0 ? variantId : undefined,
+          productId: Number.isInteger(listingId) && listingId > 0 ? listingId : undefined,
+          listingId: Number.isInteger(listingId) && listingId > 0 ? listingId : undefined,
+          quantity: line.quantity || 1,
+          color: line.color || '',
+          size: line.size || '',
+        })
+      } catch {
+        // Skip lines that cannot be migrated.
       }
-    } else {
-      next.push({
-        ...toCartLine(snapshot, quantity),
-        lineId,
-        color,
-        size
-      })
     }
-    writeStorage(CART_KEY, next)
-    toast.success('Added to cart')
-  }, [])
-
-  const removeFromCart = useCallback((lineId) => {
-    const next = readStorage(CART_KEY, []).filter((line) => (line.lineId || line.id) !== lineId)
-    writeStorage(CART_KEY, next)
-  }, [])
-
-  const updateCartQuantity = useCallback((lineId, quantity) => {
-    const productId = lineId.split('::')[0]
-    const maxStock = getProductStock(productId)
-
-    if (quantity > maxStock) {
-      toast.error(`Only ${maxStock} units of this item are available in stock.`)
-      return
-    }
-
-    const next = readStorage(CART_KEY, []).map((line) =>
-      (line.lineId || line.id) === lineId ? { ...line, quantity: Math.max(1, quantity) } : line,
-    )
-    writeStorage(CART_KEY, next)
-  }, [])
-
-  const clearCart = useCallback(() => {
     writeStorage(CART_KEY, [])
   }, [])
+
+  const refreshCart = useCallback(async () => {
+    if (!isAuthenticated()) {
+      setCart([])
+      setCartSummary(EMPTY_SUMMARY)
+      setCartReady(true)
+      return { items: [], summary: EMPTY_SUMMARY }
+    }
+
+    setCartLoading(true)
+    try {
+      await migrateGuestCart()
+      const payload = await cartService.getCart()
+      applyServerCart(payload)
+      return payload
+    } catch (error) {
+      toast.error(error.message || 'Failed to load cart')
+      throw error
+    } finally {
+      setCartLoading(false)
+      setCartReady(true)
+    }
+  }, [applyServerCart, migrateGuestCart])
+
+  useEffect(() => {
+    refreshCart().catch(() => {})
+
+    const onAuthChange = () => {
+      refreshCart().catch(() => {})
+    }
+
+    window.addEventListener('dcc-auth-change', onAuthChange)
+    return () => window.removeEventListener('dcc-auth-change', onAuthChange)
+  }, [refreshCart])
+
+  const cartCount = useMemo(
+    () => cartSummary.itemCount || cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart, cartSummary.itemCount],
+  )
+
+  const addToCart = useCallback(
+    async (product, quantity = 1, color = '', size = '') => {
+      if (!isAuthenticated()) {
+        toast.error('Please sign in to add items to your cart.')
+        return null
+      }
+
+      try {
+        const { listingId, variantId } = resolveProductIds(product)
+        const payload = await cartService.addItem({
+          variantId,
+          productId: listingId,
+          listingId,
+          quantity,
+          color,
+          size,
+        })
+        applyServerCart(payload)
+        toast.success('Added to cart')
+        return payload
+      } catch (error) {
+        toast.error(error.message || 'Could not add to cart')
+        return null
+      }
+    },
+    [applyServerCart],
+  )
+
+  const removeFromCart = useCallback(
+    async (lineId) => {
+      if (!isAuthenticated()) {
+        toast.error('Please sign in to manage your cart.')
+        return null
+      }
+
+      try {
+        const payload = await cartService.removeItem(lineId)
+        applyServerCart(payload)
+        toast.success('Removed from cart')
+        return payload
+      } catch (error) {
+        toast.error(error.message || 'Could not remove item')
+        return null
+      }
+    },
+    [applyServerCart],
+  )
+
+  const updateCartQuantity = useCallback(
+    async (lineId, quantity) => {
+      const nextQty = Math.max(1, Number(quantity) || 1)
+
+      if (!isAuthenticated()) {
+        toast.error('Please sign in to manage your cart.')
+        return null
+      }
+
+      try {
+        const payload = await cartService.updateQuantity(lineId, nextQty)
+        applyServerCart(payload)
+        return payload
+      } catch (error) {
+        toast.error(error.message || 'Could not update quantity')
+        return null
+      }
+    },
+    [applyServerCart],
+  )
+
+  const clearCart = useCallback(async () => {
+    if (!isAuthenticated()) {
+      toast.error('Please sign in to manage your cart.')
+      return null
+    }
+
+    try {
+      const payload = await cartService.clear()
+      applyServerCart(payload)
+      toast.success('Cart cleared')
+      return payload
+    } catch (error) {
+      toast.error(error.message || 'Could not clear cart')
+      return null
+    }
+  }, [applyServerCart])
 
   const toggleWishlist = useCallback((product) => {
     const snapshot = toShopSnapshot(product)
     const list = readStorage(WISHLIST_KEY, [])
     const exists = list.some((item) => item.id === snapshot.id)
-    const next = exists
-      ? list.filter((item) => item.id !== snapshot.id)
-      : [...list, snapshot]
+    const next = exists ? list.filter((item) => item.id !== snapshot.id) : [...list, snapshot]
     writeStorage(WISHLIST_KEY, next)
   }, [])
 
@@ -144,37 +249,33 @@ export function ShopProvider({ children }) {
   )
 
   const moveWishlistToCart = useCallback(
-    (productId) => {
+    async (productId) => {
       const item = wishlist.find((i) => i.id === productId)
-      if (item) {
-        addToCart(item, 1)
-        removeFromWishlist(productId)
-      }
+      if (!item) return
+      await addToCart(item, 1)
+      removeFromWishlist(productId)
     },
     [wishlist, addToCart, removeFromWishlist],
   )
 
-  const addAllWishlistToCart = useCallback(() => {
+  const addAllWishlistToCart = useCallback(async () => {
     const list = readStorage(WISHLIST_KEY, [])
-    const cart = readStorage(CART_KEY, [])
-    list.forEach((item) => {
-      const index = cart.findIndex((line) => line.id === item.id)
-      if (index >= 0) {
-        cart[index] = { ...cart[index], quantity: cart[index].quantity + 1 }
-      } else {
-        cart.push({ ...item, quantity: 1 })
-      }
-    })
-    writeStorage(CART_KEY, cart)
+    for (const item of list) {
+      await addToCart(item, 1)
+    }
     writeStorage(WISHLIST_KEY, [])
-  }, [])
+  }, [addToCart])
 
   const value = useMemo(
     () => ({
       cart,
+      cartSummary,
+      cartLoading,
+      cartReady,
       wishlist,
       cartCount,
       wishlistCount: wishlist.length,
+      refreshCart,
       addToCart,
       removeFromCart,
       updateCartQuantity,
@@ -187,8 +288,12 @@ export function ShopProvider({ children }) {
     }),
     [
       cart,
+      cartSummary,
+      cartLoading,
+      cartReady,
       wishlist,
       cartCount,
+      refreshCart,
       addToCart,
       removeFromCart,
       updateCartQuantity,

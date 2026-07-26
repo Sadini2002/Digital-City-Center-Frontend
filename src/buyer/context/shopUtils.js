@@ -7,12 +7,19 @@
 export function toShopSnapshot(product) {
   return {
     id: product.id,
+    listingId: product.listingId ?? product.productId ?? product.id,
+    variantId:
+      product.variantId ??
+      product.selectedVariantId ??
+      product.variants?.find((v) => v.status !== 'inactive')?.id ??
+      product.variants?.[0]?.id,
     name: product.name ?? product.title,
     brand: product.brand ?? '',
     price: product.price,
     originalPrice: product.originalPrice ?? null,
     image: product.image ?? product.images?.[0] ?? '',
     seller: product.seller?.name ?? product.seller ?? 'Tech World LK',
+    stock: product.stock,
   }
 }
 

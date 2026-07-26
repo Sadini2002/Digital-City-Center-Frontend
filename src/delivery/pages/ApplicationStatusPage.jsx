@@ -23,7 +23,7 @@ function readUser() {
 
 export default function DeliveryApplicationStatusPage() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(readUser)
   const [refreshing, setRefreshing] = useState(true)
 
   const refreshProfile = useCallback(async () => {
@@ -45,12 +45,10 @@ export default function DeliveryApplicationStatusPage() {
   useEffect(() => {
     let cancelled = false
     const refresh = async () => {
-      let latestProfile = null
       try {
         const res = await usersApi.getProfile()
         const profile = res.data?.data ?? res.data
         if (profile) {
-          latestProfile = profile
           localStorage.setItem('user', JSON.stringify(profile))
           if (!cancelled) setUser(profile)
         }
@@ -58,7 +56,7 @@ export default function DeliveryApplicationStatusPage() {
         if (!cancelled) setUser(readUser())
       }
       if (!cancelled) {
-        const current = latestProfile || readUser()
+        const current = readUser()
         const active =
           current?.role === 'DELIVERY_DRIVER'
             ? isDeliveryDriverActive(current)
@@ -81,7 +79,6 @@ export default function DeliveryApplicationStatusPage() {
       clearInterval(poll)
     }
   }, [navigate, refreshProfile])
-
 
   if (refreshing) {
     return (

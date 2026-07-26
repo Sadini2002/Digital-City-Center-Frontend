@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useShop } from '../../buyer'
 import {
@@ -12,7 +12,9 @@ import {
   Truck,
 } from 'lucide-react'
 import WishlistButton from '../common/WishlistButton'
+import { resolveVariantId } from '../../buyer/services/productMapper'
 import { formatLkr } from '../../data/productsCatalog'
+import { getAuthToken } from '../../utils/authStorage'
 
 function StarRating({ rating }) {
   return (
@@ -39,17 +41,39 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
   const [quantity, setQuantity] = useState(1)
 
   const selectedColor = product.colors?.find((c) => c.id === colorId)
+  const selectedVariantId = useMemo(
+    () => resolveVariantId(product, selectedColor?.name || '', size || ''),
+    [product, selectedColor?.name, size],
+  )
+  const selectedVariant =
+    product.variants?.find((variant) => variant.id === selectedVariantId) || product.variants?.[0]
+  const displayPrice = Number(selectedVariant?.price ?? product.price ?? 0)
+  const displayStock = Number(selectedVariant?.stock ?? product.stock ?? 0)
+  const displayImage =
+    selectedVariant?.images?.find((img) => img.isMain)?.url ||
+    selectedVariant?.images?.[0]?.url ||
+    product.images?.[0]
 
-  const handleAddToCart = () => {
-    addToCart(
+  const handleAddToCart = async () => {
+    if (!getAuthToken()) {
+      navigate('/login', { state: { from: `/product/${product.id}` } })
+      return
+    }
+
+    await addToCart(
       {
         id: product.id,
+        listingId: product.listingId ?? product.id,
+        productId: product.listingId ?? product.id,
+        variantId: selectedVariantId,
         title: product.title,
         brand: product.brand,
-        price: product.price,
+        price: displayPrice,
         originalPrice: product.originalPrice,
-        image: product.images?.[0],
+        image: displayImage,
         seller: product.seller,
+        stock: displayStock,
+        variants: product.variants,
       },
       quantity,
       selectedColor?.name || '',
@@ -57,8 +81,12 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
     )
   }
 
-  const handleBuyNow = () => {
-    handleAddToCart()
+  const handleBuyNow = async () => {
+    if (!getAuthToken()) {
+      navigate('/login', { state: { from: `/product/${product.id}` } })
+      return
+    }
+    await handleAddToCart()
     navigate('/cart')
   }
 
@@ -95,9 +123,9 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
 
       <div className="mt-5 flex flex-wrap items-baseline gap-3">
         <span className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          {formatLkr(product.price ?? 0)}
+          {formatLkr(displayPrice)}
         </span>
-        {product.originalPrice != null && product.originalPrice > product.price && (
+        {product.originalPrice != null && product.originalPrice > displayPrice && (
           <span className="text-lg text-slate-400 line-through">
             {formatLkr(product.originalPrice)}
           </span>
@@ -106,7 +134,9 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
 
       <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-green-600">
         <Box className="h-4 w-4" />
-        IN STOCK ({product.stock} UNITS REMAINING)
+        {displayStock > 0
+          ? `IN STOCK (${displayStock} UNITS REMAINING)`
+          : 'OUT OF STOCK'}
       </p>
 
       {hasColors && (
@@ -173,8 +203,9 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
           <button
             type="button"
             className="touch-target px-3 text-slate-600 hover:bg-slate-50"
-            onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+            onClick={() => setQuantity((q) => Math.min(Math.max(displayStock, 1), q + 1))}
             aria-label="Increase quantity"
+            disabled={displayStock < 1}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -184,7 +215,8 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
           <button
             type="button"
             onClick={handleAddToCart}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dcc-primary px-6 py-3 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+            disabled={displayStock < 1}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dcc-primary px-6 py-3 text-sm font-semibold text-white hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ShoppingCart className="h-4 w-4" />
             Add to Cart
@@ -192,19 +224,24 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
           <button
             type="button"
             onClick={handleBuyNow}
-            className="flex-1 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+            disabled={displayStock < 1}
+            className="flex-1 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Buy Now
           </button>
           <WishlistButton
             product={{
               id: product.id,
+              listingId: product.listingId ?? product.id,
+              variantId: selectedVariantId,
               title: product.title,
               brand: product.brand,
-              price: product.price,
+              price: displayPrice,
               originalPrice: product.originalPrice,
-              image: product.images?.[0],
+              image: displayImage,
               seller: product.seller,
+              stock: displayStock,
+              variants: product.variants,
             }}
             showLabel
             className="shrink-0 rounded-xl sm:rounded-full"

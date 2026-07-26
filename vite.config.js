@@ -125,12 +125,6 @@ function secureAuthCookiePlugin() {
 }
 
 // https://vite.dev/config/
-/// <reference types="vitest" />
 export default defineConfig({
   plugins: [react(), secureAuthCookiePlugin()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    include: ['src/**/*.test.{js,jsx}'],
-  },
 })
