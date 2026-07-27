@@ -6,26 +6,30 @@ import {
   markBuyerNotificationsAsRead,
   markSellerNotificationsAsRead,
 } from '../../utils/notificationStorage'
-import { getNotifications, markAllNotificationsRead } from '../../delivery/utils/deliveryStorage'
+import { deliveryApi } from '../../delivery/services/deliveryApi'
 
 export default function NotificationPanel({ role = 'buyer' }) {
   const [open, setOpen] = useState(false)
   const [notifs, setNotifs] = useState([])
   const containerRef = useRef(null)
 
-  const fetchNotifs = () => {
+  const fetchNotifs = async () => {
     if (role === 'buyer') {
       setNotifs(getBuyerNotifications())
     } else if (role === 'delivery') {
-      const raw = getNotifications()
-      const mapped = raw.map(n => ({
-        id: n.id,
-        title: n.title,
-        message: n.body,
-        read: n.read,
-        createdAt: n.createdAt
-      }))
-      setNotifs(mapped)
+      try {
+        const { data } = await deliveryApi.listNotifications({ limit: 50 })
+        const mapped = (data || []).map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.body,
+          read: n.read,
+          createdAt: n.createdAt,
+        }))
+        setNotifs(mapped)
+      } catch {
+        setNotifs([])
+      }
     } else {
       setNotifs(getSellerNotifications())
     }
@@ -51,15 +55,15 @@ export default function NotificationPanel({ role = 'buyer' }) {
 
   const unreadCount = notifs.filter((n) => !n.read).length
 
-  const handleMarkAsRead = () => {
+  const handleMarkAsRead = async () => {
     if (role === 'buyer') {
       markBuyerNotificationsAsRead()
     } else if (role === 'delivery') {
-      markAllNotificationsRead()
+      await deliveryApi.markAllNotificationsRead()
     } else {
       markSellerNotificationsAsRead()
     }
-    fetchNotifs()
+    await fetchNotifs()
   }
 
   return (

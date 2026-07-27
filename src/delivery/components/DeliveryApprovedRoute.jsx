@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { usersApi } from '../../services/api'
 import {
+  getDeliveryProfileStatus,
   isDeliveryDriverActive,
   isDeliveryProviderActive,
-  isDemoDelivery,
-  getStoredDeliveryUser,
 } from '../utils/deliveryAuth'
 import { getAuthToken } from '../../utils/authStorage'
 
@@ -17,15 +16,6 @@ export default function DeliveryApprovedRoute() {
   // BACKEND: GET /users/me — refresh approval status before rendering portal
   useEffect(() => {
     let cancelled = false
-
-    // Demo tokens: skip the real API, use localStorage user directly
-    if (isDemoDelivery()) {
-      const stored = getStoredDeliveryUser()
-      if (!cancelled) setUser(stored)
-      if (!cancelled) setChecking(false)
-      return undefined
-    }
-
     usersApi
       .getProfile()
       .then((res) => {
@@ -36,8 +26,7 @@ export default function DeliveryApprovedRoute() {
         }
       })
       .catch(() => {
-        // Fall back to stored user on API errors
-        if (!cancelled) setUser(getStoredDeliveryUser())
+        if (!cancelled) setUser(null)
       })
       .finally(() => {
         if (!cancelled) setChecking(false)
@@ -80,3 +69,18 @@ export default function DeliveryApprovedRoute() {
 
   return <Outlet />
 }
+
+export function readDeliveryUser() {
+  return getStoredUser()
+}
+
+export function refreshDeliveryUserFromStorage() {
+  return getStoredUser()
+}
+
+function getDeliveryProfileLabel(user) {
+  const status = getDeliveryProfileStatus(user)
+  return status || 'PENDING'
+}
+
+export { getDeliveryProfileLabel }

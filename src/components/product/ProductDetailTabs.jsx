@@ -43,38 +43,38 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
       {activeTab === 'description' && (
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <p className="text-sm leading-relaxed whitespace-pre-line text-slate-600 sm:text-base">
-                  {product.description || "No description available."}
-            </p>
+            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{product.description}</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {product.featureCards?.length > 0 &&
-                  product .featureCards.map((card) => (
-                <div
-                  key={card.title}
-                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
-                    <FeatureIcon type={card.icon} />
+            {(product.featureCards?.length ?? 0) > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {product.featureCards.map((card) => (
+                  <div
+                    key={card.title}
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
+                      <FeatureIcon type={card.icon} />
+                    </div>
+                    <h3 className="mt-3 font-semibold text-slate-900">{card.title}</h3>
+                    <p className="mt-1 text-sm text-slate-600">{card.description}</p>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">{card.title}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{card.description}</p>
-                </div>
-              ))}
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-900">Product Highlights</h3>
-              <ul className="mt-3 space-y-2">
-                {product.highlights?.length > 0 &&
-                  product.highlights.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-slate-600">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-dcc-primary" />
-                    {item}
-                  </li>
                 ))}
-              </ul>
-            </div>
+              </div>
+            )}
+
+            {(product.highlights?.length ?? 0) > 0 && (
+              <div>
+                <h3 className="font-semibold text-slate-900">Product Highlights</h3>
+                <ul className="mt-3 space-y-2">
+                  {product.highlights.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-600">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-dcc-primary" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -91,44 +91,45 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
               </button>
             </div>
 
-            <div>
-              <h3 className="font-semibold text-slate-900">You May Also Like</h3>
-              <div className="mt-4 space-y-3">
-                {product.relatedProducts.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={`/product/${item.id}`}
-                    className="flex gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:border-dcc-primary/30 hover:bg-violet-50/30"
-                  >
-                    {item.image ? (
-                      <CdnImage
-                        src={item.image}
-                        alt=""
-                        className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100" aria-hidden />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-medium text-slate-900">{item.title}</p>
-                      <p className="mt-1 text-sm font-bold text-dcc-primary">{formatLkr(item.price)}</p>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        {item.rating}
+            {(product.relatedProducts?.length ?? 0) > 0 && (
+              <div>
+                <h3 className="font-semibold text-slate-900">You May Also Like</h3>
+                <div className="mt-4 space-y-3">
+                  {product.relatedProducts.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/product/${item.id}`}
+                      className="flex gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:border-dcc-primary/30 hover:bg-violet-50/30"
+                    >
+                      {item.image ? (
+                        <CdnImage
+                          src={item.image}
+                          alt=""
+                          className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100" aria-hidden />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-medium text-slate-900">{item.title}</p>
+                        <p className="mt-1 text-sm font-bold text-dcc-primary">{formatLkr(item.price)}</p>
+                        <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          {item.rating}
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
       {activeTab === 'specifications' && (
         <dl className="mt-8 grid gap-3 sm:grid-cols-2">
-          {product.specifications?.length > 0 ? (
-           product.specifications.map((row) => (
+          {(product.specifications || []).map((row) => (
             <div
               key={row.label}
               className="flex flex-col rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:gap-4"
@@ -136,12 +137,7 @@ export default function ProductDetailTabs({ product, onShowReviews }) {
               <dt className="text-sm font-semibold text-slate-700 sm:w-36">{row.label}</dt>
               <dd className="text-sm text-slate-600">{row.value}</dd>
             </div>
-          ))
-          ) : (
-              <p className="text-slate-500">
-                  No specifications available.
-              </p>
-          )}
+          ))}
         </dl>
       )}
 

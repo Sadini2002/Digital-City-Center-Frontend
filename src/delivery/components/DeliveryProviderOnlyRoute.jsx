@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { usersApi } from '../../services/api'
-import { isDemoDelivery, getStoredDeliveryUser } from '../utils/deliveryAuth'
 
 /** Fleet management — delivery company owners only */
 export default function DeliveryProviderOnlyRoute() {
@@ -10,14 +9,6 @@ export default function DeliveryProviderOnlyRoute() {
 
   useEffect(() => {
     let cancelled = false
-
-    if (isDemoDelivery()) {
-      const stored = getStoredDeliveryUser()
-      if (!cancelled) setUser(stored)
-      if (!cancelled) setChecking(false)
-      return undefined
-    }
-
     usersApi
       .getProfile()
       .then((res) => {
@@ -25,7 +16,7 @@ export default function DeliveryProviderOnlyRoute() {
         if (!cancelled) setUser(profile || null)
       })
       .catch(() => {
-        if (!cancelled) setUser(getStoredDeliveryUser())
+        if (!cancelled) setUser(null)
       })
       .finally(() => {
         if (!cancelled) setChecking(false)

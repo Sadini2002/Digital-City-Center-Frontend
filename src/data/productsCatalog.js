@@ -768,10 +768,4 @@ export function getAllProductIds() {
 
 export function formatLkr(amount) {
   return `LKR ${amount.toLocaleString('en-LK')}`
-
-
-
-  if (value == null) return "Rs. 0";
-
-  return `Rs. ${Number(value).toLocaleString("en-LK")}`;
-};
+}

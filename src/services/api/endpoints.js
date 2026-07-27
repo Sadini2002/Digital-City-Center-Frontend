@@ -22,6 +22,18 @@ export const listingsApi = {
   suggestions: (params, config = {}) => api.get('/search/suggestions', { params, ...config }),
 }
 
+export const productsApi = {
+  getById: (id) => api.get(`/products/${encodeURIComponent(id)}`),
+}
+
 export const supportApi = {
   submitContact: (payload) => api.post('/support/contact', payload),
+}
+
+export const cartApi = {
+  get: () => api.get('/cart'),
+  add: (payload) => api.post('/cart/add', payload),
+  update: (id, payload) => api.put(`/cart/update/${encodeURIComponent(id)}`, payload),
+  remove: (id) => api.delete(`/cart/${encodeURIComponent(id)}`),
+  clear: () => api.delete('/cart/clear'),
 }
