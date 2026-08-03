@@ -24,7 +24,7 @@ export function getBuyerNotifications() {
         title: 'Welcome to DCC!',
         message: 'Explore products, select categories, and shop safely.',
         type: 'info',
-        read: false,
+        read: true,
         createdAt: new Date().toISOString(),
       },
       {
@@ -63,6 +63,7 @@ export function getBuyerNotifications() {
     writeJson(BUYER_NOTIFS_KEY, seed)
     return seed
   }
+
   return notifs
 }
 

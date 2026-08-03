@@ -6,6 +6,7 @@ import ForgotPassword from '../pages/ForgotPassword'
 import HomePage from '../pages/HomePage'
 import Login from '../pages/Login'
 import NotFoundPage from '../pages/NotFoundPage'
+import NotificationsPage from '../pages/Notifications/NotificationsPage'
 import CategoryPage from '../pages/CategoryPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import Register from '../pages/Register'
@@ -166,6 +167,8 @@ function AppRouter() {
         </Route>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/notifications/:id" element={<NotificationsPage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
