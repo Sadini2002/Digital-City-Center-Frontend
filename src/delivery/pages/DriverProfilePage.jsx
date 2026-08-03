@@ -5,18 +5,11 @@ import { Link } from 'react-router-dom'
 import { deliveryApi } from '../services/deliveryApi'
 import DeliveryPanel from '../components/ui/DeliveryPanel'
 import DeliveryAlert from '../components/ui/DeliveryAlert'
+import { readDeliveryUser } from '../utils/readDeliveryUser'
 import { usersApi } from '../../services/api'
 
-function readStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}')
-  } catch {
-    return {}
-  }
-}
-
 export default function DeliveryDriverProfilePage() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => readDeliveryUser())
   const driver = user?.deliveryDriver
   const [isAvailable, setIsAvailable] = useState(driver?.isAvailable ?? false)
   const [saving, setSaving] = useState(false)
@@ -35,9 +28,6 @@ export default function DeliveryDriverProfilePage() {
   useEffect(() => {
     refreshProfile().catch(() => {
       // keep local snapshot when profile refresh is temporarily unavailable
-      const stored = readStoredUser()
-      setUser(stored)
-      setIsAvailable(Boolean(stored?.deliveryDriver?.isAvailable))
     })
   }, [refreshProfile])
 

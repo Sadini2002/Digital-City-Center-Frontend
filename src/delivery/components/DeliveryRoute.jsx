@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { usersApi } from '../../services/api'
-import { isDeliveryRole, isDemoDelivery, getStoredDeliveryUser } from '../utils/deliveryAuth'
+import { isDeliveryRole } from '../utils/deliveryAuth'
 import { getAuthToken } from '../../utils/authStorage'
 
 export default function DeliveryRoute({ children }) {
@@ -19,14 +19,6 @@ export default function DeliveryRoute({ children }) {
       return undefined
     }
 
-    // Demo tokens: skip the real API, use localStorage user directly
-    if (isDemoDelivery()) {
-      const stored = getStoredDeliveryUser()
-      if (!cancelled) setUser(stored)
-      if (!cancelled) setChecking(false)
-      return undefined
-    }
-
     usersApi
       .getProfile()
       .then((res) => {
@@ -39,8 +31,7 @@ export default function DeliveryRoute({ children }) {
         }
       })
       .catch(() => {
-        // Fall back to stored user (covers demo and transient network errors)
-        if (!cancelled) setUser(getStoredDeliveryUser())
+        if (!cancelled) setUser(null)
       })
       .finally(() => {
         if (!cancelled) setChecking(false)

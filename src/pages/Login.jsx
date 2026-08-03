@@ -13,9 +13,6 @@ import {
   isDeliveryDriverActive,
   isDeliveryProviderActive,
 } from '../delivery/utils/deliveryAuth'
-import {
-  activateDemoDeliveryProvider,
-} from '../delivery/utils/deliveryApplicationStorage'
 import { clearAuthToken, setAuthToken } from '../utils/authStorage'
 
 export default function Login() {
@@ -112,11 +109,6 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleDemoDelivery = () => {
-    activateDemoDeliveryProvider()
-    navigate('/delivery', { replace: true })
   }
 
   const handleDemoSeller = async () => {
@@ -228,15 +220,6 @@ export default function Login() {
                   className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
                 >
                   Continue as Demo Seller
-                </button>
-              )}
-              {role === 'delivery' && (
-                <button
-                  type="button"
-                  onClick={handleDemoDelivery}
-                  className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
-                >
-                  Continue as Demo Delivery
                 </button>
               )}
             </form>

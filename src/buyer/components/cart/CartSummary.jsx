@@ -4,18 +4,32 @@ import { savedAddresses } from '../../data/checkoutData'
 import { calculateDeliveryFee } from '../../utils/deliveryPricing'
 import { usePlatformSettings } from '../../../hooks/usePlatformSettings'
 
-export default function CartSummary({ subtotal, itemCount, onClear }) {
+export default function CartSummary({
+  subtotal,
+  itemCount,
+  onClear,
+  deliveryFee: serverDeliveryFee,
+  total: serverTotal,
+  freeDeliveryThreshold,
+  useServerTotals = false,
+}) {
   const { settings } = usePlatformSettings()
   const defaultAddress =
     savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0] ?? null
+
   const deliveryQuote = calculateDeliveryFee({
     address: defaultAddress,
     methodId: 'platform',
     subtotal,
     settings,
   })
-  const delivery = itemCount > 0 ? deliveryQuote.fee : 0
-  const total = subtotal + delivery
+
+  const delivery = useServerTotals
+    ? Number(serverDeliveryFee || 0)
+    : itemCount > 0
+      ? deliveryQuote.fee
+      : 0
+  const total = useServerTotals ? Number(serverTotal ?? subtotal + delivery) : subtotal + delivery
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -27,15 +41,20 @@ export default function CartSummary({ subtotal, itemCount, onClear }) {
         </div>
         <div className="flex justify-between text-slate-600">
           <dt>
-            Estimated delivery
-            {deliveryQuote.distanceKm != null && (
+            {useServerTotals ? 'Delivery' : 'Estimated delivery'}
+            {!useServerTotals && deliveryQuote.distanceKm != null && (
               <span className="mt-0.5 block text-xs font-normal text-slate-400">
                 ~{deliveryQuote.distanceKm} km to {defaultAddress?.district || 'destination'}
               </span>
             )}
+            {useServerTotals && freeDeliveryThreshold != null && subtotal < freeDeliveryThreshold && (
+              <span className="mt-0.5 block text-xs font-normal text-slate-400">
+                Free delivery over {formatLkr(freeDeliveryThreshold)}
+              </span>
+            )}
           </dt>
           <dd className="font-medium text-slate-900">
-            {delivery === 0 ? '—' : formatLkr(delivery)}
+            {delivery === 0 ? (itemCount > 0 ? 'Free' : '—') : formatLkr(delivery)}
           </dd>
         </div>
         <div className="flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
