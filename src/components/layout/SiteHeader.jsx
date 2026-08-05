@@ -5,7 +5,7 @@ import { useShop } from '../../buyer'
 import UtilityTopBar from './UtilityTopBar'
 import BrandLogo from './BrandLogo'
 import HeaderSearch from './HeaderSearch'
-import NotificationPanel from './NotificationPanel'
+import NotificationBell from '../notifications/NotificationBell'
 
 const navItems = [
   { to: '/', label: 'Home', end: true },
@@ -107,7 +107,7 @@ export default function SiteHeader({ activeAuth = null, showUtilityBar = true })
           </div>
 
           <div className="ml-auto flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
-            <NotificationPanel role="buyer" />
+            <NotificationBell />
             <Link
               to="/wishlist"
               className="touch-target relative rounded-lg p-2 text-slate-600 hover:bg-slate-50"
