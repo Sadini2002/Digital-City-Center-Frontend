@@ -1,5 +1,15 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
+
+import GoogleAuthSuccess from '../pages/GoogleAuthSuccess'
+
 import MainLayout from '../layouts/MainLayout'
+
 import AboutPage from '../pages/AboutPage'
 import ContactPage from '../pages/ContactPage'
 import ForgotPassword from '../pages/ForgotPassword'
@@ -27,6 +37,7 @@ import {
   PaymentGatewayPage,
   WishlistPage,
 } from '../buyer'
+
 import {
   SellerRegisterPage,
   SellerRegisterSuccessPage,
@@ -80,15 +91,69 @@ import {
 } from '../admin'
 
 
-// Buyer: ../buyer · Seller: ../seller · Public/marketplace: ../pages
-
 function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+        {/* =====================================================
+            PUBLIC AUTH ROUTES
+        ====================================================== */}
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        {/* =====================================================
+            GOOGLE AUTH CALLBACK
+
+            IMPORTANT:
+            This MUST be outside the /admin route.
+        ====================================================== */}
+
+        <Route
+          path="/auth/google/success"
+          element={<GoogleAuthSuccess />}
+        />
+
+        {/* =====================================================
+            ADMIN LOGIN
+        ====================================================== */}
+
+        <Route
+          path="/admin/login"
+          element={<AdminLoginPage />}
+        />
+
+        {/* =====================================================
+            ADMIN REDIRECT
+        ====================================================== */}
+
+        <Route
+          path="/admin"
+          element={
+            <Navigate
+              to="/admin/dashboard"
+              replace
+            />
+          }
+        />
+
+        {/* =====================================================
+            ADMIN ROUTES
+        ====================================================== */}
+
         <Route
           path="/admin"
           element={
@@ -97,24 +162,103 @@ function AppRouter() {
             </AdminRoute>
           }
         >
-          <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="sellers" element={<SellerManagementPage />} />
-          <Route path="categories" element={<CategoryManagementPage />} />
-          <Route path="orders" element={<OrderManagementPage />} />
-          <Route path="orders/:id" element={<AdminOrderDetailsPage />} />
-          <Route path="delivery" element={<DeliveryProvidersPage />} />
-          <Route path="announcements" element={<AnnouncementsPage />} />
-          <Route path="commission" element={<CommissionSettingsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="settings" element={<PlatformSettingsPage />} />
-          <Route path="profile" element={<AdminProfilePage />} />
+          <Route
+            path="dashboard"
+            element={<AdminDashboardPage />}
+          />
+
+          <Route
+            path="sellers"
+            element={<SellerManagementPage />}
+          />
+
+          <Route
+            path="categories"
+            element={<CategoryManagementPage />}
+          />
+
+          <Route
+            path="orders"
+            element={<OrderManagementPage />}
+          />
+
+          <Route
+            path="orders/:id"
+            element={<AdminOrderDetailsPage />}
+          />
+
+          <Route
+            path="delivery"
+            element={<DeliveryProvidersPage />}
+          />
+
+          <Route
+            path="announcements"
+            element={<AnnouncementsPage />}
+          />
+
+          <Route
+            path="commission"
+            element={<CommissionSettingsPage />}
+          />
+
+          <Route
+            path="reports"
+            element={<ReportsPage />}
+          />
+
+          <Route
+            path="settings"
+            element={<PlatformSettingsPage />}
+          />
+
+          <Route
+            path="profile"
+            element={<AdminProfilePage />}
+          />
         </Route>
-        <Route path="/register" element={<Register />} />
-        <Route path="/register/seller" element={<SellerRegisterPage />} />
-        <Route path="/register/seller/success" element={<SellerRegisterSuccessPage />} />
-        <Route path="/register/delivery" element={<DeliveryRegisterPage />} />
-        <Route path="/track" element={<TrackDeliveryPage />} />
-        <Route path="/track/:trackingCode" element={<TrackDeliveryPage />} />
+
+        {/* =====================================================
+            SELLER REGISTRATION
+        ====================================================== */}
+
+        <Route
+          path="/register/seller"
+          element={<SellerRegisterPage />}
+        />
+
+        <Route
+          path="/register/seller/success"
+          element={<SellerRegisterSuccessPage />}
+        />
+
+        {/* =====================================================
+            DELIVERY REGISTRATION
+        ====================================================== */}
+
+        <Route
+          path="/register/delivery"
+          element={<DeliveryRegisterPage />}
+        />
+
+        {/* =====================================================
+            DELIVERY TRACKING
+        ====================================================== */}
+
+        <Route
+          path="/track"
+          element={<TrackDeliveryPage />}
+        />
+
+        <Route
+          path="/track/:trackingCode"
+          element={<TrackDeliveryPage />}
+        />
+
+        {/* =====================================================
+            DELIVERY APPLICATION STATUS
+        ====================================================== */}
+
         <Route
           path="/delivery/application-status"
           element={
@@ -123,6 +267,11 @@ function AppRouter() {
             </DeliveryRoute>
           }
         />
+
+        {/* =====================================================
+            DELIVERY PROVIDER ROUTES
+        ====================================================== */}
+
         <Route
           path="/delivery"
           element={
@@ -131,23 +280,84 @@ function AppRouter() {
             </DeliveryRoute>
           }
         >
-          <Route element={<DeliveryLayout />}>
-            <Route index element={<DeliveryDashboardPage />} />
-            <Route path="deliveries" element={<DeliveryDeliveriesPage />} />
-            <Route path="deliveries/:id" element={<DeliveryDetailPage />} />
-            <Route path="deliveries/:id/tracking" element={<DeliveryRouteTrackingPage />} />
-            <Route path="earnings" element={<DeliveryEarningsPage />} />
-            <Route path="analytics" element={<DeliveryAnalyticsPage />} />
-            <Route path="profile" element={<DeliveryDriverProfilePage />} />
-            <Route element={<DeliveryProviderOnlyRoute />}>
-              <Route path="drivers" element={<DeliveryDriversPage />} />
-              <Route path="settings" element={<DeliverySettingsPage />} />
+          <Route
+            element={<DeliveryLayout />}
+          >
+            <Route
+              index
+              element={<DeliveryDashboardPage />}
+            />
+
+            <Route
+              path="deliveries"
+              element={<DeliveryDeliveriesPage />}
+            />
+
+            <Route
+              path="deliveries/:id"
+              element={<DeliveryDetailPage />}
+            />
+
+            <Route
+              path="deliveries/:id/tracking"
+              element={<DeliveryRouteTrackingPage />}
+            />
+
+            <Route
+              path="earnings"
+              element={<DeliveryEarningsPage />}
+            />
+
+            <Route
+              path="analytics"
+              element={<DeliveryAnalyticsPage />}
+            />
+
+            <Route
+              path="profile"
+              element={<DeliveryDriverProfilePage />}
+            />
+
+            {/* Provider-only routes */}
+
+            <Route
+              element={
+                <DeliveryProviderOnlyRoute />
+              }
+            >
+              <Route
+                path="drivers"
+                element={<DeliveryDriversPage />}
+              />
+
+              <Route
+                path="settings"
+                element={<DeliverySettingsPage />}
+              />
             </Route>
-            <Route path="notifications" element={<DeliveryNotificationsPage />} />
+
+            <Route
+              path="notifications"
+              element={
+                <DeliveryNotificationsPage />
+              }
+            />
           </Route>
         </Route>
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/payment/gateway/:orderId" element={<PaymentGatewayPage />} />
+
+        {/* =====================================================
+            PAYMENT
+        ====================================================== */}
+
+        <Route
+          path="/payment/gateway/:orderId"
+          element={<PaymentGatewayPage />}
+        />
+
+        {/* =====================================================
+            SELLER ROUTES
+        ====================================================== */}
+
         <Route
           path="/seller"
           element={
@@ -156,45 +366,227 @@ function AppRouter() {
             </SellerRoute>
           }
         >
-          <Route path="dashboard" element={<SellerDashboard />} />
-          <Route path="listings" element={<SellerProductsPage />} />
-          <Route path="listings/new" element={<SellerAddProductPage />} />
-          <Route path="listings/:id/edit" element={<SellerEditProductPage />} />
-          <Route path="orders" element={<SellerOrdersPage />} />
-          <Route path="earnings" element={<SellerEarningsPage />} />
-          <Route path="settings" element={<SellerShopSettingsPage />} />
-          <Route path="profile" element={<SellerProfilePage />} />
+          <Route
+            path="dashboard"
+            element={<SellerDashboard />}
+          />
+
+          <Route
+            path="listings"
+            element={<SellerProductsPage />}
+          />
+
+          <Route
+            path="listings/new"
+            element={<SellerAddProductPage />}
+          />
+
+          <Route
+            path="listings/:id/edit"
+            element={<SellerEditProductPage />}
+          />
+
+          <Route
+            path="orders"
+            element={<SellerOrdersPage />}
+          />
+
+          <Route
+            path="earnings"
+            element={<SellerEarningsPage />}
+          />
+
+          <Route
+            path="settings"
+            element={<SellerShopSettingsPage />}
+          />
+
+          <Route
+            path="profile"
+            element={<SellerProfilePage />}
+          />
         </Route>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/notifications/:id" element={<NotificationsPage />} />
-          <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/shops" element={<ShopsPage />} />
-          <Route path="/deals" element={<DealsPage />} />
-          <Route path="/privacy" element={<InfoPage type="privacy" />} />
-          <Route path="/terms" element={<InfoPage type="terms" />} />
-          <Route path="/cookies" element={<InfoPage type="cookies" />} />
-          <Route path="/help" element={<InfoPage type="help" />} />
-          <Route path="/category/:slug" element={<CategoryPage />} />
-          <Route path="/search" element={<SearchResultsPage />} />
-          <Route path="/shop/:shopname" element={<ShopPage />} />
-          <Route path="/product/:id" element={<ProductDetailPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order/:id/success" element={<OrderSuccessPage />} />
-          <Route path="/order/:id/failed" element={<OrderFailedPage />} />
-          <Route path="/order/:id/reviews" element={<OrderReviewsPage />} />
-          <Route path="/order/:id" element={<OrderTrackingPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
+
+        {/* =====================================================
+            MAIN MARKETPLACE ROUTES
+        ====================================================== */}
+
+        <Route
+          element={<MainLayout />}
+        >
+          {/* Home */}
+
+          <Route
+            path="/"
+            element={<HomePage />}
+          />
+
+          <Route
+            path="/home"
+            element={
+              <Navigate
+                to="/"
+                replace
+              />
+            }
+          />
+
+          {/* Notifications */}
+
+          <Route
+            path="/notifications"
+            element={<NotificationsPage />}
+          />
+
+          <Route
+            path="/notifications/:id"
+            element={<NotificationsPage />}
+          />
+
+          {/* Static pages */}
+
+          <Route
+            path="/about"
+            element={<AboutPage />}
+          />
+
+          <Route
+            path="/contact"
+            element={<ContactPage />}
+          />
+
+          <Route
+            path="/privacy"
+            element={
+              <InfoPage type="privacy" />
+            }
+          />
+
+          <Route
+            path="/terms"
+            element={
+              <InfoPage type="terms" />
+            }
+          />
+
+          <Route
+            path="/cookies"
+            element={
+              <InfoPage type="cookies" />
+            }
+          />
+
+          <Route
+            path="/help"
+            element={
+              <InfoPage type="help" />
+            }
+          />
+
+          {/* Shops */}
+
+          <Route
+            path="/shops"
+            element={<ShopsPage />}
+          />
+
+          <Route
+            path="/shop/:shopname"
+            element={<ShopPage />}
+          />
+
+          {/* Deals */}
+
+          <Route
+            path="/deals"
+            element={<DealsPage />}
+          />
+
+          {/* Categories */}
+
+          <Route
+            path="/category/:slug"
+            element={<CategoryPage />}
+          />
+
+          {/* Search */}
+
+          <Route
+            path="/search"
+            element={<SearchResultsPage />}
+          />
+
+          {/* Products */}
+
+          <Route
+            path="/product/:id"
+            element={<ProductDetailPage />}
+          />
+
+          {/* Buyer account */}
+
+          <Route
+            path="/account"
+            element={<AccountPage />}
+          />
+
+          {/* Cart */}
+
+          <Route
+            path="/cart"
+            element={<CartPage />}
+          />
+
+          {/* Checkout */}
+
+          <Route
+            path="/checkout"
+            element={<CheckoutPage />}
+          />
+
+          {/* Orders */}
+
+          <Route
+            path="/order/:id/success"
+            element={<OrderSuccessPage />}
+          />
+
+          <Route
+            path="/order/:id/failed"
+            element={<OrderFailedPage />}
+          />
+
+          <Route
+            path="/order/:id/reviews"
+            element={<OrderReviewsPage />}
+          />
+
+          <Route
+            path="/order/:id"
+            element={<OrderTrackingPage />}
+          />
+
+          {/* Wishlist */}
+
+          <Route
+            path="/wishlist"
+            element={<WishlistPage />}
+          />
         </Route>
-        <Route path="*" element={<NotFoundPage />} />
+
+        {/* =====================================================
+            404
+        ====================================================== */}
+
+        <Route
+          path="*"
+          element={<NotFoundPage />}
+        />
+
       </Routes>
     </BrowserRouter>
   )
 }
 
 export default AppRouter
+
