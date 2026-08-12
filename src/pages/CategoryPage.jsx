@@ -28,25 +28,52 @@ function normalizeSlug(slug = '') {
 }
 
 function mapApiListing(listing, slug) {
-  const fallback = FALLBACK_IMAGES[normalizeSlug(slug)] ?? 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&auto=format&fit=crop&q=60'
-  // Parse brand from description prefix "BRAND - ..."
-  const descParts = listing.description?.split(' - ')
-  const brand = descParts?.length > 1 ? descParts[0] : ''
-  const description = descParts?.length > 1 ? descParts.slice(1).join(' - ') : listing.description
+  const fallback =
+    FALLBACK_IMAGES[normalizeSlug(slug)] ??
+    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&auto=format&fit=crop&q=60'
+
+  const descriptionParts =
+    listing.description?.split(' - ') || []
+
+  const brand =
+    descriptionParts.length > 1
+      ? descriptionParts[0].trim()
+      : ''
+
+  const description =
+    descriptionParts.length > 1
+      ? descriptionParts.slice(1).join(' - ')
+      : listing.description || ''
 
   return {
     id: listing.id,
     name: listing.title,
     brand,
     description,
-    price: listing.price,
+    price: Number(listing.price || 0),
     originalPrice: null,
-    rating: listing.rating ?? 4.5,
-    reviews: listing.reviewCount ?? 0,
-    image: fallback,
+    rating: Number(listing.rating || 4.5),
+    reviews: Number(listing.reviewCount || 0),
+    sales: Number(listing.sold || 0),
+
+    // IMPORTANT:
+    // Use backend image first.
+    image: listing.image || fallback,
+
     badge: null,
-    categorySlug: slug,
-    shopId: listing.seller?.shopUrl ?? null,
+
+    categorySlug:
+      listing.category?.slug ||
+      normalizeSlug(slug),
+
+    categoryLabel:
+      listing.category?.name ||
+      slug,
+
+    shopId:
+      listing.seller?.shopUrl ||
+      listing.seller?.id ||
+      null,
   }
 }
 
