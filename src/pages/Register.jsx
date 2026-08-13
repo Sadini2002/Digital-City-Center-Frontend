@@ -10,7 +10,10 @@ import AuthInput from '../components/auth/AuthInput'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 
 import { authApi } from '../services/api'
-import { setAuthToken } from '../utils/authStorage'
+import {
+  setAuthToken,
+  setStoredUser,
+} from '../utils/authStorage'
 
 const PASSWORD_HINT = 'Must be at least 8 characters with a symbol.'
 
@@ -32,97 +35,80 @@ export default function Register() {
   const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+  e.preventDefault()
+  setError('')
 
-    const cleanName = name.trim()
-    const cleanEmail = email.trim().toLowerCase()
-
-    if (!cleanName || !cleanEmail || !password) {
-      setError('Please fill in all fields.')
-      return
-    }
-
-    if (!isPasswordValid(password)) {
-      setError(PASSWORD_HINT)
-      return
-    }
-
-    if (!agreed) {
-      setError(
-        'Please agree to the Terms of Service and Privacy Policy.'
-      )
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const response = await authApi.register({
-        name: cleanName,
-        email: cleanEmail,
-        password,
-      })
-
-      console.log('Registration response:', response.data)
-
-      /*
-       * Expected backend response:
-       *
-       * {
-       *   token: "...",
-       *   user: {
-       *     id: "...",
-       *     name: "...",
-       *     email: "...",
-       *     role: "BUYER"
-       *   }
-       * }
-       */
-
-      const token = response.data?.token
-      const user = response.data?.user
-
-      if (!token) {
-        throw new Error(
-          'Registration succeeded, but the server did not return an authentication token.'
-        )
-      }
-
-      if (!user) {
-        throw new Error(
-          'Registration succeeded, but the server did not return the user account.'
-        )
-      }
-
-      await setAuthToken(token, true)
-
-      localStorage.setItem(
-        'user',
-        JSON.stringify(user)
-      )
-
-      /*
-       * Give the auth state a moment to update before
-       * navigating to the marketplace.
-       */
-      navigate('/', {
-        replace: true,
-      })
-    } catch (err) {
-      console.error('Registration error:', err)
-
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        'Registration failed. Please try again.'
-
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
+  if (!name.trim() || !email.trim() || !password) {
+    setError('Please fill in all fields.')
+    return
   }
+
+  if (!isPasswordValid(password)) {
+    setError(PASSWORD_HINT)
+    return
+  }
+
+  if (!agreed) {
+    setError(
+      'Please agree to the Terms of Service and Privacy Policy.'
+    )
+    return
+  }
+
+  setLoading(true)
+
+  try {
+    const response = await authApi.register({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password,
+      role,
+    })
+
+    console.log('REGISTER RESPONSE:', response.data)
+
+    if (!response.data?.token) {
+      throw new Error(
+        response.data?.message ||
+        'Registration succeeded but no authentication token was returned.'
+      )
+    }
+
+    // Save JWT
+    setAuthToken(response.data.token, true)
+
+    // Save user
+    if (response.data?.user) {
+      setStoredUser(response.data.user)
+    } else {
+      // Fallback if backend does not return user
+      setStoredUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role,
+      })
+    }
+
+    // Tell header/auth components to refresh
+    window.dispatchEvent(new Event('auth-changed'))
+
+    // Go to home page
+    navigate('/', {
+      replace: true,
+    })
+
+  } catch (err) {
+    console.error('Registration error:', err)
+
+    setError(
+      err.response?.data?.message ||
+      err.message ||
+      'Registration failed. Please try again.'
+    )
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <AuthPageLayout variant="register">
