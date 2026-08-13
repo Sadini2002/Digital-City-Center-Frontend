@@ -1,5 +1,12 @@
 import axios from 'axios'
-import { clearAdminToken, clearAuthToken, getAdminToken, getAuthToken } from '../../utils/authStorage'
+
+import {
+  clearAdminToken,
+  clearAuthToken,
+  getAdminToken,
+  getAuthToken,
+} from '../../utils/authStorage'
+
 import { isJwtStructurallyValid } from '../../utils/jwtValidation'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1'

@@ -1,138 +1,126 @@
-const TOKEN_KEY = 'dcc_token'
+const AUTH_TOKEN_KEY = 'dcc_token'
 const ADMIN_TOKEN_KEY = 'dcc_admin_token'
+const USER_KEY = 'user'
 
-const memoryTokens = {
-  user: null,
-  admin: null,
-}
-
-function isSecureContext() {
-  return true
-}
-
-function buildCookieFlags(maxAgeSeconds) {
-  const flags = ['Path=/', 'SameSite=Lax']
-  if (maxAgeSeconds > 0) flags.push(`Max-Age=${maxAgeSeconds}`)
-  flags.push('Secure')
-  return flags.join('; ')
-}
-
-function readCookie(name) {
-  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-function clearCookie(name) {
-  document.cookie = `${name}=; ${buildCookieFlags(0)}`
-}
-
-async function setHttpOnlySession(cookieName, token, rememberMe) {
-  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
-  const response = await fetch('/api/auth/set-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ token, cookieName, maxAge }),
-  })
-  return response.ok
-}
-
-async function clearHttpOnlySession(cookieName) {
-  try {
-    await fetch('/api/auth/clear-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ cookieName }),
-    })
-  } catch {
-    // Session endpoint may be unavailable outside dev server.
-  }
-}
-
-function notifyAuthChange() {
-  window.dispatchEvent(new Event('dcc-auth-change'))
-}
-
-async function persistToken(kind, token, rememberMe = false) {
-  const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
-  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
-
-  memoryTokens[kind] = token
-
-  try {
-    const httpOnlySet = await setHttpOnlySession(cookieName, token, rememberMe)
-    notifyAuthChange()
-    if (httpOnlySet) return
-  } catch {
-    // Fall back to client-visible secure cookie when session endpoint is unavailable.
-  }
-
-  document.cookie = `${cookieName}=${encodeURIComponent(token)}; ${buildCookieFlags(maxAge)}`
-  notifyAuthChange()
-}
-
-function resolveToken(kind) {
-  if (memoryTokens[kind]) return memoryTokens[kind]
-
-  const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
-  const cookieToken = readCookie(cookieName)
-  if (cookieToken) {
-    memoryTokens[kind] = cookieToken
-    return cookieToken
-  }
-
-  const legacyKey = kind === 'admin' ? 'admin_token' : 'token'
-  const legacy = localStorage.getItem(legacyKey)
-  if (legacy) {
-    memoryTokens[kind] = legacy
-    return legacy
-  }
-
-  return null
-}
-
-async function removeToken(kind) {
-  memoryTokens[kind] = null
-  const cookieName = kind === 'admin' ? ADMIN_TOKEN_KEY : TOKEN_KEY
-  const legacyKey = kind === 'admin' ? 'admin_token' : 'token'
-
-  localStorage.removeItem(legacyKey)
-  clearCookie(cookieName)
-  await clearHttpOnlySession(cookieName)
-  notifyAuthChange()
-}
-
-export async function setAuthToken(token, rememberMe = false) {
-  if (!token) return
-  localStorage.removeItem('token')
-  await persistToken('user', token, rememberMe)
-}
+/* =========================================================
+   AUTH TOKEN
+========================================================= */
 
 export function getAuthToken() {
-  return resolveToken('user')
+  return localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
-export async function clearAuthToken() {
-  await removeToken('user')
-}
-
-export async function setAdminToken(token, rememberMe = false) {
+export function setAuthToken(token, remember = true) {
   if (!token) return
-  localStorage.removeItem('admin_token')
-  await persistToken('admin', token, rememberMe)
+
+  if (remember) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token)
+  } else {
+    sessionStorage.setItem(AUTH_TOKEN_KEY, token)
+  }
+
+  window.dispatchEvent(new Event('auth-changed'))
 }
+
+export function clearAuthToken() {
+  localStorage.removeItem(AUTH_TOKEN_KEY)
+  sessionStorage.removeItem(AUTH_TOKEN_KEY)
+
+  window.dispatchEvent(new Event('auth-changed'))
+}
+
+/* Old name used by some components */
+export function removeAuthToken() {
+  clearAuthToken()
+}
+
+/* =========================================================
+   ADMIN TOKEN
+========================================================= */
 
 export function getAdminToken() {
-  return resolveToken('admin')
+  return localStorage.getItem(ADMIN_TOKEN_KEY)
 }
 
-export async function clearAdminToken() {
-  await removeToken('admin')
+export function setAdminToken(token) {
+  if (!token) return
+
+  localStorage.setItem(ADMIN_TOKEN_KEY, token)
+
+  window.dispatchEvent(new Event('auth-changed'))
 }
 
-/** Restore auth tokens from cookies / legacy storage on app boot. */
-export async function hydrateAuthFromSession() {
-  resolveToken('user')
-  resolveToken('admin')
+export function clearAdminToken() {
+  localStorage.removeItem(ADMIN_TOKEN_KEY)
+
+  window.dispatchEvent(new Event('auth-changed'))
+}
+
+/* =========================================================
+   USER
+========================================================= */
+
+export function getStoredUser() {
+  try {
+    const value = localStorage.getItem(USER_KEY)
+
+    if (!value) {
+      return null
+    }
+
+    return JSON.parse(value)
+  } catch (error) {
+    console.error('Unable to read stored user:', error)
+    return null
+  }
+}
+
+export function setStoredUser(user) {
+  if (!user) {
+    localStorage.removeItem(USER_KEY)
+  } else {
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+  }
+
+  window.dispatchEvent(new Event('auth-changed'))
+}
+
+export function clearStoredUser() {
+  localStorage.removeItem(USER_KEY)
+
+  window.dispatchEvent(new Event('auth-changed'))
+}
+
+/* =========================================================
+   AUTH SESSION
+========================================================= */
+
+export function isAuthenticated() {
+  return Boolean(getAuthToken())
+}
+
+/*
+ * Used by main.jsx if your project calls it.
+ */
+export function hydrateAuthFromSession() {
+  const token = getAuthToken()
+  const user = getStoredUser()
+
+  return {
+    token,
+    user,
+    isAuthenticated: Boolean(token),
+  }
+}
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+export function logout() {
+  clearAuthToken()
+  clearAdminToken()
+  clearStoredUser()
+
+  window.dispatchEvent(new Event('auth-changed'))
 }
