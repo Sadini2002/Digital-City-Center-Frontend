@@ -125,3 +125,24 @@ export function markSellerNotificationsAsRead() {
   const updated = notifs.map((n) => ({ ...n, read: true }))
   writeJson(SELLER_NOTIFS_KEY, updated)
 }
+
+const ADMIN_NOTIFS_KEY = 'dcc_admin_notifications'
+
+export function getAdminNotifications() {
+  return readJson(ADMIN_NOTIFS_KEY)
+}
+
+export function addAdminNotification(title, message, type = 'info') {
+  const notifs = getAdminNotifications()
+  const newNotif = {
+    id: `n-admin-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    title,
+    message,
+    type,
+    read: false,
+    createdAt: new Date().toISOString(),
+  }
+  writeJson(ADMIN_NOTIFS_KEY, [newNotif, ...notifs])
+  return newNotif
+}
+

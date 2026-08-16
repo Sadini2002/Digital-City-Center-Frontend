@@ -1,10 +1,18 @@
 const ORDERS_KEY = 'dcc_orders'
 
 export const ORDER_STATUS = {
-  PENDING_PAYMENT: 'pending_payment',
+  PLACED: 'placed',
   CONFIRMED: 'confirmed',
-  PAYMENT_FAILED: 'payment_failed',
   PROCESSING: 'processing',
+  DISPATCHED: 'dispatched',
+  OUT_FOR_DELIVERY: 'out_for_delivery',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled',
+  PAYMENT_FAILED: 'payment_failed',
+  REJECTED: 'rejected',
+  // Backward compatibility aliases
+  PENDING_PAYMENT: 'pending_payment',
+  SHIPPED: 'dispatched',
 }
 
 export function saveOrder(order) {
@@ -30,7 +38,8 @@ export function updateOrderStatus(orderId, status, extra = {}) {
       extra.trackingStatus ??
       (status === ORDER_STATUS.CONFIRMED && !existing.trackingStatus
         ? 'processing'
-        : existing.trackingStatus),
+        : existing.trackingStatus || status),
+    updatedAt: new Date().toISOString(),
   }
 
   if (index >= 0) {
@@ -68,23 +77,23 @@ export function getOrderById(id) {
 }
 
 export const ORDER_TRACKING_STEPS = [
-  { key: 'placed', label: 'Order placed', detail: 'Your order was received.' },
-  { key: 'paid', label: 'Payment confirmed', detail: 'Payment has been verified.' },
-  { key: 'processing', label: 'Processing', detail: 'Seller is preparing your items.' },
-  { key: 'shipped', label: 'Shipped', detail: 'Package handed to delivery partner.' },
-  { key: 'out_for_delivery', label: 'Out for delivery', detail: 'Courier is on the way.' },
-  { key: 'delivered', label: 'Delivered', detail: 'Order delivered successfully.' },
+  { key: 'placed', label: 'Order Placed', detail: 'Order received and recorded in system.' },
+  { key: 'confirmed', label: 'Confirmed', detail: 'Payment verified and seller accepted.' },
+  { key: 'processing', label: 'Processing', detail: 'Seller is preparing and packaging items.' },
+  { key: 'dispatched', label: 'Dispatched', detail: 'Package handed over for delivery.' },
+  { key: 'out_for_delivery', label: 'Out for Delivery', detail: 'Courier is delivering your package.' },
+  { key: 'delivered', label: 'Delivered', detail: 'Order successfully delivered to customer.' },
 ]
 
 export function isOrderDelivered(order) {
   const tracking = order?.trackingStatus ?? order?.status
-  return tracking === 'delivered'
+  return tracking === 'delivered' || tracking === 'completed'
 }
 
 export function markOrderDelivered(orderId) {
   const order = getOrderById(orderId)
   if (!order) return null
-  return updateOrderStatus(orderId, order.status ?? ORDER_STATUS.CONFIRMED, {
+  return updateOrderStatus(orderId, ORDER_STATUS.DELIVERED, {
     trackingStatus: 'delivered',
     deliveredAt: new Date().toISOString(),
   })
@@ -94,18 +103,20 @@ export function getOrderProgress(order) {
   const tracking = order?.trackingStatus ?? order?.status
 
   const statusIndex = {
+    placed: 0,
     pending_payment: 0,
     payment_failed: 0,
-    placed: 0,
     confirmed: 1,
     paid: 1,
     processing: 2,
+    dispatched: 3,
     shipped: 3,
     out_for_delivery: 4,
     delivered: 5,
+    completed: 5,
   }
 
-  const idx = statusIndex[tracking] ?? (order?.status === ORDER_STATUS.CONFIRMED ? 2 : 0)
+  const idx = statusIndex[tracking] ?? (order?.status === ORDER_STATUS.CONFIRMED ? 1 : 0)
 
   return ORDER_TRACKING_STEPS.map((step, i) => ({
     ...step,
