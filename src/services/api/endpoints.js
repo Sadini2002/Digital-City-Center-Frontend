@@ -37,3 +37,16 @@ export const cartApi = {
   remove: (id) => api.delete(`/cart/${encodeURIComponent(id)}`),
   clear: () => api.delete('/cart/clear'),
 }
+
+export const shopApi = {
+  getAll: (params) => api.get('/shops', { params }),
+  getByUrl: (shopUrl) => api.get(`/shops/url/${encodeURIComponent(shopUrl)}`),
+  getProductsByUrl: (shopUrl) =>
+    api.get(`/shops/url/${encodeURIComponent(shopUrl)}/products`),
+}
+
+export const homeApi = {
+  getFlashSale: () => api.get('/home/flash-sale'),
+  getFeaturedShops: () => api.get('/home/featured'),
+  getCategories: () => api.get('/home/categories'),
+}

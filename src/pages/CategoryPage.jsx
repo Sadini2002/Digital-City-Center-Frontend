@@ -8,73 +8,13 @@ import CategoryProductCard from '../components/category/CategoryProductCard'
 import CategoryPagination from '../components/category/CategoryPagination'
 import CategoryTopShops from '../components/category/CategoryTopShops'
 import { getCategoryShops, sortOptions } from '../components/category/categoryData'
+import { mapListingToCardProduct } from '../buyer/services/productMapper'
 import { categoryApi } from '../services/api/categoryApi'
 
 const PER_PAGE = 6
 
-// Fallback image list (Unsplash) when the API listing has no image
-const FALLBACK_IMAGES = {
-  'electronics-and-gadgets': 'https://images.unsplash.com/photo-1468436139062-f60a71c5c892?w=500&auto=format&fit=crop&q=60',
-  fashion: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&auto=format&fit=crop&q=60',
-  groceries: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=60',
-  'home-and-living': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400&auto=format&fit=crop&q=60',
-  beauty: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&auto=format&fit=crop&q=60',
-  sports: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&auto=format&fit=crop&q=60',
-  'kids-and-toys': 'https://images.unsplash.com/photo-1515488042361-404e9250afef?w=400&auto=format&fit=crop&q=60',
-}
-
 function normalizeSlug(slug = '') {
   return slug.toLowerCase().replace(/\s+/g, '-')
-}
-
-function mapApiListing(listing, slug) {
-  const fallback =
-    FALLBACK_IMAGES[normalizeSlug(slug)] ??
-    'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&auto=format&fit=crop&q=60'
-
-  const descriptionParts =
-    listing.description?.split(' - ') || []
-
-  const brand =
-    descriptionParts.length > 1
-      ? descriptionParts[0].trim()
-      : ''
-
-  const description =
-    descriptionParts.length > 1
-      ? descriptionParts.slice(1).join(' - ')
-      : listing.description || ''
-
-  return {
-    id: listing.id,
-    name: listing.title,
-    brand,
-    description,
-    price: Number(listing.price || 0),
-    originalPrice: null,
-    rating: Number(listing.rating || 4.5),
-    reviews: Number(listing.reviewCount || 0),
-    sales: Number(listing.sold || 0),
-
-    // IMPORTANT:
-    // Use backend image first.
-    image: listing.image || fallback,
-
-    badge: null,
-
-    categorySlug:
-      listing.category?.slug ||
-      normalizeSlug(slug),
-
-    categoryLabel:
-      listing.category?.name ||
-      slug,
-
-    shopId:
-      listing.seller?.shopUrl ||
-      listing.seller?.id ||
-      null,
-  }
 }
 
 export default function CategoryPage() {
@@ -112,7 +52,11 @@ export default function CategoryPage() {
       const res = await categoryApi.getBySlug(slug, params)
       const { category, listings: fetchedListings, pagination: pag } = res.data.data
       setCategoryData(category)
-      setListings(fetchedListings.map((l) => mapApiListing(l, slug)))
+      setListings(
+        fetchedListings
+          .map((l) => mapListingToCardProduct(l, normalizeSlug(slug)))
+          .filter(Boolean),
+      )
       setPagination(pag)
     } catch (err) {
       setError(err.message ?? 'Failed to load category')
