@@ -21,15 +21,33 @@ export function formatNotificationTime(createdAt) {
   })
 }
 
-export function getNotificationTone(type = 'info') {
-  switch (type) {
-    case 'success':
-      return 'success'
-    case 'warning':
-      return 'warning'
-    case 'error':
-      return 'error'
+export function getNotificationTone(type) {
+  switch (String(type).toUpperCase()) {
+    case "PAYMENT":
+      return "success";
+
+    case "ORDER":
+      return "info";
+
+    case "DELIVERY":
+      return "success";
+
+    case "CART":
+      return "info";
+
+    case "SELLER":
+      return "success";
+
+    case "REVIEW":
+      return "warning";
+
+    case "PROMOTION":
+      return "warning";
+
+    case "ACCOUNT":
+      return "info";
+
     default:
-      return 'info'
+      return "info";
   }
 }
