@@ -31,7 +31,14 @@ export default function DeliveryRoute({ children }) {
         }
       })
       .catch(() => {
-        if (!cancelled) setUser(null)
+        if (!cancelled) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('user') || 'null')
+            setUser(stored)
+          } catch {
+            setUser(null)
+          }
+        }
       })
       .finally(() => {
         if (!cancelled) setChecking(false)

@@ -23,6 +23,55 @@ export function saveOrder(order) {
   sessionStorage.setItem('dcc_last_order', JSON.stringify(order))
 }
 
+function syncOrderStatusToDeliveryJobs(orderId, status) {
+  try {
+    const raw = localStorage.getItem('dcc_delivery_jobs')
+    if (!raw) return
+    const jobs = JSON.parse(raw)
+    const idx = jobs.findIndex(
+      (j) => j.order?.orderNumber === orderId || j.order?.id === orderId || j.id === orderId
+    )
+    if (idx < 0) return
+
+    const deliveryStatusMap = {
+      confirmed: 'CONFIRMED',
+      processing: 'PROCESSING',
+      dispatched: 'DISPATCHED',
+      shipped: 'DISPATCHED',
+      out_for_delivery: 'OUT_FOR_DELIVERY',
+      delivered: 'DELIVERED',
+      completed: 'DELIVERED',
+      cancelled: 'CANCELLED',
+      rejected: 'CANCELLED',
+    }
+
+    const nextDeliveryStatus = deliveryStatusMap[status?.toLowerCase()] || status?.toUpperCase()
+    if (!nextDeliveryStatus) return
+
+    const job = jobs[idx]
+    if (job.status === nextDeliveryStatus) return
+
+    jobs[idx] = {
+      ...job,
+      status: nextDeliveryStatus,
+      statusHistory: [
+        ...(job.statusHistory || []),
+        {
+          id: `h-${Date.now()}`,
+          status: nextDeliveryStatus,
+          note: `Status updated to ${nextDeliveryStatus}`,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      ...(nextDeliveryStatus === 'DELIVERED' ? { deliveredAt: new Date().toISOString() } : {}),
+    }
+
+    localStorage.setItem('dcc_delivery_jobs', JSON.stringify(jobs))
+  } catch (e) {
+    console.error('Failed to sync order status to delivery jobs:', e)
+  }
+}
+
 export function updateOrderStatus(orderId, status, extra = {}) {
   const list = getOrders()
   const index = list.findIndex((o) => o.id === orderId)
@@ -50,6 +99,7 @@ export function updateOrderStatus(orderId, status, extra = {}) {
 
   localStorage.setItem(ORDERS_KEY, JSON.stringify(list))
   sessionStorage.setItem('dcc_last_order', JSON.stringify(updated))
+  syncOrderStatusToDeliveryJobs(orderId, status)
   return updated
 }
 
