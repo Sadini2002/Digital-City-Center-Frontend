@@ -79,11 +79,14 @@ export default function Orders() {
 
   const handleUpdateStatus = (orderId, newStatus, extraOptions = {}) => {
     let trackingStatus = newStatus
-    if (newStatus === 'confirmed') trackingStatus = 'paid'
+    if (newStatus === 'confirmed') trackingStatus = 'confirmed'
     if (newStatus === 'processing') trackingStatus = 'processing'
     if (newStatus === 'shipped' || newStatus === 'dispatched') {
-      newStatus = 'shipped'
-      trackingStatus = 'shipped'
+      newStatus = 'dispatched'
+      trackingStatus = 'dispatched'
+    }
+    if (newStatus === 'out_for_delivery') {
+      trackingStatus = 'out_for_delivery'
     }
     if (newStatus === 'delivered' || newStatus === 'completed') {
       newStatus = 'delivered'
@@ -95,16 +98,30 @@ export default function Orders() {
       ...extraOptions 
     })
     
-    toast.success(`Order ${orderId} updated to ${newStatus}`)
+    toast.success(`Order ${orderId} updated to ${newStatus.replace(/_/g, ' ')}`)
 
-    // Trigger dedicated notifications based on new status
+    // Section 12.6 Notification Matrix Dispatcher
     if (newStatus === 'cancelled') {
-      addBuyerNotification('Order Cancelled', `Order ${orderId} has been cancelled by the seller.`, 'warning')
-      addSellerNotification('Order Cancelled', `You have cancelled Order ${orderId}.`, 'warning')
-    } else if (newStatus === 'shipped') {
-      addBuyerNotification('Order Shipped', `Your order ${orderId} has been shipped and is on its way.`, 'info')
+      addBuyerNotification('Order Cancelled', `Order ${orderId} has been cancelled.`, 'warning')
+      addSellerNotification('Order Cancelled', `You updated Order ${orderId} status to Cancelled.`, 'warning')
+      addAdminNotification('Order Cancelled', `Order ${orderId} was cancelled by seller/buyer.`, 'warning')
+    } else if (newStatus === 'rejected') {
+      addBuyerNotification('Order Rejected', `Order ${orderId} was rejected by the seller store.`, 'warning')
+      addSellerNotification('Order Rejected', `You rejected Order ${orderId}.`, 'warning')
+      addAdminNotification('Order Rejected Alert', `Seller rejected Order ${orderId}.`, 'warning')
+    } else if (newStatus === 'confirmed') {
+      addBuyerNotification('Order Confirmed', `Seller confirmed order ${orderId}.`, 'success')
+      addSellerNotification('Order Confirmed', `Order ${orderId} confirmed and queued for preparation.`, 'info')
+    } else if (newStatus === 'processing') {
+      addBuyerNotification('Order Processing', `Seller is preparing order ${orderId}.`, 'info')
+    } else if (newStatus === 'dispatched' || newStatus === 'shipped') {
+      addBuyerNotification('Order Dispatched', `Your order ${orderId} has been dispatched and handed over for delivery.`, 'info')
+      addSellerNotification('Order Dispatched', `Package for ${orderId} dispatched to courier.`, 'info')
+    } else if (newStatus === 'out_for_delivery') {
+      addBuyerNotification('Out for Delivery', `Your package for Order ${orderId} is out for delivery!`, 'info')
     } else if (newStatus === 'delivered') {
       addBuyerNotification('Order Delivered', `Your order ${orderId} has been delivered successfully.`, 'success')
+      addSellerNotification('Order Delivered', `Order ${orderId} delivery confirmed.`, 'success')
     }
     
     // Reload state
@@ -118,66 +135,102 @@ export default function Orders() {
   }
 
   const handlePrintInvoice = (order) => {
-    toast.success(`Invoice generated and sent to printer for Order ${order.id}!`)
+    toast.success(`Invoice generated for Order ${order.id}! Printing summary...`)
     
-    // Open a simple printable invoice mockup in a new tab
+    const invoiceNum = `INV-${order.id}`
     const invoiceWindow = window.open('', '_blank')
     invoiceWindow.document.write(`
       <html>
         <head>
-          <title>Invoice - ${order.id}</title>
+          <title>Invoice - ${invoiceNum}</title>
           <style>
-            body { font-family: sans-serif; padding: 40px; color: #333; }
-            .header { border-bottom: 2px solid #5113D7; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; color: #5113D7; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 30px; gap: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th { background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; padding: 12px; font-size: 14px; }
-            td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-            .total { text-align: right; font-size: 18px; font-weight: bold; color: #1a1523; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; background: #fff; }
+            .header { border-bottom: 3px solid #5113D7; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .logo { font-size: 26px; font-weight: 800; color: #5113D7; letter-spacing: -0.5px; }
+            .subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+            .invoice-title { text-align: right; }
+            .invoice-title h1 { margin: 0; font-size: 24px; color: #0f172a; }
+            .invoice-title p { margin: 4px 0 0 0; font-size: 13px; color: #64748b; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 30px; gap: 24px; }
+            .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; font-size: 13px; }
+            .card h3 { margin-top: 0; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; color: #5113D7; letter-spacing: 0.5px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            th { background: #f1f5f9; border-bottom: 2px solid #cbd5e1; text-align: left; padding: 12px; font-size: 13px; font-weight: 700; color: #334155; }
+            td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #334155; }
+            .totals { margin-left: auto; width: 280px; margin-bottom: 30px; }
+            .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+            .grand-total { border-top: 2px solid #5113D7; padding-top: 10px; font-size: 18px; font-weight: 800; color: #0f172a; }
+            .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #e0e7ff; color: #4338ca; }
+            .footer { border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 12px; color: #64748b; }
           </style>
         </head>
         <body>
           <div class="header">
-            <div class="logo">DIGITAL CITY CENTER</div>
-            <div style="text-align: right; margin-top: -24px;"><strong>INVOICE</strong></div>
+            <div>
+              <div class="logo">DIGITAL CITY CENTER</div>
+              <div class="subtitle">Multi-Vendor Marketplace Platform</div>
+            </div>
+            <div class="invoice-title">
+              <h1>INVOICE</h1>
+              <p>#${invoiceNum}</p>
+            </div>
           </div>
+
           <div class="grid">
-            <div>
-              <strong>Order ID:</strong> ${order.id}<br>
-              <strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}<br>
-              <strong>Email:</strong> ${order.email}
+            <div class="card">
+              <h3>Order Information</h3>
+              <strong>Order Number:</strong> ${order.id}<br>
+              <strong>Date Placed:</strong> ${new Date(order.createdAt || Date.now()).toLocaleString()}<br>
+              <strong>Customer Email:</strong> ${order.email || 'N/A'}<br>
+              <strong>Payment Status:</strong> <span class="badge">${order.status || 'Confirmed'}</span>
             </div>
-            <div>
-              <strong>Ship To:</strong><br>
-              ${order.shippingAddress?.fullName || 'Guest Customer'}<br>
-              ${order.shippingAddress?.street || ''}, ${order.shippingAddress?.city || ''}<br>
-              ${order.shippingAddress?.phone || ''}
+            <div class="card">
+              <h3>Shipping Destination</h3>
+              <strong>Recipient:</strong> ${order.shippingAddress?.fullName || 'Customer'}<br>
+              <strong>Address:</strong> ${order.shippingAddress?.street || ''}, ${order.shippingAddress?.city || ''}<br>
+              <strong>Phone:</strong> ${order.shippingAddress?.phone || 'N/A'}
             </div>
           </div>
+
           <table>
             <thead>
               <tr>
-                <th>Item</th>
+                <th>Item Description</th>
                 <th>Price</th>
                 <th>Qty</th>
-                <th style="text-align: right;">Total</th>
+                <th style="text-align: right;">Subtotal</th>
               </tr>
             </thead>
             <tbody>
-              ${order.items.map(item => `
+              ${(order.items || []).map(item => `
                 <tr>
-                  <td>${item.title || item.name}</td>
-                  <td>Rs. ${item.price.toLocaleString()}</td>
-                  <td>${item.quantity}</td>
-                  <td style="text-align: right;">Rs. ${(item.price * item.quantity).toLocaleString()}</td>
+                  <td>${item.title || item.name || 'Product Item'}</td>
+                  <td>LKR ${Number(item.price || 0).toLocaleString('en-LK')}</td>
+                  <td>${item.quantity || 1}</td>
+                  <td style="text-align: right;">LKR ${Number((item.price || 0) * (item.quantity || 1)).toLocaleString('en-LK')}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-          <div class="total">Total Invoice: Rs. ${order.total.toLocaleString('en-LK')}</div>
-          <div style="text-align: center; margin-top: 50px; font-size: 12px; color: #64748b;">
-            Thank you for shopping with Digital City Center!
+
+          <div class="totals">
+            <div class="totals-row">
+              <span>Items Subtotal:</span>
+              <span>LKR ${Number(order.subtotal || order.total || 0).toLocaleString('en-LK')}</span>
+            </div>
+            <div class="totals-row">
+              <span>Delivery Charges:</span>
+              <span>LKR ${Number(order.deliveryFee || 0).toLocaleString('en-LK')}</span>
+            </div>
+            <div class="totals-row grand-total">
+              <span>Total Amount:</span>
+              <span>LKR ${Number(order.total || 0).toLocaleString('en-LK')}</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            Official Invoice Generated by Digital City Center Marketplace.<br>
+            Thank you for your business!
           </div>
           <script>window.print();</script>
         </body>
@@ -188,7 +241,7 @@ export default function Orders() {
 
   // Calculate order stats
   const totalCount = orders.length
-  const confirmedCount = orders.filter(o => o.status === 'confirmed').length
+  const confirmedCount = orders.filter(o => o.status === 'confirmed' || o.status === 'placed').length
   const processingCount = orders.filter(o => o.status === 'processing').length
   const deliveredCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length
 
@@ -201,17 +254,22 @@ export default function Orders() {
 
     if (statusFilter === 'all') return matchesSearch
     
-    // Support mapping requirement statuses (Pending, Processing, Dispatched, Completed, Cancelled)
+    // Support Section 12 statuses
     const statusMap = {
-      pending: 'pending_payment',
+      placed: 'placed',
+      confirmed: 'confirmed',
       processing: 'processing',
-      dispatched: 'shipped',
+      dispatched: 'dispatched',
+      out_for_delivery: 'out_for_delivery',
+      delivered: 'delivered',
       completed: 'delivered',
       cancelled: 'cancelled',
+      rejected: 'rejected',
+      payment_failed: 'payment_failed',
     }
     
     const mappedFilter = statusMap[statusFilter] || statusFilter
-    return matchesSearch && order.status === mappedFilter
+    return matchesSearch && (order.status === mappedFilter || (statusFilter === 'dispatched' && order.status === 'shipped'))
   })
 
   return (
@@ -244,12 +302,15 @@ export default function Orders() {
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/10 transition"
           >
             <option value="all">All Orders</option>
-            <option value="pending">Pending Payment</option>
-            <option value="confirmed">Confirmed (New)</option>
+            <option value="placed">Placed (New)</option>
+            <option value="confirmed">Confirmed</option>
             <option value="processing">Processing</option>
-            <option value="dispatched">Dispatched (Shipped)</option>
-            <option value="completed">Completed (Delivered)</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="out_for_delivery">Out for Delivery</option>
+            <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
+            <option value="rejected">Rejected</option>
+            <option value="payment_failed">Payment Failed</option>
           </select>
         </div>
       </div>

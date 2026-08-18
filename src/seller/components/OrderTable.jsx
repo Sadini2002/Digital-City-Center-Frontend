@@ -39,10 +39,13 @@ export default function OrderTable({ orders, onViewDetails, onUpdateStatus }) {
               : 'No items'
 
             const nextStatuses = {
-              pending_payment: { next: 'confirmed', label: 'Confirm Pay' },
+              placed: { next: 'confirmed', label: 'Confirm Order' },
+              pending_payment: { next: 'confirmed', label: 'Confirm Order' },
               confirmed: { next: 'processing', label: 'Start Prep' },
-              processing: { next: 'shipped', label: 'Ship Order' },
+              processing: { next: 'dispatched', label: 'Dispatch Package' },
+              dispatched: { next: 'delivered', label: 'Mark Delivered' },
               shipped: { next: 'delivered', label: 'Mark Delivered' },
+              out_for_delivery: { next: 'delivered', label: 'Mark Delivered' },
             }
 
             const transition = nextStatuses[order.status]
@@ -90,6 +93,16 @@ export default function OrderTable({ orders, onViewDetails, onUpdateStatus }) {
                         <ChevronRight className="h-3.5 w-3.5" />
                       </button>
                     ) : null}
+                    {(order.status === 'placed' || order.status === 'confirmed') && (
+                      <button
+                        type="button"
+                        onClick={() => onUpdateStatus(order.id, 'rejected')}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                        title="Reject Order"
+                      >
+                        Reject
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
