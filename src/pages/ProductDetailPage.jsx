@@ -33,43 +33,33 @@ export default function ProductDetailPage() {
       setActiveImageIndex(0)
 
       try {
-        // ======================================================
-        // 1. STATIC FRONTEND PRODUCT
-        // ======================================================
+        // Prefer real API listings for numeric IDs so cart gets listingId/variantId.
+        if (/^\d+$/.test(String(id))) {
+          const response = await productsApi.getById(id)
+          const listing = response?.data?.data ?? response?.data
+          const mapped = mapListingToProductDetail(listing)
+
+          if (!mapped) {
+            throw new Error('Product not found.')
+          }
+
+          if (!cancelled) {
+            setProduct(mapped)
+          }
+          return
+        }
+
+        // Non-numeric ids: legacy local catalog only (not cart-capable).
         const localProduct = getLocalProductById(id)
 
         if (localProduct) {
           if (!cancelled) {
             setProduct(localProduct)
-            setLoading(false)
           }
-
           return
         }
 
-        // ======================================================
-        // 2. DATABASE PRODUCT
-        // ======================================================
-        if (!/^\d+$/.test(String(id))) {
-          throw new Error('Product not found.')
-        }
-
-        const response = await productsApi.getById(id)
-
-        const listing =
-          response?.data?.data ??
-          response?.data
-
-        const mapped =
-          mapListingToProductDetail(listing)
-
-        if (!mapped) {
-          throw new Error('Product not found.')
-        }
-
-        if (!cancelled) {
-          setProduct(mapped)
-        }
+        throw new Error('Product not found.')
       } catch (err) {
         if (!cancelled) {
           setError(

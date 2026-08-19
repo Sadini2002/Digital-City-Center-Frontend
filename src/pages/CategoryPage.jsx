@@ -55,7 +55,14 @@ export default function CategoryPage() {
       setListings(
         fetchedListings
           .map((l) => mapListingToCardProduct(l, normalizeSlug(slug)))
-          .filter(Boolean),
+          .filter(
+            (product) =>
+              product &&
+              Number.isInteger(product.listingId) &&
+              product.listingId > 0 &&
+              Number.isInteger(Number(product.variantId)) &&
+              Number(product.variantId) > 0,
+          ),
       )
       setPagination(pag)
     } catch (err) {

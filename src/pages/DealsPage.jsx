@@ -471,7 +471,21 @@ export default function DealsPage() {
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        addToCart(product, 1)
+                        // Real flash-sale IDs only (never mock/string catalog ids)
+                        addToCart(
+                          {
+                            id: product.listingId,
+                            listingId: product.listingId,
+                            productId: product.listingId,
+                            variantId: product.variantId,
+                            title: product.title || product.name,
+                            price: product.price,
+                            originalPrice: product.originalPrice,
+                            image: product.images?.[0] || product.image,
+                            stock: product.stock,
+                          },
+                          1,
+                        )
                       }}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-dcc-primary py-2 text-xs font-bold text-white shadow-sm transition hover:bg-dcc-primary-hover active:scale-[0.98]"
                     >

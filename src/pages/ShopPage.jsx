@@ -85,7 +85,14 @@ export default function ShopPage() {
         const mappedShop = mapShop(shopData)
         const mappedProducts = (Array.isArray(listings) ? listings : [])
           .map((listing) => mapListingToCardProduct(listing, mappedShop.categorySlug))
-          .filter((product) => product && Number.isInteger(product.listingId) && product.listingId > 0)
+          .filter(
+            (product) =>
+              product &&
+              Number.isInteger(product.listingId) &&
+              product.listingId > 0 &&
+              Number.isInteger(Number(product.variantId)) &&
+              Number(product.variantId) > 0,
+          )
 
         if (!cancelled) {
           setShop(mappedShop)

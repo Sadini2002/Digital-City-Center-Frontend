@@ -27,6 +27,7 @@ export default function CartPage() {
 
   const subtotal = cartSummary?.subtotal ?? cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = cartSummary?.deliveryFee ?? 0
+  const discount = cartSummary?.discount ?? 0
   const total = cartSummary?.total ?? subtotal + deliveryFee
   const loggedIn = Boolean(getAuthToken())
 
@@ -122,6 +123,7 @@ export default function CartPage() {
             <CartSummary
               subtotal={subtotal}
               deliveryFee={deliveryFee}
+              discount={discount}
               total={total}
               itemCount={cartCount}
               currency={cartSummary?.currency || 'LKR'}
