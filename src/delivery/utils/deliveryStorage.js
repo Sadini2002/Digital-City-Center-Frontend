@@ -241,6 +241,42 @@ export function listAssignedDeliveries(params = {}, _driverId = 'driver-demo') {
   return paginate(items, params)
 }
 
+function syncJobStatusToOrder(job, nextDeliveryStatus) {
+  const orderId = job?.order?.orderNumber || job?.order?.id || job?.id
+  if (!orderId) return
+  try {
+    const raw = localStorage.getItem('dcc_orders')
+    if (!raw) return
+    const orders = JSON.parse(raw)
+    const idx = orders.findIndex(
+      (o) => o.id === orderId || o.orderNumber === orderId
+    )
+    if (idx < 0) return
+
+    const statusMap = {
+      CONFIRMED: 'confirmed',
+      PROCESSING: 'processing',
+      DISPATCHED: 'dispatched',
+      OUT_FOR_DELIVERY: 'out_for_delivery',
+      DELIVERED: 'delivered',
+      CANCELLED: 'cancelled',
+    }
+    const targetStatus = statusMap[nextDeliveryStatus] || String(nextDeliveryStatus || '').toLowerCase()
+
+    orders[idx] = {
+      ...orders[idx],
+      status: targetStatus,
+      trackingStatus: targetStatus,
+      updatedAt: nowIso(),
+      ...(targetStatus === 'delivered' ? { deliveredAt: nowIso() } : {}),
+    }
+
+    localStorage.setItem('dcc_orders', JSON.stringify(orders))
+  } catch (e) {
+    console.error('Failed to sync delivery status to order storage:', e)
+  }
+}
+
 export function acceptDelivery(id, driverId = 'driver-demo') {
   const list = getDeliveries()
   const idx = list.findIndex((d) => d.id === id)
@@ -260,6 +296,7 @@ export function acceptDelivery(id, driverId = 'driver-demo') {
   }
   list[idx] = updated
   saveDeliveries(list)
+  syncJobStatusToOrder(updated, 'PROCESSING')
   return updated
 }
 
@@ -294,6 +331,7 @@ export function updateDeliveryStatus(id, payload) {
   }
   list[idx] = updated
   saveDeliveries(list)
+  syncJobStatusToOrder(updated, nextStatus)
   return updated
 }
 

@@ -81,9 +81,15 @@ export default function OrderManagementPage() {
             className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:border-dcc-primary focus:outline-none focus:ring-2 focus:ring-dcc-primary/10 transition"
           >
             <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
+            <option value="placed">Placed</option>
             <option value="confirmed">Confirmed</option>
-            <option value="failed">Failed</option>
+            <option value="processing">Processing</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="out_for_delivery">Out for Delivery</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="rejected">Rejected</option>
+            <option value="failed">Payment Failed</option>
           </select>
 
           <select

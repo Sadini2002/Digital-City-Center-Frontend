@@ -1,7 +1,10 @@
 import { api } from '../../services/api'
 
 function unwrapCart(response) {
-  const data = response?.data ?? {}
+  const data =
+    response?.data?.data ??
+    response?.data ??
+    {}.data ?? {}
   const items = data.items ?? data.cart ?? []
   const summary = data.summary ?? {
     itemCount: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
