@@ -1,32 +1,136 @@
-import { isOnlinePayment } from '../data/checkoutData'
+import { api } from '../../services/api'
 import {
   getOrderById,
   saveOrder,
   updateOrderStatus,
 } from '../utils/orderStorage'
 import { api } from '../../services/api/client'
+import { isOnlinePayment } from '../data/checkoutData'
 
 const PENDING_CART_KEY = 'dcc_pending_cart_order'
 
+function buildDeliveryAddress(address) {
+  return [
+    address?.name,
+    address?.phone,
+    address?.line1,
+    address?.line2,
+    address?.city,
+    address?.district,
+    address?.postalCode,
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
 /**
- * Create a local checkout order.
- *
- * The current DCC frontend uses local order storage for the checkout UI.
- * Backend payment notifications are triggered when the payment is
- * confirmed through processPaymentWebhook().
+ * Create a REAL order using the backend.
  */
 export async function placeOrder(order) {
-  const online = isOnlinePayment(order.paymentMethod)
+  const paymentMethod =
+    order.paymentMethod === 'cod'
+      ? 'COD'
+      : order.paymentMethod === 'payhere'
+        ? 'PAYHERE'
+        : null
 
-  const pending = {
-    ...order,
-    status: online ? 'pending_payment' : 'confirmed',
-    trackingStatus: online ? undefined : 'processing',
-    emailSent: !online,
-    paymentConfirmedAt: online ? null : new Date().toISOString(),
+  if (!paymentMethod) {
+    throw new Error(
+      'This payment method is not connected to the backend yet. Please use Cash on Delivery or PayHere.',
+    )
   }
 
-  saveOrder(pending)
+  const items = order.items.map((item) => {
+    const variantId = Number(item.variantId)
+
+    if (!Number.isInteger(variantId) || variantId <= 0) {
+      throw new Error(
+        `${item.name || 'A cart item'} does not have a valid product variant.`,
+      )
+    }
+
+    return {
+      variantId,
+      quantity: Number(item.quantity) || 1,
+    }
+  })
+
+  const payload = {
+    items,
+
+    deliveryAddress:
+      buildDeliveryAddress(order.address),
+
+    deliveryMethod:
+      order.deliveryMethod,
+
+    paymentMethod,
+
+    notes:
+      `Checkout order from buyer: ${order.email}`,
+  }
+
+  const response = await api.post('/orders/checkout', payload)
+
+  const backendOrder = response?.data?.data
+
+  if (!backendOrder?.orderId) {
+    throw new Error('Backend did not return an order ID.')
+  }
+
+  /*
+   * Keep a frontend snapshot for the existing success/tracking pages.
+   * The actual order is now stored in PostgreSQL.
+   */
+  const savedOrder = {
+    ...order,
+
+    id: String(backendOrder.orderId),
+
+    orderNumber: backendOrder.orderNumber,
+
+    subtotal:
+      backendOrder.subtotal ??
+      order.subtotal,
+
+    deliveryFee:
+      backendOrder.deliveryFee ??
+      order.deliveryFee,
+
+    total:
+      backendOrder.totalAmount ??
+      order.total,
+
+    paymentMethod: order.paymentMethod,
+
+    paymentStatus:
+      backendOrder.paymentStatus,
+
+    status:
+      paymentMethod === 'COD'
+        ? 'confirmed'
+        : 'pending_payment',
+
+    trackingStatus:
+      paymentMethod === 'COD'
+        ? 'processing'
+        : undefined,
+
+    backendOrderId:
+      backendOrder.orderId,
+  }
+
+  saveOrder(savedOrder)
+
+  /*
+   * Online payment goes to the gateway after
+   * the real backend order is created.
+   */
+  if (isOnlinePayment(order.paymentMethod)) {
+    sessionStorage.setItem(
+      PENDING_CART_KEY,
+      String(backendOrder.orderId),
+    )
 
   /*
    * Cash on Delivery
@@ -82,6 +186,7 @@ export async function placeOrder(order) {
   }
 }
 
+
 /**
  * Simulated gateway webhook.
  *
@@ -95,12 +200,12 @@ export async function processPaymentWebhook(orderId, { success }) {
   const order = getOrderById(orderId)
 
   if (!order) {
-    throw new Error('Order not found')
+    throw new Error('Order not found.')
   }
 
-  if (order.status !== 'pending_payment') {
-    return order
-  }
+  const nextStatus = success
+    ? 'confirmed'
+    : 'payment_failed'
 
   try {
     const response = await api.post('/payments/webhook', {
@@ -159,7 +264,9 @@ export async function processPaymentWebhook(orderId, { success }) {
 }
 
 export function getPendingCartOrderId() {
-  return sessionStorage.getItem(PENDING_CART_KEY)
+  return sessionStorage.getItem(
+    PENDING_CART_KEY,
+  )
 }
 
 export function clearPendingCartFlag() {
