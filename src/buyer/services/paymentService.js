@@ -293,4 +293,4 @@ async function sendConfirmationEmail(order) {
     sent: true,
     to: order.email,
   }
-}
+}}
