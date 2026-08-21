@@ -1,133 +1,207 @@
-import { isOnlinePayment } from '../data/checkoutData'
+import { api } from '../../services/api'
 import {
   getOrderById,
   saveOrder,
   updateOrderStatus,
 } from '../utils/orderStorage'
+import { isOnlinePayment } from '../data/checkoutData'
 
 const PENDING_CART_KEY = 'dcc_pending_cart_order'
 
-import { ordersApi, paymentsApi } from '../../services/api/endpoints'
+function buildDeliveryAddress(address) {
+  return [
+    address?.name,
+    address?.phone,
+    address?.line1,
+    address?.line2,
+    address?.city,
+    address?.district,
+    address?.postalCode,
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
 
 /**
- * Creates the order in the backend, then initiates payment.
+ * Create a REAL order using the backend.
  */
 export async function placeOrder(order) {
-  const online = isOnlinePayment(order.paymentMethod)
-  let backendOrderId = order.id
+  const paymentMethod =
+    order.paymentMethod === 'cod'
+      ? 'COD'
+      : order.paymentMethod === 'payhere'
+        ? 'PAYHERE'
+        : null
 
-  const initialStatus = online ? 'pending_payment' : 'confirmed'
-  let fullOrder = {
-    ...order,
-    status: initialStatus,
-    placedAt: order.placedAt || new Date().toISOString(),
+  if (!paymentMethod) {
+    throw new Error(
+      'This payment method is not connected to the backend yet. Please use Cash on Delivery or PayHere.',
+    )
   }
 
-  // 1. Try backend API checkout if available
-  try {
-    const checkoutPayload = {
-      deliveryAddress: `${order.address.line1 || ''}, ${order.address.city || ''}, ${order.address.district || ''}`,
-      notes: order.notes || ''
-    }
-    const orderRes = await ordersApi.checkout(checkoutPayload)
-    if (orderRes?.data?.orderId || orderRes?.data?.order?.id) {
-      backendOrderId = orderRes.data.orderId || orderRes.data.order.id
-      fullOrder = { ...fullOrder, id: backendOrderId }
-    }
-  } catch (err) {
-    console.warn('[DCC PaymentService] Backend checkout API unavailable, using generated order ID:', backendOrderId, err?.message)
-  }
+  const items = order.items.map((item) => {
+    const variantId = Number(item.variantId)
 
-  // CRITICAL FIX: Save order locally so getOrderById works on success/gateway/tracking screens
-  saveOrder(fullOrder)
-
-  // 2. Initiate Payment (Online gateways or COD)
-  if (online) {
-    sessionStorage.setItem(PENDING_CART_KEY, backendOrderId)
-    
-    try {
-      const initRes = await paymentsApi.initiate({
-        orderId: backendOrderId,
-        method: order.paymentMethod.toUpperCase(),
-      })
-      const paymentData = initRes.data
-
-      if (paymentData?.checkoutParams) {
-        return {
-          order: fullOrder,
-          requiresGateway: true,
-          checkoutParams: paymentData.checkoutParams,
-        }
-      }
-
-      if (paymentData?.gatewayUrl) {
-        return {
-          order: fullOrder,
-          requiresGateway: true,
-          gatewayUrl: paymentData.gatewayUrl,
-        }
-      }
-    } catch (err) {
-      console.warn('[DCC PaymentService] Backend payment initiate API unavailable, redirecting to simulated gateway:', err?.message)
+    if (!Number.isInteger(variantId) || variantId <= 0) {
+      throw new Error(
+        `${item.name || 'A cart item'} does not have a valid product variant.`,
+      )
     }
 
-    // Fallback gateway URL for simulated online checkout (Mintpay, PayHere, Onepay, Koko)
     return {
-      order: fullOrder,
+      variantId,
+      quantity: Number(item.quantity) || 1,
+    }
+  })
+
+  const payload = {
+    items,
+
+    deliveryAddress:
+      buildDeliveryAddress(order.address),
+
+    deliveryMethod:
+      order.deliveryMethod,
+
+    paymentMethod,
+
+    notes:
+      `Checkout order from buyer: ${order.email}`,
+  }
+
+  const response = await api.post('/orders/checkout', payload)
+
+  const backendOrder = response?.data?.data
+
+  if (!backendOrder?.orderId) {
+    throw new Error('Backend did not return an order ID.')
+  }
+
+  /*
+   * Keep a frontend snapshot for the existing success/tracking pages.
+   * The actual order is now stored in PostgreSQL.
+   */
+  const savedOrder = {
+    ...order,
+
+    id: String(backendOrder.orderId),
+
+    orderNumber: backendOrder.orderNumber,
+
+    subtotal:
+      backendOrder.subtotal ??
+      order.subtotal,
+
+    deliveryFee:
+      backendOrder.deliveryFee ??
+      order.deliveryFee,
+
+    total:
+      backendOrder.totalAmount ??
+      order.total,
+
+    paymentMethod: order.paymentMethod,
+
+    paymentStatus:
+      backendOrder.paymentStatus,
+
+    status:
+      paymentMethod === 'COD'
+        ? 'confirmed'
+        : 'pending_payment',
+
+    trackingStatus:
+      paymentMethod === 'COD'
+        ? 'processing'
+        : undefined,
+
+    backendOrderId:
+      backendOrder.orderId,
+  }
+
+  saveOrder(savedOrder)
+
+  /*
+   * Online payment goes to the gateway after
+   * the real backend order is created.
+   */
+  if (isOnlinePayment(order.paymentMethod)) {
+    sessionStorage.setItem(
+      PENDING_CART_KEY,
+      String(backendOrder.orderId),
+    )
+
+    return {
+      order: savedOrder,
+      orderId: backendOrder.orderId,
       requiresGateway: true,
-      gatewayUrl: `/payment/gateway/${backendOrderId}?method=${order.paymentMethod}`,
+      gatewayUrl: `/payment/gateway/${backendOrder.orderId}`,
     }
   }
 
-  // Cash on delivery
   return {
-    order: fullOrder,
+    order: savedOrder,
+    orderId: backendOrder.orderId,
     requiresGateway: false,
     gatewayUrl: null,
   }
 }
 
+
 /**
- * Step 12–13: Simulates gateway webhook → backend updates order status.
+ * Temporary gateway simulation.
+ *
+ * Later this should call the real payment backend/webhook.
  */
-export async function processPaymentWebhook(orderId, { success }) {
-  await new Promise((r) => setTimeout(r, 600))
+export async function processPaymentWebhook(
+  orderId,
+  { success },
+) {
+  await new Promise((resolve) =>
+    setTimeout(resolve, 600),
+  )
 
-  const order = getOrderById(orderId)
+  const order = getOrderById(
+    String(orderId),
+  )
+
   if (!order) {
-    throw new Error('Order not found')
+    throw new Error('Order not found.')
   }
 
-  if (order.status !== 'pending_payment') {
-    return order
-  }
+  const nextStatus = success
+    ? 'confirmed'
+    : 'payment_failed'
 
-  const nextStatus = success ? 'confirmed' : 'payment_failed'
-  const updated = updateOrderStatus(orderId, nextStatus, {
-    paymentConfirmedAt: success ? new Date().toISOString() : null,
-    trackingStatus: success ? 'processing' : undefined,
-    emailSent: success,
-  })
+  const updated = updateOrderStatus(
+    String(orderId),
+    nextStatus,
+    {
+      paymentConfirmedAt: success
+        ? new Date().toISOString()
+        : null,
 
-  if (success) {
-    await sendConfirmationEmail(updated)
-  }
+      trackingStatus: success
+        ? 'processing'
+        : undefined,
+    },
+  )
 
-  sessionStorage.removeItem(PENDING_CART_KEY)
+  sessionStorage.removeItem(
+    PENDING_CART_KEY,
+  )
+
   return updated
 }
 
 export function getPendingCartOrderId() {
-  return sessionStorage.getItem(PENDING_CART_KEY)
+  return sessionStorage.getItem(
+    PENDING_CART_KEY,
+  )
 }
 
 export function clearPendingCartFlag() {
-  sessionStorage.removeItem(PENDING_CART_KEY)
-}
-
-/** Simulates automatic confirmation email (step 15). */
-async function sendConfirmationEmail(order) {
-  await new Promise((r) => setTimeout(r, 200))
-  console.info('[DCC] Confirmation email sent to', order.email, 'for order', order.id)
-  return { sent: true, to: order.email }
+  sessionStorage.removeItem(
+    PENDING_CART_KEY,
+  )
 }
