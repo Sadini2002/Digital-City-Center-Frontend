@@ -37,3 +37,12 @@ export const cartApi = {
   remove: (id) => api.delete(`/cart/${encodeURIComponent(id)}`),
   clear: () => api.delete('/cart/clear'),
 }
+
+export const ordersApi = {
+  checkout: (payload) => api.post('/orders/checkout', payload),
+}
+
+export const paymentsApi = {
+  initiate: (payload) => api.post('/payments/initiate', payload),
+}
+

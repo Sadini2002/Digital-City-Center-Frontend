@@ -7,34 +7,81 @@ import {
 
 const PENDING_CART_KEY = 'dcc_pending_cart_order'
 
+import { ordersApi, paymentsApi } from '../../services/api/endpoints'
+
 /**
- * Step 8–9: Create order awaiting payment (online) or confirm immediately (COD).
+ * Creates the order in the backend, then initiates payment.
  */
 export async function placeOrder(order) {
   const online = isOnlinePayment(order.paymentMethod)
+  let backendOrderId = order.id
 
-  const pending = {
+  const initialStatus = online ? 'pending_payment' : 'confirmed'
+  let fullOrder = {
     ...order,
-    status: online ? 'pending_payment' : 'confirmed',
-    trackingStatus: online ? undefined : 'processing',
-    emailSent: !online,
-    paymentConfirmedAt: online ? null : new Date().toISOString(),
+    status: initialStatus,
+    placedAt: order.placedAt || new Date().toISOString(),
   }
 
-  saveOrder(pending)
+  // 1. Try backend API checkout if available
+  try {
+    const checkoutPayload = {
+      deliveryAddress: `${order.address.line1 || ''}, ${order.address.city || ''}, ${order.address.district || ''}`,
+      notes: order.notes || ''
+    }
+    const orderRes = await ordersApi.checkout(checkoutPayload)
+    if (orderRes?.data?.orderId || orderRes?.data?.order?.id) {
+      backendOrderId = orderRes.data.orderId || orderRes.data.order.id
+      fullOrder = { ...fullOrder, id: backendOrderId }
+    }
+  } catch (err) {
+    console.warn('[DCC PaymentService] Backend checkout API unavailable, using generated order ID:', backendOrderId, err?.message)
+  }
 
+  // CRITICAL FIX: Save order locally so getOrderById works on success/gateway/tracking screens
+  saveOrder(fullOrder)
+
+  // 2. Initiate Payment (Online gateways or COD)
   if (online) {
-    sessionStorage.setItem(PENDING_CART_KEY, order.id)
+    sessionStorage.setItem(PENDING_CART_KEY, backendOrderId)
+    
+    try {
+      const initRes = await paymentsApi.initiate({
+        orderId: backendOrderId,
+        method: order.paymentMethod.toUpperCase(),
+      })
+      const paymentData = initRes.data
+
+      if (paymentData?.checkoutParams) {
+        return {
+          order: fullOrder,
+          requiresGateway: true,
+          checkoutParams: paymentData.checkoutParams,
+        }
+      }
+
+      if (paymentData?.gatewayUrl) {
+        return {
+          order: fullOrder,
+          requiresGateway: true,
+          gatewayUrl: paymentData.gatewayUrl,
+        }
+      }
+    } catch (err) {
+      console.warn('[DCC PaymentService] Backend payment initiate API unavailable, redirecting to simulated gateway:', err?.message)
+    }
+
+    // Fallback gateway URL for simulated online checkout (Mintpay, PayHere, Onepay, Koko)
     return {
-      order: pending,
+      order: fullOrder,
       requiresGateway: true,
-      gatewayUrl: `/payment/gateway/${order.id}`,
+      gatewayUrl: `/payment/gateway/${backendOrderId}?method=${order.paymentMethod}`,
     }
   }
 
-  await sendConfirmationEmail(pending)
+  // Cash on delivery
   return {
-    order: pending,
+    order: fullOrder,
     requiresGateway: false,
     gatewayUrl: null,
   }

@@ -12,7 +12,7 @@ export default function PaymentGatewayPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { clearCart } = useShop()
-  const methodId = searchParams.get('method') || ''
+  const methodId = searchParams.get('method') || order?.paymentMethod || ''
   const method = getPaymentMethod(methodId)
 
   const order = useMemo(() => getOrderById(orderId), [orderId])

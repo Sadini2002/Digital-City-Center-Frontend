@@ -81,13 +81,33 @@ export default function ProductPurchasePanel({ product, onSelectColor }) {
     )
   }
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!getAuthToken()) {
       navigate('/login', { state: { from: `/product/${product.id}` } })
       return
     }
-    await handleAddToCart()
-    navigate('/cart')
+
+    const item = {
+      id: product.id,
+      lineId: `bn-${product.id}`,
+      listingId: product.listingId ?? product.id,
+      productId: product.listingId ?? product.id,
+      variantId: selectedVariantId,
+      name: product.title,
+      brand: product.brand,
+      price: displayPrice,
+      unitPrice: displayPrice,
+      originalPrice: product.originalPrice,
+      image: displayImage,
+      seller: product.seller?.name || 'Marketplace Seller',
+      stock: displayStock,
+      quantity: quantity,
+      color: selectedColor?.name || '',
+      size: size || '',
+      lineTotal: displayPrice * quantity,
+    }
+
+    navigate('/checkout', { state: { buyNowItem: item } })
   }
 
   return (

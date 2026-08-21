@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { MapPin, Truck } from 'lucide-react'
 import PageContainer from '../../components/layout/PageContainer'
 import ProductBreadcrumbs from '../../components/product/ProductBreadcrumbs'
@@ -47,7 +47,11 @@ function getBuyerEmail() {
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { cart, clearCart } = useShop()
+
+  const buyNowItem = location.state?.buyNowItem
+  const checkoutItems = buyNowItem ? [buyNowItem] : cart
 
   const defaultAddress = savedAddresses.find((a) => a.isDefault)?.id ?? savedAddresses[0]?.id
 
@@ -62,11 +66,11 @@ export default function CheckoutPage() {
   const [customDistance, setCustomDistance] = useState(null)
 
   const subtotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cart],
+    () => checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [checkoutItems],
   )
 
-  if (cart.length === 0) {
+  if (checkoutItems.length === 0) {
     return <Navigate to="/cart" replace />
   }
 
@@ -220,7 +224,7 @@ export default function CheckoutPage() {
         address: resolveAddress(),
         deliveryMethod,
         paymentMethod,
-        items: [...cart],
+        items: [...checkoutItems],
         subtotal,
         deliveryFee,
         total,
@@ -242,12 +246,37 @@ export default function CheckoutPage() {
       )
 
       if (result.requiresGateway) {
-        setSubmitting(false)
-        navigate(`${result.gatewayUrl}?method=${paymentMethod}`, { replace: true })
-        return
+        if (result.checkoutParams) {
+          // Automatically submit the hidden PayHere form
+          const params = result.checkoutParams
+          const form = document.createElement('form')
+          form.method = 'POST'
+          form.action = params.gatewayUrl
+          
+          Object.keys(params).forEach(key => {
+            if (key !== 'gatewayUrl' && key !== 'sandbox') {
+              const input = document.createElement('input')
+              input.type = 'hidden'
+              input.name = key
+              input.value = params[key]
+              form.appendChild(input)
+            }
+          })
+          
+          document.body.appendChild(form)
+          form.submit()
+          return
+        }
+
+        if (result.gatewayUrl) {
+          if (!buyNowItem) clearCart()
+          setSubmitting(false)
+          navigate(result.gatewayUrl, { replace: true })
+          return
+        }
       }
 
-      clearCart()
+      if (!buyNowItem) clearCart()
       setSubmitting(false)
       navigate(`/order/${orderId}/success`, { replace: true })
     } catch {
@@ -596,7 +625,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <CheckoutOrderSummary cart={cart} subtotal={subtotal} deliveryFee={deliveryFee} />
+            <CheckoutOrderSummary cart={checkoutItems} subtotal={subtotal} deliveryFee={deliveryFee} />
 
             <button
               type="submit"

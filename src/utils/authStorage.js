@@ -7,7 +7,7 @@ const USER_KEY = 'user'
 ========================================================= */
 
 export function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  return localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY)
 }
 
 export function setAuthToken(token, remember = true) {
