@@ -33,11 +33,20 @@ export default function ProductDetailPage() {
       setActiveImageIndex(0)
 
       try {
-        // Prefer real API listings for numeric IDs so cart gets listingId/variantId.
-        if (/^\d+$/.test(String(id))) {
+        const isNumericId = /^\d+$/.test(String(id))
+
+        // ======================================================
+        // 1. REAL DATABASE PRODUCT
+        // ======================================================
+        if (isNumericId) {
           const response = await productsApi.getById(id)
-          const listing = response?.data?.data ?? response?.data
-          const mapped = mapListingToProductDetail(listing)
+
+          const listing =
+            response?.data?.data ??
+            response?.data
+
+          const mapped =
+            mapListingToProductDetail(listing)
 
           if (!mapped) {
             throw new Error('Product not found.')
@@ -49,13 +58,17 @@ export default function ProductDetailPage() {
           return
         }
 
-        // Non-numeric ids: legacy local catalog only (not cart-capable).
-        const localProduct = getLocalProductById(id)
+        // ======================================================
+        // 2. STATIC / LEGACY FRONTEND PRODUCT
+        // ======================================================
+        const localProduct =
+          getLocalProductById(id)
 
         if (localProduct) {
           if (!cancelled) {
             setProduct(localProduct)
           }
+
           return
         }
 
@@ -63,8 +76,9 @@ export default function ProductDetailPage() {
       } catch (err) {
         if (!cancelled) {
           setError(
+            err?.response?.data?.message ||
             err?.message ||
-              'Failed to load product details.'
+            'Failed to load product details.',
           )
         }
       } finally {
@@ -93,14 +107,11 @@ export default function ProductDetailPage() {
     })
   }
 
-  // ============================================================
-  // LOADING
-  // ============================================================
   if (loading) {
     return (
       <PageContainer className="pb-12">
-        <div className="mx-auto mt-16 flex max-w-md flex-col items-center text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-dcc-primary" />
+        <div className="flex flex-col items-center max-w-md mx-auto mt-16 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-dcc-primary" />
 
           <p className="mt-4 text-sm text-slate-600">
             Loading product…
@@ -110,13 +121,10 @@ export default function ProductDetailPage() {
     )
   }
 
-  // ============================================================
-  // ERROR
-  // ============================================================
   if (error || !product) {
     return (
       <PageContainer className="pb-12">
-        <section className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <section className="max-w-md p-8 mx-auto text-center bg-white border shadow-sm rounded-2xl border-slate-200">
           <h1 className="text-xl font-bold text-slate-900">
             Product not found
           </h1>
@@ -137,9 +145,6 @@ export default function ProductDetailPage() {
     )
   }
 
-  // ============================================================
-  // PRODUCT DETAILS
-  // ============================================================
   return (
     <PageContainer className="pb-12">
       <ProductBreadcrumbs
@@ -148,16 +153,20 @@ export default function ProductDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
         <ProductGallery
-          images={product.images}
-          badges={product.badges}
+          images={product.images || []}
+          badges={product.badges || []}
           activeIndex={activeImageIndex}
           onChangeActiveIndex={
             setActiveImageIndex
           }
           product={{
             id: product.id,
-            listingId: product.listingId,
-            variantId: product.variantId,
+            listingId:
+              product.listingId ??
+              product.id,
+            variantId:
+              product.variantId ??
+              product.selectedVariantId,
             title: product.title,
             brand: product.brand,
             price: product.price,
@@ -167,7 +176,8 @@ export default function ProductDetailPage() {
               product.images?.[0],
             seller: product.seller,
             stock: product.stock,
-            variants: product.variants,
+            variants:
+              product.variants || [],
           }}
         />
 
@@ -179,7 +189,7 @@ export default function ProductDetailPage() {
               product.images[colorIndex]
             ) {
               setActiveImageIndex(
-                colorIndex
+                colorIndex,
               )
             }
           }}
@@ -194,8 +204,10 @@ export default function ProductDetailPage() {
       <ProductReviewsSection
         ref={reviewsRef}
         productId={product.id}
-        reviews={product.reviews}
-        reviewCount={product.reviewCount}
+        reviews={product.reviews || []}
+        reviewCount={
+          product.reviewCount || 0
+        }
       />
     </PageContainer>
   )

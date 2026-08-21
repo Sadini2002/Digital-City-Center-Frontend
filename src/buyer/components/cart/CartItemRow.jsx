@@ -35,7 +35,11 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
             )}
           </div>
         )}
-        <p className="mt-1 text-xs text-slate-500">Sold by {item.seller}</p>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-dcc-primary border border-violet-100">
+            Seller: {item.seller || item.sellerName || 'Verified Platform Seller'}
+          </span>
+        </div>
         {item.stock != null && (
           <p className="mt-1 text-xs text-slate-400">{item.stock} in stock</p>
         )}

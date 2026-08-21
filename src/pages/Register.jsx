@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
@@ -15,10 +14,14 @@ import {
   setStoredUser,
 } from '../utils/authStorage'
 
-const PASSWORD_HINT = 'Must be at least 8 characters with a symbol.'
+const PASSWORD_HINT =
+  'Must be at least 8 characters with a symbol.'
 
 function isPasswordValid(password) {
-  return password.length >= 8 && /[^A-Za-z0-9]/.test(password)
+  return (
+    password.length >= 8 &&
+    /[^A-Za-z0-9]/.test(password)
+  )
 }
 
 export default function Register() {
@@ -34,81 +37,92 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Account type
+  // Your current registration page only supports Buyer.
+  const role = 'BUYER'
+
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
+    e.preventDefault()
+    setError('')
 
-  if (!name.trim() || !email.trim() || !password) {
-    setError('Please fill in all fields.')
-    return
-  }
-
-  if (!isPasswordValid(password)) {
-    setError(PASSWORD_HINT)
-    return
-  }
-
-  if (!agreed) {
-    setError(
-      'Please agree to the Terms of Service and Privacy Policy.'
-    )
-    return
-  }
-
-  setLoading(true)
-
-  try {
-    const response = await authApi.register({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      role,
-    })
-
-    console.log('REGISTER RESPONSE:', response.data)
-
-    if (!response.data?.token) {
-      throw new Error(
-        response.data?.message ||
-        'Registration succeeded but no authentication token was returned.'
-      )
+    // Validate required fields
+    if (!name.trim() || !email.trim() || !password) {
+      setError('Please fill in all fields.')
+      return
     }
 
-    // Save JWT
-    setAuthToken(response.data.token, true)
+    // Validate password
+    if (!isPasswordValid(password)) {
+      setError(PASSWORD_HINT)
+      return
+    }
 
-    // Save user
-    if (response.data?.user) {
-      setStoredUser(response.data.user)
-    } else {
-      // Fallback if backend does not return user
-      setStoredUser({
+    // Validate terms
+    if (!agreed) {
+      setError(
+        'Please agree to the Terms of Service and Privacy Policy.'
+      )
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const registerData = {
         name: name.trim(),
         email: email.trim().toLowerCase(),
+        password,
         role,
+      }
+
+      console.log('REGISTER REQUEST:', registerData)
+
+      const response = await authApi.register(registerData)
+
+      console.log('REGISTER RESPONSE:', response.data)
+
+      // Check token
+      if (!response.data?.token) {
+        throw new Error(
+          response.data?.message ||
+            'Registration succeeded but no authentication token was returned.'
+        )
+      }
+
+      // Save JWT
+      setAuthToken(response.data.token, true)
+
+      // Save user
+      if (response.data?.user) {
+        setStoredUser(response.data.user)
+      } else {
+        setStoredUser({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          role,
+        })
+      }
+
+      // Notify authentication components
+      window.dispatchEvent(new Event('auth-changed'))
+
+      // Redirect to home
+      navigate('/', {
+        replace: true,
       })
+    } catch (err) {
+      console.error('Registration error:', err)
+
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          'Registration failed. Please try again.'
+      )
+    } finally {
+      setLoading(false)
     }
-
-    // Tell header/auth components to refresh
-    window.dispatchEvent(new Event('auth-changed'))
-
-    // Go to home page
-    navigate('/', {
-      replace: true,
-    })
-
-  } catch (err) {
-    console.error('Registration error:', err)
-
-    setError(
-      err.response?.data?.message ||
-      err.message ||
-      'Registration failed. Please try again.'
-    )
-  } finally {
-    setLoading(false)
   }
-}
 
   return (
     <AuthPageLayout variant="register">
@@ -133,7 +147,6 @@ export default function Register() {
               onSubmit={handleSubmit}
             >
               {/* Full Name */}
-
               <AuthInput
                 id="name"
                 label="Full Name"
@@ -147,7 +160,6 @@ export default function Register() {
               />
 
               {/* Email */}
-
               <AuthInput
                 id="email"
                 label="Email Address"
@@ -162,7 +174,6 @@ export default function Register() {
               />
 
               {/* Password */}
-
               <AuthInput
                 id="password"
                 label="Password"
@@ -197,8 +208,7 @@ export default function Register() {
                 }
               />
 
-              {/* Account type */}
-
+              {/* Account Type */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
                   Account Type
@@ -215,7 +225,6 @@ export default function Register() {
               </div>
 
               {/* Terms */}
-
               <label className="flex cursor-pointer items-start gap-2.5">
                 <input
                   type="checkbox"
@@ -246,7 +255,6 @@ export default function Register() {
               </label>
 
               {/* Submit */}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -259,7 +267,6 @@ export default function Register() {
             </form>
 
             {/* Divider */}
-
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200" />
@@ -273,11 +280,9 @@ export default function Register() {
             </div>
 
             {/* Google */}
-
             <GoogleSignInButton label="Sign in with Google" />
 
             {/* Login */}
-
             <p className="mt-6 text-center text-sm text-slate-600">
               Already have an account?{' '}
               <Link
@@ -293,4 +298,3 @@ export default function Register() {
     </AuthPageLayout>
   )
 }
-

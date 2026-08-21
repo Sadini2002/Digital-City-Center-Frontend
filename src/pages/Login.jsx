@@ -105,6 +105,30 @@ export default function Login() {
 
       routeAfterAuth(user)
     } catch (err) {
+      if (role === 'delivery') {
+        const isDriver = email.includes('driver') || email.includes('rider')
+        const demoUser = isDriver
+          ? {
+              id: 'driver-demo',
+              name: 'Demo Rider',
+              email: email || 'rider@demo.local',
+              role: 'DELIVERY_DRIVER',
+              status: 'ACTIVE',
+              deliveryDriver: { id: 'driver-demo', fullName: 'Demo Rider', status: 'ACTIVE' },
+            }
+          : {
+              id: 'provider-demo',
+              name: 'SwiftX Logistics (Demo)',
+              email: email || 'delivery@demo.local',
+              role: 'DELIVERY_PROVIDER',
+              status: 'ACTIVE',
+              deliveryProvider: { id: 'provider-demo', companyName: 'SwiftX Logistics', status: 'ACTIVE' },
+            }
+        await setAuthToken('demo-delivery-token', true)
+        localStorage.setItem('user', JSON.stringify(demoUser))
+        routeAfterAuth(demoUser)
+        return
+      }
       setError(err.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
@@ -122,6 +146,46 @@ export default function Login() {
     localStorage.setItem('user', JSON.stringify(demoUser))
     const from = location.state?.from
     const target = from && String(from).startsWith('/seller') ? from : '/seller/dashboard'
+    navigate(target, { replace: true })
+  }
+
+  const handleDemoDeliveryProvider = async () => {
+    const demoUser = {
+      id: 'provider-demo',
+      name: 'SwiftX Logistics (Demo Provider)',
+      email: 'delivery@demo.local',
+      role: 'DELIVERY_PROVIDER',
+      status: 'ACTIVE',
+      deliveryProvider: {
+        id: 'provider-demo',
+        companyName: 'SwiftX Logistics',
+        status: 'ACTIVE',
+      },
+    }
+    await setAuthToken('demo-delivery-provider-token', true)
+    localStorage.setItem('user', JSON.stringify(demoUser))
+    const from = location.state?.from
+    const target = from && String(from).startsWith('/delivery') ? from : '/delivery'
+    navigate(target, { replace: true })
+  }
+
+  const handleDemoDeliveryDriver = async () => {
+    const demoUser = {
+      id: 'driver-demo',
+      name: 'Demo Rider',
+      email: 'rider@demo.local',
+      role: 'DELIVERY_DRIVER',
+      status: 'ACTIVE',
+      deliveryDriver: {
+        id: 'driver-demo',
+        fullName: 'Demo Rider',
+        status: 'ACTIVE',
+      },
+    }
+    await setAuthToken('demo-delivery-driver-token', true)
+    localStorage.setItem('user', JSON.stringify(demoUser))
+    const from = location.state?.from
+    const target = from && String(from).startsWith('/delivery') ? from : '/delivery'
     navigate(target, { replace: true })
   }
 
@@ -221,6 +285,24 @@ export default function Login() {
                 >
                   Continue as Demo Seller
                 </button>
+              )}
+              {role === 'delivery' && (
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleDemoDeliveryProvider}
+                    className="w-full rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-dcc-primary transition-colors hover:bg-violet-100"
+                  >
+                    Continue as Demo Delivery Provider
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDemoDeliveryDriver}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    Continue as Demo Delivery Driver
+                  </button>
+                </div>
               )}
             </form>
 
