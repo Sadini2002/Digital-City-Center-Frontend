@@ -136,7 +136,11 @@ export function ShopProvider({ children }) {
     }
 
     window.addEventListener('dcc-auth-change', onAuthChange)
-    return () => window.removeEventListener('dcc-auth-change', onAuthChange)
+    window.addEventListener('auth-changed', onAuthChange)
+    return () => {
+      window.removeEventListener('dcc-auth-change', onAuthChange)
+      window.removeEventListener('auth-changed', onAuthChange)
+    }
   }, [refreshCart])
 
   const cartCount = useMemo(
@@ -153,10 +157,20 @@ export function ShopProvider({ children }) {
 
       try {
         const { listingId, variantId } = resolveProductIds(product)
+        const numericListingId = Number(listingId)
+        const numericVariantId = Number(variantId)
+        const hasListingId = Number.isInteger(numericListingId) && numericListingId > 0
+        const hasVariantId = Number.isInteger(numericVariantId) && numericVariantId > 0
+
+        if (!hasListingId && !hasVariantId) {
+          toast.error('This product cannot be added to cart yet.')
+          return null
+        }
+
         const payload = await cartService.addItem({
-          variantId,
-          productId: listingId,
-          listingId,
+          variantId: hasVariantId ? numericVariantId : undefined,
+          productId: hasListingId ? numericListingId : undefined,
+          listingId: hasListingId ? numericListingId : undefined,
           quantity,
           color,
           size,

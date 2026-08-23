@@ -7,11 +7,15 @@ const USER_KEY = 'user'
 ========================================================= */
 
 export function getAuthToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  return localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY)
 }
 
 export function setAuthToken(token, remember = true) {
   if (!token) return
+
+  // Keep token in exactly one place so getAuthToken() always finds it.
+  localStorage.removeItem(AUTH_TOKEN_KEY)
+  sessionStorage.removeItem(AUTH_TOKEN_KEY)
 
   if (remember) {
     localStorage.setItem(AUTH_TOKEN_KEY, token)
@@ -20,6 +24,7 @@ export function setAuthToken(token, remember = true) {
   }
 
   window.dispatchEvent(new Event('auth-changed'))
+  window.dispatchEvent(new Event('dcc-auth-change'))
 }
 
 export function clearAuthToken() {
@@ -27,6 +32,7 @@ export function clearAuthToken() {
   sessionStorage.removeItem(AUTH_TOKEN_KEY)
 
   window.dispatchEvent(new Event('auth-changed'))
+  window.dispatchEvent(new Event('dcc-auth-change'))
 }
 
 /* Old name used by some components */

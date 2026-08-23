@@ -10,6 +10,7 @@ export default function CartSummary({
   onClear,
   deliveryFee: serverDeliveryFee,
   total: serverTotal,
+  discount: serverDiscount = 0,
   freeDeliveryThreshold,
   useServerTotals = false,
 }) {
@@ -29,6 +30,7 @@ export default function CartSummary({
     : itemCount > 0
       ? deliveryQuote.fee
       : 0
+  const discount = useServerTotals ? Number(serverDiscount || 0) : 0
   const total = useServerTotals ? Number(serverTotal ?? subtotal + delivery) : subtotal + delivery
 
   return (
@@ -39,6 +41,12 @@ export default function CartSummary({
           <dt>Subtotal ({itemCount} items)</dt>
           <dd className="font-medium text-slate-900">{formatLkr(subtotal)}</dd>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-emerald-600">
+            <dt>Deal discount</dt>
+            <dd className="font-medium">-{formatLkr(discount)}</dd>
+          </div>
+        )}
         <div className="flex justify-between text-slate-600">
           <dt>
             {useServerTotals ? 'Delivery' : 'Estimated delivery'}
