@@ -38,6 +38,14 @@ export const cartApi = {
   clear: () => api.delete('/cart/clear'),
 }
 
+export const ordersApi = {
+  checkout: (payload) => api.post('/orders/checkout', payload),
+}
+
+export const paymentsApi = {
+  initiate: (payload) => api.post('/payments/initiate', payload),
+}
+
 export const shopApi = {
   getAll: (params) => api.get('/shops', { params }),
   getByUrl: (shopUrl) => api.get(`/shops/url/${encodeURIComponent(shopUrl)}`),

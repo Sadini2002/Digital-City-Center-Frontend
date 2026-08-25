@@ -73,7 +73,7 @@ export async function placeOrder(order) {
    */
   const response = await api.post('/orders/checkout', payload)
 
-  const backendOrder = response?.data?.data
+  const backendOrder = response?.data
 
   if (!backendOrder?.orderId) {
     throw new Error('Backend did not return an order ID.')
