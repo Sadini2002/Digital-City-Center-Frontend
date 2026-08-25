@@ -50,6 +50,74 @@ function brandFromDescription(description = '') {
   return parts.length > 1 ? parts[0].trim() : ''
 }
 
+const FALLBACK_CARD_IMAGE =
+  'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400&auto=format&fit=crop&q=60'
+
+/**
+ * Map a backend listing (category-normalized or raw shop listing) into the
+ * card / add-to-cart shape. Always exposes numeric listingId + variantId.
+ */
+export function mapListingToCardProduct(listing, categorySlug = '') {
+  if (!listing) return null
+
+  const variants = listing.variants || []
+  const activeVariants = variants.filter((v) => v.status !== 'inactive')
+  const usableVariants = activeVariants.length ? activeVariants : variants
+  const primary =
+    usableVariants.find((v) => (Number(v.stock) || 0) > 0) || usableVariants[0] || null
+
+  const reviews = listing.reviews || []
+  const reviewRatings = reviews.map((r) => Number(r.rating) || 0).filter((n) => n > 0)
+  const averageRating =
+    listing.rating != null
+      ? Number(listing.rating)
+      : reviewRatings.length
+        ? reviewRatings.reduce((sum, n) => sum + n, 0) / reviewRatings.length
+        : 4.5
+
+  let image = listing.image || null
+  if (!image && primary?.images?.length) {
+    const mainImage = primary.images.find((item) => item.isMain)
+    image = mainImage?.url || primary.images[0]?.url || null
+  }
+
+  const description = listing.description || ''
+  const brand = brandFromDescription(description)
+  const slug =
+    listing.category?.slug ||
+    categorySlug ||
+    (listing.category?.name || 'marketplace').toString().toLowerCase().replace(/\s+/g, '-')
+
+  const listingId = Number(listing.id)
+  const variantId = primary?.id != null ? Number(primary.id) : undefined
+
+  return {
+    id: listingId,
+    listingId,
+    productId: listingId,
+    variantId,
+    selectedVariantId: variantId,
+    variants: usableVariants,
+    name: listing.title || listing.name || 'Product',
+    brand,
+    description:
+      description.includes(' - ') && brand
+        ? description.split(' - ').slice(1).join(' - ')
+        : description,
+    price: Number(listing.price ?? primary?.price ?? 0),
+    originalPrice: listing.originalPrice ?? null,
+    rating: Number(averageRating.toFixed?.(1) ?? averageRating),
+    reviews: Number(listing.reviewCount ?? reviewRatings.length ?? 0),
+    sales: Number(listing.sold || 0),
+    image: image || FALLBACK_CARD_IMAGE,
+    badge: listing.badge || null,
+    categorySlug: slug,
+    categoryLabel: listing.category?.name || slug,
+    shopId: listing.seller?.shopUrl || listing.seller?.id || null,
+    status: listing.status,
+  }
+}
+
 /**
  * Map backend listing payload into the shape expected by ProductPurchasePanel.
  */

@@ -28,11 +28,34 @@ function badgeStyles(badge) {
 export default function CategoryProductCard({ product, view = 'grid' }) {
   const { addToCart, toggleWishlist, isInWishlist } = useShop()
   const saved = isInWishlist(product.id)
+  const listingId = Number(product.listingId ?? product.productId ?? product.id)
+  const variantId = Number(product.variantId)
+  const canAddToCart =
+    Number.isInteger(listingId) &&
+    listingId > 0 &&
+    Number.isInteger(variantId) &&
+    variantId > 0
 
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    addToCart(product, 1)
+    if (!canAddToCart) return
+    addToCart(
+      {
+        id: listingId,
+        listingId,
+        productId: listingId,
+        variantId,
+        title: product.name || product.title,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        image: product.image,
+        stock: product.stock,
+        seller: product.seller,
+        variants: product.variants,
+      },
+      1,
+    )
   }
 
   const handleToggleWishlist = (e) => {
@@ -91,7 +114,8 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
           <button
             type="button"
             onClick={handleAddToCart}
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-dcc-primary text-white hover:bg-dcc-primary-hover"
+            disabled={!canAddToCart}
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-dcc-primary text-white hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Add to cart"
           >
             <ShoppingCart className="h-4 w-4" />
@@ -155,7 +179,8 @@ export default function CategoryProductCard({ product, view = 'grid' }) {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg bg-dcc-primary text-white shadow-sm hover:bg-dcc-primary-hover"
+          disabled={!canAddToCart}
+          className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-lg bg-dcc-primary text-white shadow-sm hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Add to cart"
         >
           <ShoppingCart className="h-4 w-4" />

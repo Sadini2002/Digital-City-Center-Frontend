@@ -46,3 +46,15 @@ export const paymentsApi = {
   initiate: (payload) => api.post('/payments/initiate', payload),
 }
 
+export const shopApi = {
+  getAll: (params) => api.get('/shops', { params }),
+  getByUrl: (shopUrl) => api.get(`/shops/url/${encodeURIComponent(shopUrl)}`),
+  getProductsByUrl: (shopUrl) =>
+    api.get(`/shops/url/${encodeURIComponent(shopUrl)}/products`),
+}
+
+export const homeApi = {
+  getFlashSale: () => api.get('/home/flash-sale'),
+  getFeaturedShops: () => api.get('/home/featured'),
+  getCategories: () => api.get('/home/categories'),
+}

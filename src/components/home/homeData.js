@@ -8,7 +8,6 @@ import {
   ShoppingBasket,
   Sofa,
 } from 'lucide-react'
-import { IMG } from '../../config/images'
 
 export const categories = [
   { slug: 'fashion', label: 'Fashion', count: '1200+ Items', icon: Shirt, bg: 'bg-pink-100/70', iconColor: 'text-pink-600' },
@@ -19,45 +18,6 @@ export const categories = [
   { slug: 'sports', label: 'Sports', count: '310+ Items', icon: Dumbbell, bg: 'bg-orange-100/70', iconColor: 'text-orange-600' },
   { slug: 'kids', label: 'Kids & Toys', count: '520+ Items', icon: Baby, bg: 'bg-yellow-100/70', iconColor: 'text-yellow-700' },
   { slug: 'more', label: 'More', count: 'View all', icon: MoreHorizontal, bg: 'bg-slate-100', iconColor: 'text-slate-500', dashed: true },
-]
-
-export const flashDeals = [
-  {
-    id: 'sony-wh-1000xm5',
-    name: 'WH-1000XM5 Headphones',
-    price: '97,750',
-    oldPrice: '115,000',
-    discount: 16,
-    hue: 'from-violet-200/90 to-violet-300/80',
-    image: IMG.products.headphones,
-  },
-  {
-    id: 'ultra-smart-watch-pro-10',
-    name: 'Smart Watch Pro',
-    price: '45,990',
-    oldPrice: '57,500',
-    discount: 20,
-    hue: 'from-slate-200/90 to-slate-300/80',
-    image: IMG.products.smartwatch,
-  },
-  {
-    id: 'apple-airpods-pro',
-    name: 'AirPods Pro (2nd Gen)',
-    price: '64,990',
-    oldPrice: null,
-    discount: null,
-    hue: 'from-pink-200/90 to-pink-300/80',
-    image: IMG.products.airpods,
-  },
-  {
-    id: 'logitech-mx-master',
-    name: 'MX Master 3S Mouse',
-    price: '28,500',
-    oldPrice: '32,000',
-    discount: 11,
-    hue: 'from-amber-200/90 to-amber-300/80',
-    image: IMG.products.mouse,
-  },
 ]
 
 export const topShops = [

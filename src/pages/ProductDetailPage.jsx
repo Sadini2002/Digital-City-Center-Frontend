@@ -55,7 +55,6 @@ export default function ProductDetailPage() {
           if (!cancelled) {
             setProduct(mapped)
           }
-
           return
         }
 

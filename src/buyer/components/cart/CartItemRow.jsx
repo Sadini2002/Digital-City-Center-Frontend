@@ -43,7 +43,14 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
         {item.stock != null && (
           <p className="mt-1 text-xs text-slate-400">{item.stock} in stock</p>
         )}
-        <p className="mt-2 text-sm font-bold text-dcc-primary sm:hidden">{formatLkr(lineTotal)}</p>
+        <div className="mt-2 flex items-baseline gap-2 sm:hidden">
+          <p className="text-sm font-bold text-dcc-primary">{formatLkr(lineTotal)}</p>
+          {item.originalPrice != null && Number(item.originalPrice) > Number(item.price) && (
+            <p className="text-xs text-slate-400 line-through">
+              {formatLkr(Number(item.originalPrice) * item.quantity)}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-end">
@@ -69,9 +76,14 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }) {
           </button>
         </div>
 
-        <p className="hidden min-w-[7rem] text-right text-sm font-bold text-dcc-primary sm:block">
-          {formatLkr(lineTotal)}
-        </p>
+        <div className="hidden min-w-[7rem] text-right sm:block">
+          <p className="text-sm font-bold text-dcc-primary">{formatLkr(lineTotal)}</p>
+          {item.originalPrice != null && Number(item.originalPrice) > Number(item.price) && (
+            <p className="text-xs text-slate-400 line-through">
+              {formatLkr(Number(item.originalPrice) * item.quantity)}
+            </p>
+          )}
+        </div>
 
         <button
           type="button"
