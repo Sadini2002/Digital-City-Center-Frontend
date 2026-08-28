@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+
 export default function Checkout() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
@@ -14,6 +15,7 @@ export default function Checkout() {
     // Modal States
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [newAddress, setNewAddress] = useState({ label: '', addressLine: '', city: '', province: '', phone: '' });
+    const [finalAddressId, setFinalAddressId] = useState('');
 
     useEffect(() => {
         axios.get('/api/checkout/details').then(res => {
@@ -84,6 +86,7 @@ return (
                     <button onClick={() => setShowAddressModal(true)} className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-500 hover:border-blue-400 hover:text-blue-500">
                         + Add New Address
                     </button>
+                    <AddressSection setSelectedDeliveryAddress={setFinalAddressId} />
                 </div>
             </div>
 
