@@ -11,59 +11,66 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
     const [newAddr, setNewAddr] = useState({ label: 'Home', addressLine: '', city: '', phone: '' });
     const [isSaving, setIsSaving] = useState(false);
 
-    // 1. PAGE LOAD: Backend eken Saved Addresses ganna
+    // 1. PAGE LOAD: Fetch saved addresses from Backend
     useEffect(() => {
         axios.get('/api/addresses')
             .then(res => {
-                setSavedAddresses(res.data);
-                // First address eka auto-select karanna
-                if (res.data.length > 0) {
+                if (Array.isArray(res.data) && res.data.length > 0) {
+                    setSavedAddresses(res.data);
                     const firstAddrId = res.data[0].id.toString();
                     setSelectedId(firstAddrId);
-                    setSelectedDeliveryAddress(firstAddrId); // Parent ekata yawanawa
+                    setSelectedDeliveryAddress?.(firstAddrId);
+                } else {
+                    setSavedAddresses([]);
+                    setMode('NEW'); // Auto switch to new address if no saved address exists
                 }
             })
-            .catch(err => console.log("No saved addresses yet"));
+            .catch(err => {
+                console.log("No saved addresses yet:", err);
+                setSavedAddresses([]);
+                setMode('NEW');
+            });
     }, []);
 
-    // 2. SAVED ADDRESS CLICK: Parent ekata id eka pass karanna
+    // 2. SAVED ADDRESS CLICK: Pass selected ID to parent
     const handleSelectSaved = (id) => {
-        setSelectedId(id);
-        setSelectedDeliveryAddress(id.toString());
+        const idStr = id.toString();
+        setSelectedId(idStr);
+        setSelectedDeliveryAddress?.(idStr);
     };
 
-    // 3. NEW ADDRESS SAVE: Backend ekata save karanna & List eka update karanna
+    // 3. NEW ADDRESS SAVE: POST to Backend & update list
     const handleSaveNewAddress = async (e) => {
-        e.preventDefault(); // Form reload prevent
+        e.preventDefault();
 
         // Validation
-        if (!newAddr.addressLine || !newAddr.city || !newAddr.phone) {
+        if (!newAddr.addressLine?.trim() || !newAddr.city?.trim() || !newAddr.phone?.trim()) {
             return alert("Please fill in Address, City, and Phone");
         }
 
         setIsSaving(true);
         try {
-            // Backend API ekata POST
             const response = await axios.post('/api/addresses', newAddr);
+            const created = response.data;
+            const newId = (created?.id || Date.now()).toString();
 
-            // A. State eka update karanna (List eke instantly pennanawa)
-            setSavedAddresses(prev => [response.data, ...prev]);
+            // A. Update local saved addresses state
+            setSavedAddresses(prev => [created, ...prev]);
 
-            // B. New address eka auto-select karanna
-            const newId = response.data.id.toString();
+            // B. Auto select the newly created address
             setSelectedId(newId);
-            setSelectedDeliveryAddress(newId);
+            setSelectedDeliveryAddress?.(newId);
 
-            // C. Mode eka 'SAVED' walata back yanna (Form eka hide karanna)
+            // C. Return mode to 'SAVED' and clear form
             setMode('SAVED');
-
-            // D. Form eka clear karanna
             setNewAddr({ label: 'Home', addressLine: '', city: '', phone: '' });
 
         } catch (error) {
-            alert("Failed to save address");
+            console.error("Save address error:", error);
+            alert("Failed to save address. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
-        setIsSaving(false);
     };
 
     return (
@@ -72,10 +79,18 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
 
             {/* TOGGLE BUTTONS */}
             <div className="flex gap-3 mb-5">
-                <button onClick={() => setMode('SAVED')} className={`px-4 py-2 rounded font-medium border transition ${mode === 'SAVED' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'}`}>
-                    📍 Saved Addresses
+                <button
+                    type="button"
+                    onClick={() => setMode('SAVED')}
+                    className={`px-4 py-2 rounded font-medium border transition ${mode === 'SAVED' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                >
+                    📍 Saved Addresses {savedAddresses.length > 0 && `(${savedAddresses.length})`}
                 </button>
-                <button onClick={() => setMode('NEW')} className={`px-4 py-2 rounded font-medium border transition ${mode === 'NEW' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'}`}>
+                <button
+                    type="button"
+                    onClick={() => setMode('NEW')}
+                    className={`px-4 py-2 rounded font-medium border transition ${mode === 'NEW' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'}`}
+                >
                     ✏️ Add New Address
                 </button>
             </div>
@@ -84,21 +99,37 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
             {mode === 'SAVED' && (
                 <div className="space-y-3">
                     {savedAddresses.length > 0 ? (
-                        savedAddresses.map(addr => (
-                            <div key={addr.id} onClick={() => handleSelectSaved(addr.id)}
-                                className={`p-4 border-2 rounded-lg cursor-pointer flex justify-between ${selectedId === addr.id.toString() ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-400'}`}>
-                                <div>
-                                    <span className="font-bold text-gray-800">{addr.label}</span>
-                                    <p className="text-sm text-gray-600 mt-1">{addr.addressLine}, {addr.city}</p>
+                        savedAddresses.map(addr => {
+                            const addrIdStr = addr.id.toString();
+                            const isSelected = selectedId === addrIdStr;
+                            return (
+                                <div
+                                    key={addr.id}
+                                    onClick={() => handleSelectSaved(addr.id)}
+                                    className={`p-4 border-2 rounded-lg cursor-pointer flex justify-between items-center transition ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                >
+                                    <div>
+                                        <span className="font-bold text-gray-800">{addr.label || 'Address'}</span>
+                                        <p className="text-sm text-gray-600 mt-1">{addr.addressLine}, {addr.city}</p>
+                                    </div>
+                                    <div className="text-right text-sm text-gray-500">
+                                        <p>{addr.phone}</p>
+                                        {isSelected && <span className="text-blue-600 font-bold mt-1 block">Selected ✓</span>}
+                                    </div>
                                 </div>
-                                <div className="text-right text-sm text-gray-500">
-                                    <p>{addr.phone}</p>
-                                    {selectedId === addr.id.toString() && <span className="text-blue-600 font-bold mt-1 block">Selected ✓</span>}
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
-                        <p className="text-gray-500 py-4 text-center border border-dashed rounded">No saved addresses. Please add a new one.</p>
+                        <div className="text-center py-6 border border-dashed rounded bg-gray-50">
+                            <p className="text-gray-500 mb-3">No saved addresses found.</p>
+                            <button
+                                type="button"
+                                onClick={() => setMode('NEW')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700"
+                            >
+                                + Add Your First Address
+                            </button>
+                        </div>
                     )}
                 </div>
             )}
@@ -108,8 +139,12 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
                 <form onSubmit={handleSaveNewAddress} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border">
 
                     <div>
-                        <label className="text-sm text-gray-600">Label</label>
-                        <select value={newAddr.label} onChange={e => setNewAddr({ ...newAddr, label: e.target.value })} className="w-full border p-2 mt-1 rounded">
+                        <label className="text-sm font-medium text-gray-700">Label</label>
+                        <select
+                            value={newAddr.label}
+                            onChange={e => setNewAddr({ ...newAddr, label: e.target.value })}
+                            className="w-full border p-2 mt-1 rounded bg-white"
+                        >
                             <option value="Home">Home</option>
                             <option value="Office">Office</option>
                             <option value="Other">Other</option>
@@ -117,26 +152,57 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
                     </div>
 
                     <div>
-                        <label className="text-sm text-gray-600">Phone Number</label>
-                        <input type="text" placeholder="07X XXXXXXX" required className="w-full border p-2 mt-1 rounded" value={newAddr.phone} onChange={e => setNewAddr({ ...newAddr, phone: e.target.value })} />
+                        <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                        <input
+                            type="text"
+                            placeholder="07X XXXXXXX"
+                            required
+                            className="w-full border p-2 mt-1 rounded bg-white"
+                            value={newAddr.phone}
+                            onChange={e => setNewAddr({ ...newAddr, phone: e.target.value })}
+                        />
                     </div>
 
                     <div className="md:col-span-2">
-                        <label className="text-sm text-gray-600">Address Line</label>
-                        <input type="text" placeholder="No 47/A, Yatawara Junction..." required className="w-full border p-2 mt-1 rounded" value={newAddr.addressLine} onChange={e => setNewAddr({ ...newAddr, addressLine: e.target.value })} />
+                        <label className="text-sm font-medium text-gray-700">Address Line</label>
+                        <input
+                            type="text"
+                            placeholder="No 47/A, Main Street..."
+                            required
+                            className="w-full border p-2 mt-1 rounded bg-white"
+                            value={newAddr.addressLine}
+                            onChange={e => setNewAddr({ ...newAddr, addressLine: e.target.value })}
+                        />
                     </div>
 
                     <div>
-                        <label className="text-sm text-gray-600">City</label>
-                        <input type="text" placeholder="Gampaha" required className="w-full border p-2 mt-1 rounded" value={newAddr.city} onChange={e => setNewAddr({ ...newAddr, city: e.target.value })} />
+                        <label className="text-sm font-medium text-gray-700">City</label>
+                        <input
+                            type="text"
+                            placeholder="Colombo / Kandy / Gampaha"
+                            required
+                            className="w-full border p-2 mt-1 rounded bg-white"
+                            value={newAddr.city}
+                            onChange={e => setNewAddr({ ...newAddr, city: e.target.value })}
+                        />
                     </div>
 
-                    {/* THIS IS THE SAVE BUTTON */}
+                    {/* SAVE & CANCEL BUTTONS */}
                     <div className="md:col-span-2 flex justify-end gap-3 mt-2">
-                        <button type="button" onClick={() => setMode('SAVED')} className="px-6 py-2 border border-gray-400 rounded text-gray-700 hover:bg-gray-100">
-                            Cancel
-                        </button>
-                        <button type="submit" disabled={isSaving} className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        {savedAddresses.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setMode('SAVED')}
+                                className="px-6 py-2 border border-gray-400 rounded text-gray-700 hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 font-medium transition"
+                        >
                             {isSaving ? 'Saving...' : '💾 Save Address'}
                         </button>
                     </div>
@@ -144,4 +210,4 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
             )}
         </div>
     );
-}
+}
