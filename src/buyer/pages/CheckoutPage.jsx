@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { MapPin, Truck } from 'lucide-react'
+import axios from 'axios'
 
 import PageContainer from '../../components/layout/PageContainer'
 import ProductBreadcrumbs from '../../components/product/ProductBreadcrumbs'
@@ -15,8 +16,9 @@ import {
   formatAddressLines,
   isOnlinePayment,
   paymentMethods,
-  savedAddresses,
 } from '../data/checkoutData'
+
+import { getSavedAddresses, saveAddress } from '../utils/addressStorage'
 
 import { placeOrder } from '../services/paymentService'
 import { formatLkr } from '../../components/category/categoryData'
@@ -69,12 +71,13 @@ export default function CheckoutPage() {
   // ADDRESS STATE
   // =====================================================
 
+  const [savedAddressesList, setSavedAddressesList] = useState(getSavedAddresses)
+
   const defaultAddress =
-    savedAddresses.find(
+    savedAddressesList.find(
       (address) => address.isDefault,
     )?.id ??
-    savedAddresses[0]?.id
-
+    savedAddressesList[0]?.id
 
   const [
     addressMode,
@@ -85,7 +88,6 @@ export default function CheckoutPage() {
       : 'new',
   )
 
-
   const [
     selectedAddressId,
     setSelectedAddressId,
@@ -93,13 +95,49 @@ export default function CheckoutPage() {
     defaultAddress || '',
   )
 
-
   const [
     newAddress,
     setNewAddress,
   ] = useState(
     emptyAddress,
   )
+
+  const [isSavingAddress, setIsSavingAddress] = useState(false)
+
+  const handleSaveNewAddress = async () => {
+    if (!newAddress.name?.trim() || !newAddress.phone?.trim() || !newAddress.line1?.trim() || !newAddress.city?.trim()) {
+      setError('Please complete all required fields (Full name, Phone, Address line 1, City).')
+      return
+    }
+
+    setError('')
+    setIsSavingAddress(true)
+
+    try {
+      const { createdAddress, updatedList } = saveAddress(newAddress)
+
+      try {
+        await axios.post('/api/addresses', {
+          label: createdAddress.label || 'Home',
+          addressLine: `${createdAddress.line1}${createdAddress.line2 ? ', ' + createdAddress.line2 : ''}`,
+          city: createdAddress.city,
+          phone: createdAddress.phone,
+        })
+      } catch (err) {
+        console.warn('Backend API /api/addresses unavailable, address saved locally:', err)
+      }
+
+      setSavedAddressesList(updatedList)
+      setSelectedAddressId(createdAddress.id)
+      setAddressMode('saved')
+      setNewAddress(emptyAddress)
+    } catch (err) {
+      console.error('Failed to save address:', err)
+      setError('Failed to save address. Please try again.')
+    } finally {
+      setIsSavingAddress(false)
+    }
+  }
 
 
   // =====================================================
@@ -180,7 +218,7 @@ export default function CheckoutPage() {
   // =====================================================
 
   const selectedSaved =
-    savedAddresses.find(
+    savedAddressesList.find(
       (address) =>
         address.id ===
         selectedAddressId,
@@ -808,7 +846,7 @@ export default function CheckoutPage() {
 
                 <ul className="mt-4 space-y-3">
 
-                  {savedAddresses.map(
+                  {savedAddressesList.map(
                     (addr) => (
 
                       <li
@@ -1089,6 +1127,27 @@ export default function CheckoutPage() {
                       required
                     />
 
+                  </div>
+
+                  {/* SAVE ADDRESS BUTTON */}
+                  <div className="sm:col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t border-slate-200">
+                    {savedAddressesList.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAddressMode('saved')}
+                        className="px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isSavingAddress}
+                      onClick={handleSaveNewAddress}
+                      className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-dcc-primary text-white hover:bg-dcc-primary-hover disabled:opacity-50 transition flex items-center gap-2 shadow-sm"
+                    >
+                      {isSavingAddress ? 'Saving address…' : '💾 Save Address'}
+                    </button>
                   </div>
 
                 </div>

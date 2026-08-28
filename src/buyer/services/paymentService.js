@@ -163,6 +163,8 @@ export async function placeOrder(order) {
       )
     }
 
+    await sendConfirmationEmail(savedOrder)
+
     return {
       order: savedOrder,
       requiresGateway: false,

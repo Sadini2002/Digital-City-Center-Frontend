@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getSavedAddresses, saveAddress } from '../buyer/utils/addressStorage';
 
 export default function AddressSection({ setSelectedDeliveryAddress }) {
     // States
@@ -11,7 +12,7 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
     const [newAddr, setNewAddr] = useState({ label: 'Home', addressLine: '', city: '', phone: '' });
     const [isSaving, setIsSaving] = useState(false);
 
-    // 1. PAGE LOAD: Fetch saved addresses from Backend
+    // 1. PAGE LOAD: Fetch saved addresses from Backend or local storage
     useEffect(() => {
         axios.get('/api/addresses')
             .then(res => {
@@ -21,14 +22,30 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
                     setSelectedId(firstAddrId);
                     setSelectedDeliveryAddress?.(firstAddrId);
                 } else {
-                    setSavedAddresses([]);
-                    setMode('NEW'); // Auto switch to new address if no saved address exists
+                    const fallback = getSavedAddresses();
+                    if (fallback.length > 0) {
+                        setSavedAddresses(fallback);
+                        const firstId = fallback[0].id.toString();
+                        setSelectedId(firstId);
+                        setSelectedDeliveryAddress?.(firstId);
+                    } else {
+                        setSavedAddresses([]);
+                        setMode('NEW');
+                    }
                 }
             })
             .catch(err => {
-                console.log("No saved addresses yet:", err);
-                setSavedAddresses([]);
-                setMode('NEW');
+                console.log("Using local storage fallback for saved addresses:", err);
+                const fallback = getSavedAddresses();
+                if (fallback.length > 0) {
+                    setSavedAddresses(fallback);
+                    const firstId = fallback[0].id.toString();
+                    setSelectedId(firstId);
+                    setSelectedDeliveryAddress?.(firstId);
+                } else {
+                    setSavedAddresses([]);
+                    setMode('NEW');
+                }
             });
     }, []);
 
@@ -39,7 +56,7 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
         setSelectedDeliveryAddress?.(idStr);
     };
 
-    // 3. NEW ADDRESS SAVE: POST to Backend & update list
+    // 3. NEW ADDRESS SAVE: POST to Backend & update list (or fallback to local storage)
     const handleSaveNewAddress = async (e) => {
         e.preventDefault();
 
@@ -50,12 +67,29 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
 
         setIsSaving(true);
         try {
-            const response = await axios.post('/api/addresses', newAddr);
-            const created = response.data;
-            const newId = (created?.id || Date.now()).toString();
+            let created;
+            try {
+                const response = await axios.post('/api/addresses', newAddr);
+                created = response.data;
+            } catch (err) {
+                console.warn("Backend API unavailable, saving locally:", err);
+            }
 
-            // A. Update local saved addresses state
-            setSavedAddresses(prev => [created, ...prev]);
+            if (!created) {
+                const { createdAddress, updatedList } = saveAddress({
+                    label: newAddr.label,
+                    phone: newAddr.phone,
+                    line1: newAddr.addressLine,
+                    city: newAddr.city,
+                    district: newAddr.city,
+                });
+                created = createdAddress;
+                setSavedAddresses(updatedList);
+            } else {
+                setSavedAddresses(prev => [created, ...prev]);
+            }
+
+            const newId = (created?.id || Date.now()).toString();
 
             // B. Auto select the newly created address
             setSelectedId(newId);
