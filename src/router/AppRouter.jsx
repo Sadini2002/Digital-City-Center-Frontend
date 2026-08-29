@@ -25,6 +25,7 @@ import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
 import DealsPage from '../pages/DealsPage'
 import InfoPage from '../pages/InfoPage'
+import MockPaymentPage from '../buyer/pages/MockPaymentPage'
 
 import {
   AccountPage,
@@ -353,6 +354,8 @@ function AppRouter() {
           path="/payment/gateway/:orderId"
           element={<PaymentGatewayPage />}
         />
+
+        <Route path="/payment/mock/:orderId" element={<MockPaymentPage />} />
 
         {/* =====================================================
             SELLER ROUTES

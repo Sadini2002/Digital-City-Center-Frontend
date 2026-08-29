@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { CheckCircle2, Mail, Package } from 'lucide-react'
 import PageContainer from '../../components/layout/PageContainer'
@@ -6,11 +6,58 @@ import ProductBreadcrumbs from '../../components/product/ProductBreadcrumbs'
 import { deliveryMethods, formatAddressLines, paymentMethods } from '../data/checkoutData'
 import { formatLkr } from '../../components/category/categoryData'
 import { getOrderById, ORDER_STATUS } from '../utils/orderStorage'
+import { getPaymentStatus } from '../services/paymentService'
 
 export default function OrderSuccessPage() {
   const { id } = useParams()
 
   const order = useMemo(() => getOrderById(id), [id])
+  const [backendPaymentStatus, setBackendPaymentStatus] = useState(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
+  const [paymentCheckError, setPaymentCheckError] = useState('')
+
+  const isMockKokoOrOnePay = ['koko', 'onepay'].includes(
+  String(order?.paymentMethod || '').toLowerCase(),
+  )
+
+useEffect(() => {
+  if (!order || !isMockKokoOrOnePay) {
+    return
+  }
+
+  let cancelled = false
+
+  async function checkBackendPayment() {
+    setCheckingPayment(true)
+    setPaymentCheckError('')
+
+    try {
+      const result = await getPaymentStatus(id)
+
+      if (!cancelled) {
+        setBackendPaymentStatus(result.paymentStatus)
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setPaymentCheckError(
+          error?.response?.data?.message ||
+            error?.message ||
+            'Could not verify payment status.',
+        )
+      }
+    } finally {
+      if (!cancelled) {
+        setCheckingPayment(false)
+      }
+    }
+  }
+
+  checkBackendPayment()
+
+  return () => {
+    cancelled = true
+  }
+}, [id, order, isMockKokoOrOnePay])
 
   const deliveryLabel =
     deliveryMethods.find((m) => m.id === order?.deliveryMethod)?.label ?? 'Delivery'
@@ -30,7 +77,42 @@ export default function OrderSuccessPage() {
   }
 
   if (order.status === ORDER_STATUS.PENDING_PAYMENT) {
-    return <Navigate to={`/payment/gateway/${order.id}?method=${order.paymentMethod}`} replace />
+  // KOKO / OnePay mock: trust the backend database status.
+  if (isMockKokoOrOnePay) {
+    if (checkingPayment || backendPaymentStatus === null) {
+      return (
+        <PageContainer className="py-16 text-center">
+          <p className="text-sm text-slate-600">Confirming your test payment…</p>
+        </PageContainer>
+      )
+    }
+
+    if (['failed', 'cancelled'].includes(backendPaymentStatus)) {
+      return <Navigate to={`/order/${order.id}/failed`} replace />
+    }
+
+    if (backendPaymentStatus !== 'paid') {
+      return (
+        <PageContainer className="py-16 text-center">
+          <h1 className="text-xl font-bold text-slate-900">Payment is pending</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            {paymentCheckError || 'Your payment has not been confirmed yet.'}
+          </p>
+          <Link
+            to={`/payment/mock/${order.id}?method=${order.paymentMethod}`}
+            className="mt-6 inline-block text-sm font-semibold text-dcc-primary hover:underline"
+          >
+            Return to test payment
+          </Link>
+        </PageContainer>
+      )
+    }
+
+    // Backend says PAID: continue and render this success page.
+  } else {
+    // PayHere path — unchanged.
+    return (<Navigate to={`/payment/gateway/${order.id}?method=${order.paymentMethod}`} replace />)
+  }
   }
 
   if (order.status === ORDER_STATUS.PAYMENT_FAILED) {
