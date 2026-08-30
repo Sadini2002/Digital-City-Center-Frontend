@@ -58,7 +58,7 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
 
     // 3. NEW ADDRESS SAVE: POST to Backend & update list (or fallback to local storage)
     const handleSaveNewAddress = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
 
         // Validation
         if (!newAddr.addressLine?.trim() || !newAddr.city?.trim() || !newAddr.phone?.trim()) {
@@ -75,27 +75,27 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
                 console.warn("Backend API unavailable, saving locally:", err);
             }
 
-            if (!created) {
-                const { createdAddress, updatedList } = saveAddress({
-                    label: newAddr.label,
-                    phone: newAddr.phone,
-                    line1: newAddr.addressLine,
-                    city: newAddr.city,
-                    district: newAddr.city,
-                });
-                created = createdAddress;
-                setSavedAddresses(updatedList);
-            } else {
-                setSavedAddresses(prev => [created, ...prev]);
+            const { createdAddress, updatedList } = saveAddress({
+                label: newAddr.label || 'Home',
+                phone: newAddr.phone,
+                line1: newAddr.addressLine,
+                city: newAddr.city,
+                district: newAddr.city,
+            });
+
+            if (created && created.id) {
+                createdAddress.id = created.id;
             }
 
-            const newId = (created?.id || Date.now()).toString();
+            setSavedAddresses(updatedList);
 
-            // B. Auto select the newly created address
+            const newId = (createdAddress?.id || Date.now()).toString();
+
+            // Auto select the newly created address
             setSelectedId(newId);
             setSelectedDeliveryAddress?.(newId);
 
-            // C. Return mode to 'SAVED' and clear form
+            // Return mode to 'SAVED' and clear form
             setMode('SAVED');
             setNewAddr({ label: 'Home', addressLine: '', city: '', phone: '' });
 
@@ -144,7 +144,7 @@ export default function AddressSection({ setSelectedDeliveryAddress }) {
                                 >
                                     <div>
                                         <span className="font-bold text-gray-800">{addr.label || 'Address'}</span>
-                                        <p className="text-sm text-gray-600 mt-1">{addr.addressLine}, {addr.city}</p>
+                                        <p className="text-sm text-gray-600 mt-1">{addr.addressLine || addr.line1}, {addr.city}</p>
                                     </div>
                                     <div className="text-right text-sm text-gray-500">
                                         <p>{addr.phone}</p>

@@ -34,6 +34,7 @@ const breadcrumbs = [
 
 
 const emptyAddress = {
+  label: 'Home',
   name: '',
   phone: '',
   line1: '',
@@ -103,13 +104,17 @@ export default function CheckoutPage() {
   )
 
   const [isSavingAddress, setIsSavingAddress] = useState(false)
+  const [addressError, setAddressError] = useState('')
 
   const handleSaveNewAddress = async () => {
     if (!newAddress.name?.trim() || !newAddress.phone?.trim() || !newAddress.line1?.trim() || !newAddress.city?.trim()) {
-      setError('Please complete all required fields (Full name, Phone, Address line 1, City).')
+      const msg = 'Please complete all required fields (Full name, Phone, Address line 1, City).'
+      setAddressError(msg)
+      setError(msg)
       return
     }
 
+    setAddressError('')
     setError('')
     setIsSavingAddress(true)
 
@@ -133,6 +138,7 @@ export default function CheckoutPage() {
       setNewAddress(emptyAddress)
     } catch (err) {
       console.error('Failed to save address:', err)
+      setAddressError('Failed to save address. Please try again.')
       setError('Failed to save address. Please try again.')
     } finally {
       setIsSavingAddress(false)
@@ -559,6 +565,23 @@ export default function CheckoutPage() {
 
       event.preventDefault()
 
+      if (addressMode === 'new') {
+        if (!newAddress.name?.trim() || !newAddress.phone?.trim() || !newAddress.line1?.trim() || !newAddress.city?.trim()) {
+          const msg = 'Please complete all required fields in the delivery address (Full name, Phone, Address line 1, City).'
+          setAddressError(msg)
+          setError(msg)
+          return
+        }
+
+        try {
+          const { createdAddress, updatedList } = saveAddress(newAddress)
+          setSavedAddressesList(updatedList)
+          setSelectedAddressId(createdAddress.id)
+          setAddressMode('saved')
+        } catch (e) {
+          console.warn('Auto-save address error:', e)
+        }
+      }
 
       const validationError =
         validate()
@@ -955,11 +978,29 @@ export default function CheckoutPage() {
 
                 <div className="grid gap-3 mt-4 sm:grid-cols-2">
 
-
-                  <div className="sm:col-span-2">
+                  <div>
 
                     <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
-                      Full name
+                      Address Label
+                    </label>
+
+                    <select
+                      value={newAddress.label || 'Home'}
+                      onChange={updateNewAddress('label')}
+                      className={inputClass}
+                    >
+                      <option value="Home">Home</option>
+                      <option value="Office">Office</option>
+                      <option value="Other">Other</option>
+                    </select>
+
+                  </div>
+
+
+                  <div>
+
+                    <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
+                      Full name *
                     </label>
 
                     <input
@@ -984,7 +1025,7 @@ export default function CheckoutPage() {
                   <div>
 
                     <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
-                      Phone
+                      Phone *
                     </label>
 
                     <input
@@ -1034,7 +1075,7 @@ export default function CheckoutPage() {
                   <div className="sm:col-span-2">
 
                     <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
-                      Address line 1
+                      Address line 1 *
                     </label>
 
                     <input
@@ -1083,7 +1124,7 @@ export default function CheckoutPage() {
                   <div>
 
                     <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
-                      City
+                      City *
                     </label>
 
                     <input
@@ -1108,7 +1149,7 @@ export default function CheckoutPage() {
                   <div>
 
                     <label className="block mb-1 text-xs font-semibold uppercase text-slate-500">
-                      District
+                      District *
                     </label>
 
                     <input
@@ -1129,12 +1170,21 @@ export default function CheckoutPage() {
 
                   </div>
 
+                  {addressError && (
+                    <div className="sm:col-span-2 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                      {addressError}
+                    </div>
+                  )}
+
                   {/* SAVE ADDRESS BUTTON */}
-                  <div className="sm:col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t border-slate-200">
+                  <div className="sm:col-span-2 flex items-center justify-end gap-3 mt-3 pt-3 border-t border-slate-200">
                     {savedAddressesList.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setAddressMode('saved')}
+                        onClick={() => {
+                          setAddressError('')
+                          setAddressMode('saved')
+                        }}
                         className="px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition"
                       >
                         Cancel
