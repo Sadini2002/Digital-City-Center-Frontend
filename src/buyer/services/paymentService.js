@@ -1,11 +1,5 @@
 import { api } from '../../services/api'
-
-import {
-  getOrderById,
-  saveOrder,
-  updateOrderStatus,
-} from '../utils/orderStorage'
-
+import {getOrderById,saveOrder,updateOrderStatus,} from '../utils/orderStorage'
 import { isOnlinePayment } from '../data/checkoutData'
 
 const PENDING_CART_KEY = 'dcc_pending_cart_order'
@@ -23,17 +17,32 @@ function buildDeliveryAddress(address) {
     .filter(Boolean)
     .join(', ')
 }
-
-/**
- * Create a REAL order using the backend.
- */
+function normalizePaymentMethod(method) {
+  const m = String(method || '').toLowerCase()
+  switch (m) {
+    case 'cod':
+      return 'COD'
+    case 'payhere':
+      return 'PAYHERE'
+    case 'koko':
+      return 'KOKO'
+    case 'onepay':
+      return 'ONEPAY'
+    case 'mintpay':
+    case 'mint':
+      return 'MINTPAY'
+    default:
+      return null
+  }
+}
 export async function placeOrder(order) {
-  const paymentMethod =
-    order.paymentMethod === 'cod'
-      ? 'COD'
-      : order.paymentMethod === 'payhere'
-        ? 'PAYHERE'
-        : null
+  const paymentMethod = normalizePaymentMethod(order.paymentMethod)
+
+  if (!paymentMethod) {
+    throw new Error(
+      'Invalid or unsupported payment method. Please select COD, PayHere, Koko, OnePay, or Mintpay.',
+    )
+  }
 
   if (!paymentMethod) {
     throw new Error(
@@ -58,13 +67,9 @@ export async function placeOrder(order) {
 
   const payload = {
     items,
-
     deliveryAddress: buildDeliveryAddress(order.address),
-
     deliveryMethod: order.deliveryMethod,
-
     paymentMethod,
-
     notes: `Checkout order from buyer: ${order.email}`,
   }
 
@@ -201,15 +206,6 @@ export async function placeOrder(order) {
   }
 }
 
-/**
- * Process the payment result from the simulated
- * payment gateway.
- *
- * This calls the REAL backend payment webhook.
- *
- * Backend:
- * POST /api/v1/payments/webhook
- */
 export async function processPaymentWebhook(
   orderId,
   { success },
@@ -307,30 +303,18 @@ export async function processPaymentWebhook(
   }
 }
 
-/**
- * Get the currently pending backend order ID.
- */
 export function getPendingCartOrderId() {
   return sessionStorage.getItem(
     PENDING_CART_KEY,
   )
 }
 
-/**
- * Clear the pending payment order.
- */
 export function clearPendingCartFlag() {
   sessionStorage.removeItem(
     PENDING_CART_KEY,
   )
 }
 
-/**
- * Current project uses a simulated confirmation email.
- *
- * This does NOT create the website notification.
- * The backend payment webhook creates the notification.
- */
 async function sendConfirmationEmail(order) {
   await new Promise((resolve) =>
     setTimeout(resolve, 200),
@@ -348,4 +332,32 @@ async function sendConfirmationEmail(order) {
     sent: true,
     to: order.email,
   }
+}
+
+export async function initiatePayment(orderId, method) {
+  const { data } = await api.post('/payments/initiate', { orderId, method,})
+  if (!data.success) {
+    throw new Error(data.message || 'Could not initiate payment.')
+  }
+
+  return data
+}
+
+export async function completeMockPayment(orderId, outcome) {
+  const { data } = await api.post('/payments/mock/complete', { orderId,outcome,})
+
+  if (!data.success) {
+    throw new Error(data.message || 'Mock payment could not be completed.')
+  }
+
+  return data
+}
+
+export async function getPaymentStatus(orderId) {
+  const { data } = await api.get(`/payments/status/${orderId}`)
+  if (!data.success) {
+    throw new Error(data.message || 'Could not retrieve payment status.')
+  }
+
+  return data
 }
