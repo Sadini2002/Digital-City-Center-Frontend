@@ -19,6 +19,7 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
+  const registered = searchParams.get('registered')
   const portalParam = searchParams.get('portal')
   const redirectTo = location.state?.from || '/'
   const [role, setRole] = useState(
@@ -42,44 +43,74 @@ export default function Login() {
   }, [searchParams])
 
   const routeAfterAuth = (user) => {
-    const userRole = user?.role
-    if (userRole === 'DELIVERY_PROVIDER') {
-      if (isDeliveryProviderActive(user)) navigate('/delivery', { replace: true })
-      else navigate('/delivery/application-status', { replace: true })
-      return
-    }
-    if (userRole === 'DELIVERY_DRIVER') {
-      if (isDeliveryDriverActive(user)) navigate('/delivery', { replace: true })
-      else navigate('/delivery/application-status', { replace: true })
-      return
-    }
-    if (role === 'delivery') {
-      setError('This account is not a delivery partner. Register as a provider or use demo access.')
-      clearAuthToken()
-      localStorage.removeItem('user')
-      return
-    }
-    if (role === 'seller' && userRole !== 'SELLER') {
-      clearAuthToken()
-      localStorage.removeItem('user')
-      setError('This account is not registered as a seller. Try signing in as a buyer.')
-      return
-    }
-    if (role === 'buyer' && userRole === 'SELLER') {
-      navigate('/seller/dashboard')
-    } else if (
-      String(userRole ?? '').toUpperCase().includes('ADMIN') ||
-      String(userRole ?? '').toUpperCase().includes('SUPER')
-    ) {
-      clearAuthToken()
-      localStorage.removeItem('user')
-      setError('Admin accounts are separate. Please use the dedicated admin portal.')
-    } else if (userRole === 'SELLER') {
-      navigate('/seller/dashboard')
-    } else {
-      navigate(redirectTo)
-    }
+  const userRole =
+    String(user?.role || '').toUpperCase()
+
+  // SELLER
+  if (userRole === 'SELLER') {
+    navigate('/seller/dashboard', {
+      replace: true,
+    })
+    return
   }
+
+  // DELIVERY PROVIDER
+  if (userRole === 'DELIVERY_PROVIDER') {
+    if (isDeliveryProviderActive(user)) {
+      navigate('/delivery', {
+        replace: true,
+      })
+    } else {
+      navigate(
+        '/delivery/application-status',
+        {
+          replace: true,
+        }
+      )
+    }
+
+    return
+  }
+
+  // DELIVERY DRIVER
+  if (userRole === 'DELIVERY_DRIVER') {
+    if (isDeliveryDriverActive(user)) {
+      navigate('/delivery', {
+        replace: true,
+      })
+    } else {
+      navigate(
+        '/delivery/application-status',
+        {
+          replace: true,
+        }
+      )
+    }
+
+    return
+  }
+
+  // ADMIN
+  if (
+    userRole.includes('ADMIN') ||
+    userRole.includes('SUPER')
+  ) {
+    clearAuthToken()
+
+    localStorage.removeItem('user')
+
+    setError(
+      'Admin accounts must use the dedicated admin portal.'
+    )
+
+    return
+  }
+
+  // BUYER
+  navigate(redirectTo || '/', {
+    replace: true,
+  })
+}
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -209,6 +240,18 @@ export default function Login() {
             <div className="mb-5">
               <RoleToggle value={role} onChange={setRole} />
             </div>
+
+            {registered === 'seller' && (
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    Seller account created successfully. Please sign in with your email and password.
+                </div>
+                  )}
+
+            {registered === 'buyer' && (
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    Account created successfully. Please sign in.
+                </div>
+            )}
 
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

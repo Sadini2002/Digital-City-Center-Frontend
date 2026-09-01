@@ -1,18 +1,22 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react'
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  User,
+  Store,
+  Phone,
+  Briefcase,
+} from 'lucide-react'
 
 import AuthPageLayout from '../components/auth/AuthPageLayout'
 import RegisterHero from '../components/auth/RegisterHero'
 import AuthFormCard from '../components/auth/AuthFormCard'
 import AuthInput from '../components/auth/AuthInput'
-import GoogleSignInButton from '../components/auth/GoogleSignInButton'
 
 import { authApi } from '../services/api'
-import {
-  setAuthToken,
-  setStoredUser,
-} from '../utils/authStorage'
 
 const PASSWORD_HINT =
   'Must be at least 8 characters with a symbol.'
@@ -27,9 +31,16 @@ function isPasswordValid(password) {
 export default function Register() {
   const navigate = useNavigate()
 
+  const [role, setRole] = useState('BUYER')
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // Seller fields
+  const [shopName, setShopName] = useState('')
+  const [businessType, setBusinessType] = useState('')
+  const [phone, setPhone] = useState('')
 
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -37,27 +48,30 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Account type
-  // Your current registration page only supports Buyer.
-  const role = 'BUYER'
-
   const handleSubmit = async (e) => {
     e.preventDefault()
+
     setError('')
 
-    // Validate required fields
     if (!name.trim() || !email.trim() || !password) {
-      setError('Please fill in all fields.')
+      setError('Please fill in all required fields.')
       return
     }
 
-    // Validate password
     if (!isPasswordValid(password)) {
       setError(PASSWORD_HINT)
       return
     }
 
-    // Validate terms
+    if (role === 'SELLER') {
+      if (!shopName.trim() || !businessType.trim()) {
+        setError(
+          'Please enter your shop name and business type.'
+        )
+        return
+      }
+    }
+
     if (!agreed) {
       setError(
         'Please agree to the Terms of Service and Privacy Policy.'
@@ -68,54 +82,56 @@ export default function Register() {
     setLoading(true)
 
     try {
-      const registerData = {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-        role,
-      }
+      let response
 
-      console.log('REGISTER REQUEST:', registerData)
-
-      const response = await authApi.register(registerData)
-
-      console.log('REGISTER RESPONSE:', response.data)
-
-      // Check token
-      if (!response.data?.token) {
-        throw new Error(
-          response.data?.message ||
-            'Registration succeeded but no authentication token was returned.'
-        )
-      }
-
-      // Save JWT
-      setAuthToken(response.data.token, true)
-
-      // Save user
-      if (response.data?.user) {
-        setStoredUser(response.data.user)
-      } else {
-        setStoredUser({
+      if (role === 'SELLER') {
+        response = await authApi.registerSeller({
           name: name.trim(),
           email: email.trim().toLowerCase(),
-          role,
+          password,
+          shop_name: shopName.trim(),
+          business_type: businessType.trim(),
+          phone: phone.trim() || null,
+        })
+      } else {
+        response = await authApi.register({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
         })
       }
 
-      // Notify authentication components
-      window.dispatchEvent(new Event('auth-changed'))
+      console.log(
+        'REGISTER RESPONSE:',
+        response.data
+      )
 
-      // Redirect to home
-      navigate('/', {
-        replace: true,
-      })
+      // Seller registration
+      if (role === 'SELLER') {
+        navigate(
+          '/login?portal=seller&registered=seller',
+          {
+            replace: true,
+          }
+        )
+        return
+      }
+
+      // Buyer registration
+      navigate(
+        '/login?registered=buyer',
+        {
+          replace: true,
+        }
+      )
     } catch (err) {
-      console.error('Registration error:', err)
+      console.error(
+        'Registration error:',
+        err
+      )
 
       setError(
         err.response?.data?.message ||
-          err.response?.data?.error ||
           err.message ||
           'Registration failed. Please try again.'
       )
@@ -134,7 +150,7 @@ export default function Register() {
         <div className="w-full min-w-0 max-w-md">
           <AuthFormCard
             title="Create Account"
-            subtitle="Start your journey with Digital City Center today."
+            subtitle="Choose how you want to use Digital City Center."
           >
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -146,12 +162,81 @@ export default function Register() {
               className="space-y-4"
               onSubmit={handleSubmit}
             >
-              {/* Full Name */}
+              {/* ACCOUNT TYPE */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Account Type
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* BUYER */}
+                  <button
+                    type="button"
+                    onClick={() => setRole('BUYER')}
+                    className={`rounded-xl border p-4 text-left transition ${
+                      role === 'BUYER'
+                        ? 'border-dcc-primary bg-dcc-primary/5 ring-1 ring-dcc-primary'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <User
+                        className={`h-5 w-5 ${
+                          role === 'BUYER'
+                            ? 'text-dcc-primary'
+                            : 'text-slate-500'
+                        }`}
+                      />
+
+                      <span className="font-semibold">
+                        Buyer
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      Shop and purchase products.
+                    </p>
+                  </button>
+
+                  {/* SELLER */}
+                  <button
+                    type="button"
+                    onClick={() => setRole('SELLER')}
+                    className={`rounded-xl border p-4 text-left transition ${
+                      role === 'SELLER'
+                        ? 'border-dcc-primary bg-dcc-primary/5 ring-1 ring-dcc-primary'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Store
+                        className={`h-5 w-5 ${
+                          role === 'SELLER'
+                            ? 'text-dcc-primary'
+                            : 'text-slate-500'
+                        }`}
+                      />
+
+                      <span className="font-semibold">
+                        Seller
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      Create your shop and sell products.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* FULL NAME */}
               <AuthInput
                 id="name"
                 label="Full Name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) =>
+                  setName(e.target.value)
+                }
                 placeholder="John Doe"
                 icon={User}
                 required
@@ -159,13 +244,15 @@ export default function Register() {
                 variant="auth"
               />
 
-              {/* Email */}
+              {/* EMAIL */}
               <AuthInput
                 id="email"
                 label="Email Address"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
                 placeholder="name@example.com"
                 icon={Mail}
                 required
@@ -173,13 +260,89 @@ export default function Register() {
                 variant="auth"
               />
 
-              {/* Password */}
+              {/* SELLER ONLY FIELDS */}
+              {role === 'SELLER' && (
+                <>
+                  <AuthInput
+                    id="shopName"
+                    label="Shop Name"
+                    value={shopName}
+                    onChange={(e) =>
+                      setShopName(e.target.value)
+                    }
+                    placeholder="My Awesome Store"
+                    icon={Store}
+                    required
+                    variant="auth"
+                  />
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Business Type
+                    </label>
+
+                    <div className="relative">
+                      <Briefcase className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+
+                      <select
+                        value={businessType}
+                        onChange={(e) =>
+                          setBusinessType(e.target.value)
+                        }
+                        className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-dcc-primary focus:ring-2 focus:ring-dcc-primary/20"
+                        required
+                      >
+                        <option value="">
+                          Select business type
+                        </option>
+
+                        <option value="INDIVIDUAL">
+                          Individual
+                        </option>
+
+                        <option value="SOLE_PROPRIETORSHIP">
+                          Sole Proprietorship
+                        </option>
+
+                        <option value="PARTNERSHIP">
+                          Partnership
+                        </option>
+
+                        <option value="COMPANY">
+                          Company
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <AuthInput
+                    id="phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(e.target.value)
+                    }
+                    placeholder="+94 77 123 4567"
+                    icon={Phone}
+                    variant="auth"
+                  />
+                </>
+              )}
+
+              {/* PASSWORD */}
               <AuthInput
                 id="password"
                 label="Password"
-                type={showPassword ? 'text' : 'password'}
+                type={
+                  showPassword
+                    ? 'text'
+                    : 'password'
+                }
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
                 placeholder="••••••••"
                 icon={Lock}
                 hint={PASSWORD_HINT}
@@ -193,11 +356,6 @@ export default function Register() {
                     onClick={() =>
                       setShowPassword((value) => !value)
                     }
-                    aria-label={
-                      showPassword
-                        ? 'Hide password'
-                        : 'Show password'
-                    }
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -208,23 +366,7 @@ export default function Register() {
                 }
               />
 
-              {/* Account Type */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Account Type
-                </label>
-
-                <div className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  Buyer
-                </div>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Seller accounts require separate seller registration
-                  and approval.
-                </p>
-              </div>
-
-              {/* Terms */}
+              {/* TERMS */}
               <label className="flex cursor-pointer items-start gap-2.5">
                 <input
                   type="checkbox"
@@ -254,44 +396,33 @@ export default function Register() {
                 </span>
               </label>
 
-              {/* Submit */}
+              {/* SUBMIT */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-dcc-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full rounded-xl bg-dcc-primary py-3 text-sm font-semibold text-white transition hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading
                   ? 'Creating account...'
-                  : 'Register Now'}
+                  : role === 'SELLER'
+                    ? 'Register as Seller'
+                    : 'Create Buyer Account'}
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-
-              <div className="relative flex justify-center text-xs uppercase tracking-wide text-slate-400">
-                <span className="bg-white px-2">
-                  or
-                </span>
-              </div>
-            </div>
-
-            {/* Google */}
-            <GoogleSignInButton label="Sign in with Google" />
-
-            {/* Login */}
-            <p className="mt-6 text-center text-sm text-slate-600">
+            <div className="mt-6 text-center text-sm text-slate-600">
               Already have an account?{' '}
               <Link
-                to="/login"
-                className="font-bold text-dcc-primary hover:underline"
+                to={
+                  role === 'SELLER'
+                    ? '/login?portal=seller'
+                    : '/login'
+                }
+                className="font-semibold text-dcc-primary hover:underline"
               >
-                Sign In
+                Sign in
               </Link>
-            </p>
+            </div>
           </AuthFormCard>
         </div>
       </div>
