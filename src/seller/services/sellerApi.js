@@ -1,3 +1,15 @@
-/** Seller API — wire to backend when ready */
+import { api } from '../../services/api/client'
 
-export const sellerApi = {}
+export const sellerApi = {
+  /**
+   * Get logged-in seller profile.
+   */
+  getMe: () =>
+    api.get('/sellers/me'),
+
+  /**
+   * Get approved seller dashboard.
+   */
+  getDashboard: () =>
+    api.get('/sellers/dashboard'),
+}
