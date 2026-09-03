@@ -2,6 +2,7 @@
 
 export { default as SellerRegisterPage } from './pages/RegisterPage'
 export { default as SellerRegisterSuccessPage } from './pages/RegisterSuccessPage'
+export { default as SellerApplicationStatusPage } from './pages/ApplicationStatus'
 
 export { default as SellerDashboard } from './pages/SellerDashboard'
 export { default as SellerProductsPage } from './pages/Product'
