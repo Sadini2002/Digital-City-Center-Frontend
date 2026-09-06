@@ -1,3 +1,4 @@
+
 export { default as AdminRoute } from './components/AdminRoute'
 export { default as AdminLoginPage } from './pages/AdminLoginPage'
 export { default as AdminLayout } from './layouts/AdminLayout'
@@ -13,3 +14,4 @@ export { default as ReportsPage } from './pages/ReportsPage'
 export { default as PlatformSettingsPage } from './pages/PlatformSettingsPage'
 export { default as AdminProfilePage } from './pages/ProfilePage'
 
+export * from './services/adminApi'

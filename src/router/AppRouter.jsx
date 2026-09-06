@@ -42,6 +42,7 @@ import {
 import {
   SellerRegisterPage,
   SellerRegisterSuccessPage,
+  SellerApplicationStatusPage,
   SellerDashboard,
   SellerProductsPage,
   SellerAddProductPage,
@@ -356,6 +357,17 @@ function AppRouter() {
         />
 
         <Route path="/payment/mock/:orderId" element={<MockPaymentPage />} />
+
+        {/* =====================================================
+    SELLER APPLICATION STATUS
+===================================================== */}
+
+      <Route
+        path="/seller/application-status"
+        element={
+      <SellerApplicationStatusPage />
+  }
+/>
 
         {/* =====================================================
             SELLER ROUTES

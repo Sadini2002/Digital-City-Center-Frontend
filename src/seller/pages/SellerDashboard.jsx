@@ -1,234 +1,366 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Package, ShoppingBag, Star, Wallet } from 'lucide-react'
-import { getOrders } from '../../buyer'
-import DashboardCard from '../components/DashboardCard'
-import StatusBadge from '../components/StatusBadge'
-import { addSellerNotification, getSellerNotifications } from '../../utils/notificationStorage'
+import {
+  useEffect,
+  useState,
+} from 'react'
 
-function readUser() {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}')
-  } catch {
-    return {}
+import {
+  Link,
+} from 'react-router-dom'
+
+import {
+  ArrowRight,
+  BarChart3,
+  Package,
+  ShoppingBag,
+  Star,
+  Wallet,
+  RefreshCw,
+} from 'lucide-react'
+
+import DashboardCard from '../components/DashboardCard'
+
+import {
+  sellerApi,
+} from '../services/sellerApi'
+
+function formatLKR(value) {
+  return new Intl.NumberFormat(
+    'en-LK',
+    {
+      style: 'currency',
+      currency: 'LKR',
+      maximumFractionDigits: 0,
+    }
+  ).format(
+    Number(value || 0)
+  )
+}
+
+function formatDate(value) {
+  if (!value) return '-'
+
+  return new Date(
+    value
+  ).toLocaleDateString(
+    'en-LK',
+    {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }
+  )
+}
+
+function statusLabel(status) {
+  return String(
+    status || 'placed'
+  )
+    .replaceAll('_', ' ')
+    .replace(
+      /\b\w/g,
+      (char) =>
+        char.toUpperCase()
+    )
+}
+
+function statusClass(status) {
+  const value =
+    String(
+      status || ''
+    ).toLowerCase()
+
+  if (
+    value === 'delivered'
+  ) {
+    return 'bg-green-50 text-green-700'
   }
+
+  if (
+    value === 'cancelled' ||
+    value === 'rejected'
+  ) {
+    return 'bg-red-50 text-red-700'
+  }
+
+  if (
+    value === 'processing' ||
+    value === 'confirmed'
+  ) {
+    return 'bg-blue-50 text-blue-700'
+  }
+
+  return 'bg-amber-50 text-amber-700'
 }
 
 export default function SellerDashboard() {
-  const user = readUser()
-  const name = user.name || 'Seller'
+  const [data, setData] =
+    useState(null)
 
-  const [orders, setOrders] = useState([])
-  const [productsCount, setProductsCount] = useState(0)
-  const [activeProductsCount, setActiveProductsCount] = useState(0)
-  const [lowStockProducts, setLowStockProducts] = useState([])
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
+
+  const loadDashboard =
+    async () => {
+      try {
+        setLoading(true)
+        setError('')
+
+        const response =
+          await sellerApi.getDashboard()
+
+        setData(
+          response.data
+        )
+      } catch (err) {
+        console.error(
+          'Dashboard error:',
+          err
+        )
+
+        setError(
+          err.message ||
+            'Failed to load dashboard.'
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
 
   useEffect(() => {
-    // Read and initialize orders if empty
-    let realOrders = getOrders()
-    if (realOrders.length === 0) {
-      realOrders = [
-        {
-          id: 'DCC-58291',
-          email: 'customer.sachini@gmail.com',
-          createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-          total: 85000,
-          status: 'confirmed',
-          items: [
-            { id: 'sony-wh-1000xm5', title: 'Sony WH-1000XM5 Headphones', price: 85000, quantity: 1 }
-          ],
-          shippingAddress: {
-            fullName: 'Sachini Wijesundara',
-            phone: '+94 77 123 4567',
-            street: '123, Galle Road',
-            city: 'Colombo 03',
-          }
-        },
-        {
-          id: 'DCC-41920',
-          email: 'john.doe@yahoo.com',
-          createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-          total: 130000,
-          status: 'processing',
-          items: [
-            { id: 'apple-airpods-pro', title: 'Apple AirPods Pro (2nd Gen)', price: 65000, quantity: 2 }
-          ],
-          shippingAddress: {
-            fullName: 'John Doe',
-            phone: '+94 71 987 6543',
-            street: '45, Kandy Road',
-            city: 'Kandy',
-          }
-        },
-        {
-          id: 'DCC-29104',
-          email: 'nimal.fernando@outlook.com',
-          createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
-          total: 350000,
-          status: 'delivered',
-          items: [
-            { id: 'macbook-air-m3', title: 'MacBook Air 13" M3 Laptop', price: 350000, quantity: 1 }
-          ],
-          shippingAddress: {
-            fullName: 'Nimal Fernando',
-            phone: '+94 72 444 5555',
-            street: '88/B, Negombo Road',
-            city: 'Negombo',
-          }
-        }
-      ]
-      localStorage.setItem('dcc_orders', JSON.stringify(realOrders))
-    }
-    setOrders(realOrders)
-
-    // Read and initialize listings count
-    const localProducts = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-    if (localProducts.length > 0) {
-      setProductsCount(localProducts.length)
-      setActiveProductsCount(localProducts.filter(p => p.isAvailable && p.stock > 0).length)
-      const low = localProducts.filter(p => p.itemType === 'physical' && p.stock <= 5)
-      setLowStockProducts(low)
-      
-      // Trigger critical low stock alerts (1 unit remaining)
-      localProducts.forEach(p => {
-        if (p.stock !== undefined && p.stock <= 1 && p.stock > 0) {
-          const name = p.name || p.title
-          const notifs = getSellerNotifications()
-          const exists = notifs.some(n => n.title === 'Low Stock Alert' && n.message.includes(name))
-          if (!exists) {
-            addSellerNotification(
-              'Low Stock Alert',
-              `Product "${name}" has reached a critical stock level of ${p.stock} unit(s).`,
-              'warning'
-            )
-          }
-        }
-      })
-    } else {
-      setProductsCount(4)
-      setActiveProductsCount(3)
-      const defaultLow = [
-        { id: 'canon-eos-r50', name: 'Canon EOS R50 Mirrorless Camera', stock: 1 }
-      ]
-      setLowStockProducts(defaultLow)
-      
-      // Trigger alert for default low stock product
-      defaultLow.forEach(p => {
-        const notifs = getSellerNotifications()
-        const exists = notifs.some(n => n.title === 'Low Stock Alert' && n.message.includes(p.name))
-        if (!exists) {
-          addSellerNotification(
-            'Low Stock Alert',
-            `Product "${p.name}" has reached a critical stock level of ${p.stock} unit(s).`,
-            'warning'
-          )
-        }
-      })
-    }
+    loadDashboard()
   }, [])
 
-  // Calculations for cards
-  const pendingOrdersCount = orders.filter(o => o.status === 'confirmed' || o.status === 'processing').length
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-32 animate-pulse rounded-xl bg-slate-200" />
 
-  const paidOrders = orders.filter(o => 
-    o.status === 'confirmed' || 
-    o.status === 'processing' || 
-    o.status === 'shipped' || 
-    o.status === 'delivered'
-  )
-  const grossSales = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
-  const platformFee = grossSales * 0.10
-  const netEarnings = grossSales - platformFee
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map(
+            (item) => (
+              <div
+                key={item}
+                className="h-28 animate-pulse rounded-xl bg-slate-200"
+              />
+            )
+          )}
+        </div>
 
-  // Get top 5 recent orders
-  const recentOrdersList = [...orders]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 5)
+        <div className="h-80 animate-pulse rounded-xl bg-slate-200" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+        <h2 className="font-semibold text-red-800">
+          Unable to load seller dashboard
+        </h2>
+
+        <p className="mt-2 text-sm text-red-700">
+          {error}
+        </p>
+
+        <button
+          type="button"
+          onClick={loadDashboard}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try again
+        </button>
+      </div>
+    )
+  }
+
+  const seller =
+    data?.seller || {}
+
+  const stats =
+    data?.stats || {}
+
+  const recentOrders =
+    data?.recentOrders || []
 
   return (
     <div className="space-y-6">
+
+      {/* -------------------------------------------------
+          WELCOME
+      ------------------------------------------------- */}
+
       <section className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 sm:p-6">
-        <p className="text-sm font-medium text-dcc-primary">Welcome back</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Hi, {name}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Quick snapshot of your shop. Use the menu to manage listings and orders.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            to="/seller/listings/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover transition"
-          >
-            Add listing
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            to="/seller/orders"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
-          >
-            View orders
-          </Link>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-sm font-medium text-dcc-primary">
+              Seller Center
+            </p>
+
+            <h1 className="mt-1 text-2xl font-bold text-slate-900">
+              Welcome to{' '}
+              {seller.shopName ||
+                'your shop'}
+            </h1>
+
+            <p className="mt-2 text-sm text-slate-600">
+              Track your listings,
+              orders and earnings
+              from one place.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/seller/listings/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white hover:bg-dcc-primary-hover"
+            >
+              Add listing
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <Link
+              to="/seller/orders"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              View orders
+            </Link>
+          </div>
         </div>
       </section>
 
-      {lowStockProducts.length > 0 && (
-        <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm animate-fadeIn">
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
-              <Package className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-amber-950 text-sm">Low Stock Alert!</h3>
-              <p className="text-xs text-amber-700 mt-1">
-                The following products are running out of stock. Please restock soon:
-              </p>
-              <ul className="mt-2 space-y-1 list-disc pl-5 text-xs text-amber-800 font-semibold">
-                {lowStockProducts.map(p => (
-                  <li key={p.productId || p._id || p.id}>
-                    {p.name} (Only {p.stock} remaining)
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-      )}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardCard 
-          title="Products" 
-          value={productsCount} 
-          hint={`${activeProductsCount} active listings`} 
-          icon={ShoppingBag} 
+      {/* -------------------------------------------------
+          SUMMARY CARDS
+      ------------------------------------------------- */}
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        <DashboardCard
+          title="Total Listings"
+          value={
+            stats.totalListings ?? 0
+          }
+          hint={`${stats.activeListings ?? 0} active`}
+          icon={ShoppingBag}
           to="/seller/listings"
         />
-        <DashboardCard 
-          title="Orders" 
-          value={orders.length} 
-          hint={`${pendingOrdersCount} awaiting action`} 
-          icon={Package} 
+
+        <DashboardCard
+          title="Today's Orders"
+          value={
+            stats.todaysOrders ?? 0
+          }
+          hint={`${stats.pendingOrders ?? 0} pending`}
+          icon={Package}
           to="/seller/orders"
         />
-        <DashboardCard 
-          title="Earnings" 
-          value={`Rs. ${Number(netEarnings).toLocaleString('en-LK')}`} 
-          hint="Net earnings" 
-          icon={Wallet} 
+
+        <DashboardCard
+          title="Total Earnings"
+          value={formatLKR(
+            stats.netEarnings
+          )}
+          hint={`Sales ${formatLKR(
+            stats.grossSales
+          )}`}
+          icon={Wallet}
           to="/seller/earnings"
         />
-        <DashboardCard 
-          title="Rating" 
-          value="4.8" 
-          hint="128 reviews" 
-          icon={Star} 
-          to="/seller/settings"
+
+        <DashboardCard
+          title="Pending Payout"
+          value={formatLKR(
+            stats.pendingPayout
+          )}
+          hint={`Commission ${formatLKR(
+            stats.platformCommission
+          )}`}
+          icon={BarChart3}
+          to="/seller/earnings"
         />
+
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="font-bold text-slate-900">Recent orders</h2>
-            <p className="text-sm text-slate-500">Latest activity from your shop</p>
+      {/* -------------------------------------------------
+          SHOP RATING
+      ------------------------------------------------- */}
+
+      <section className="grid gap-4 md:grid-cols-2">
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <Star className="h-5 w-5 fill-current" />
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-500">
+                Shop Rating
+              </p>
+
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-2xl font-bold text-slate-900">
+                  {Number(
+                    seller.rating || 0
+                  ).toFixed(1)}
+                </span>
+
+                <span className="text-sm text-slate-500">
+                  / 5
+                </span>
+              </div>
+            </div>
           </div>
+
+          <p className="mt-3 text-xs text-slate-500">
+            Based on{' '}
+            {seller.reviewCount ||
+              0}{' '}
+            customer reviews.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">
+            Platform Commission
+          </p>
+
+          <p className="mt-1 text-2xl font-bold text-slate-900">
+            {Number(
+              seller.commissionRate ||
+                0
+            ).toFixed(1)}
+            %
+          </p>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Current commission rate
+            applied to seller sales.
+          </p>
+        </div>
+
+      </section>
+
+      {/* -------------------------------------------------
+          RECENT ORDERS
+      ------------------------------------------------- */}
+
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <h2 className="font-bold text-slate-900">
+              Recent Orders
+            </h2>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Your latest seller orders
+            </p>
+          </div>
+
           <Link
             to="/seller/orders"
             className="text-sm font-semibold text-dcc-primary hover:underline"
@@ -237,29 +369,113 @@ export default function SellerDashboard() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-slate-100">
-          <table className="w-full min-w-[28rem] text-left text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-slate-600">
-                <th className="px-4 py-3 font-semibold">Order ID</th>
-                <th className="px-4 py-3 font-semibold">Customer</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {recentOrdersList.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/80">
-                  <td className="px-4 py-3 font-medium text-slate-900">{order.id}</td>
-                  <td className="px-4 py-3 text-slate-700">{order.shippingAddress?.fullName || 'Guest Customer'}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={order.status} />
-                  </td>
+        {recentOrders.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <Package className="mx-auto h-10 w-10 text-slate-300" />
+
+            <p className="mt-3 font-medium text-slate-700">
+              No orders yet
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Orders containing your
+              products will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Order
+                  </th>
+
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Customer
+                  </th>
+
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Date
+                  </th>
+
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Amount
+                  </th>
+
+                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              <tbody>
+                {recentOrders.map(
+                  (order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-slate-100 last:border-0"
+                    >
+                      <td className="px-5 py-4">
+                        <span className="font-semibold text-slate-900">
+                          #
+                          {
+                            order.orderNumber
+                          }
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div>
+                          <p className="font-medium text-slate-800">
+                            {
+                              order.customer
+                                ?.name
+                            }
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+                            {
+                              order.customer
+                                ?.email
+                            }
+                          </p>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-slate-600">
+                        {formatDate(
+                          order.createdAt
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4 font-semibold text-slate-900">
+                        {formatLKR(
+                          order.sellerSubtotal
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
+                            order.orderStatus
+                          )}`}
+                        >
+                          {statusLabel(
+                            order.orderStatus
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
       </section>
+
     </div>
   )
 }
