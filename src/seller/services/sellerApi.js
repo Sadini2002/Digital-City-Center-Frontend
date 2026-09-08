@@ -1,15 +1,9 @@
 import { api } from '../../services/api/client'
 
 export const sellerApi = {
-  /**
-   * Get logged-in seller profile.
-   */
-  getMe: () =>
-    api.get('/sellers/me'),
+  // Logged-in seller profile/status
+  getMe: () => api.get('/seller/me'),
 
-  /**
-   * Get approved seller dashboard.
-   */
-  getDashboard: () =>
-    api.get('/sellers/dashboard'),
+  // Seller dashboard
+  getDashboard: () => api.get('/seller/dashboard'),
 }

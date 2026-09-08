@@ -1,107 +1,81 @@
-import {
-  Navigate,
-  useLocation,
-} from 'react-router-dom'
-
-import {
-  useEffect,
-  useState,
-} from 'react'
-
-import {
-  getAuthToken,
-} from '../../utils/authStorage'
-
-import {
-  sellerApi,
-} from '../services/sellerApi'
+import { useEffect, useState } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
+import { getAuthToken } from '../../utils/authStorage'
+import { sellerApi } from '../services/sellerApi'
 
 function getStoredUser() {
   try {
-    return JSON.parse(
-      localStorage.getItem('user') ||
-        '{}'
-    )
+    return JSON.parse(localStorage.getItem('user') || '{}')
   } catch {
     return {}
   }
 }
 
 function isSellerRole(role) {
-  return (
-    String(role ?? '')
-      .toUpperCase() ===
-    'SELLER'
-  )
+  return String(role ?? '').toUpperCase() === 'SELLER'
 }
 
-export default function SellerRoute({
-  children,
-}) {
-  const location =
-    useLocation()
+export default function SellerRoute({ children }) {
+  const location = useLocation()
 
-  const token =
-    getAuthToken()
+  const [loading, setLoading] = useState(true)
+  const [allowed, setAllowed] = useState(false)
+  const [status, setStatus] = useState(null)
 
-  const user =
-    getStoredUser()
-
-  const [status, setStatus] =
-    useState('checking')
-
-  const [sellerStatus, setSellerStatus] =
-    useState(null)
+  const token = getAuthToken()
+  const user = getStoredUser()
 
   useEffect(() => {
     let mounted = true
 
     async function checkSeller() {
-      if (
-        !token ||
-        !isSellerRole(user?.role)
-      ) {
+      // No authentication
+      if (!token) {
         if (mounted) {
-          setStatus('unauthorized')
+          setAllowed(false)
+          setLoading(false)
         }
+        return
+      }
 
+      // Must be seller
+      if (!isSellerRole(user?.role)) {
+        if (mounted) {
+          setAllowed(false)
+          setLoading(false)
+        }
         return
       }
 
       try {
-        const response =
-          await sellerApi.getMe()
+        const response = await sellerApi.getMe()
 
         const seller =
-          response.data?.seller
+          response?.data?.seller ||
+          response?.seller
 
-        if (!mounted) return
+        const sellerStatus = String(
+          seller?.status || ''
+        ).toLowerCase()
 
-        setSellerStatus(
-          String(
-            seller?.status || ''
-          ).toLowerCase()
-        )
+        if (mounted) {
+          setStatus(sellerStatus)
 
-        if (
-          String(
-            seller?.status || ''
-          ).toLowerCase() ===
-          'approved'
-        ) {
-          setStatus('approved')
-        } else {
-          setStatus('not-approved')
+          if (sellerStatus === 'approved') {
+            setAllowed(true)
+          } else {
+            setAllowed(false)
+          }
+
+          setLoading(false)
         }
       } catch (error) {
-        console.error(
-          'Seller route check failed:',
-          error
-        )
+        console.error('Seller route check failed:', error)
 
-        if (!mounted) return
-
-        setStatus('not-approved')
+        if (mounted) {
+          setAllowed(false)
+          setLoading(false)
+        }
       }
     }
 
@@ -112,46 +86,51 @@ export default function SellerRoute({
     }
   }, [token, user?.role])
 
-  if (
-    status === 'checking'
-  ) {
+  if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-dcc-primary" />
+          <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-800 rounded-full animate-spin mx-auto mb-4" />
 
-          <p className="mt-3 text-sm text-slate-500">
-            Verifying seller account...
+          <p className="text-gray-600">
+            Checking seller account...
           </p>
         </div>
       </div>
     )
   }
 
-  if (
-    status === 'unauthorized'
-  ) {
+  // Not logged in
+  if (!token) {
     return (
       <Navigate
-        to="/login?portal=seller"
+        to="/login"
         replace
         state={{
-          from:
-            location.pathname,
+          from: location.pathname,
         }}
       />
     )
   }
 
-  if (
-    status === 'not-approved'
-  ) {
+  // Not seller
+  if (!isSellerRole(user?.role)) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    )
+  }
+
+  // Seller is not approved
+  if (!allowed) {
     return (
       <Navigate
         to="/seller/application-status"
         replace
         state={{
-          sellerStatus,
+          status,
         }}
       />
     )
