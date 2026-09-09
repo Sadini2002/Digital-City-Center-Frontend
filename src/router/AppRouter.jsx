@@ -25,6 +25,7 @@ import ShopPage from '../pages/ShopPage'
 import ShopsPage from '../pages/ShopsPage'
 import DealsPage from '../pages/DealsPage'
 import InfoPage from '../pages/InfoPage'
+import SellerNotifications from '../seller/pages/SellerNotifications'
 import MockPaymentPage from '../buyer/pages/MockPaymentPage'
 
 import {
@@ -410,6 +411,11 @@ function AppRouter() {
             path="earnings"
             element={<SellerEarningsPage />}
           />
+
+          <Route
+      path="notifications"
+      element={<SellerNotifications />}
+    />
 
           <Route
             path="settings"
