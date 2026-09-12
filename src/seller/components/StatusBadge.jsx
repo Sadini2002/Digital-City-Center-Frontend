@@ -10,6 +10,8 @@ const styles = {
   cancelled: 'bg-slate-100 text-slate-700 ring-slate-200/80',
   payment_failed: 'bg-rose-50 text-rose-700 ring-rose-200/80',
   rejected: 'bg-red-50 text-red-700 ring-red-200/80',
+  ready_for_pickup: 'bg-teal-50 text-teal-700 ring-teal-200/80',
+  mixed: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200/80',
 }
 
 export default function StatusBadge({ status }) {

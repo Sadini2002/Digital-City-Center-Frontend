@@ -9,6 +9,8 @@ import {
   Clock,
   XCircle,
   RefreshCw,
+  Landmark,
+  Save,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { sellerApi } from '../services/sellerApi'
@@ -25,6 +27,14 @@ export default function SellerProfile() {
   const [status, setStatus] = useState('PENDING')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+
+  // Bank / payout details
+  const [bankName, setBankName] = useState('')
+  const [bankAccountName, setBankAccountName] = useState('')
+  const [bankAccountNumber, setBankAccountNumber] = useState('')
+  const [bankBranch, setBankBranch] = useState('')
+  const [bankLoading, setBankLoading] = useState(true)
+  const [bankSaving, setBankSaving] = useState(false)
 
   // Load seller profile directly from backend
   const loadSellerProfile = async ({ showLoader = true } = {}) => {
@@ -133,7 +143,67 @@ export default function SellerProfile() {
 
   useEffect(() => {
     loadSellerProfile()
+    loadBankDetails()
   }, [])
+
+  const loadBankDetails = async () => {
+    try {
+      setBankLoading(true)
+      const response = await sellerApi.getBankDetails()
+      const bankDetails = response.data?.bankDetails || {}
+
+      setBankName(bankDetails.bankName || '')
+      setBankAccountName(bankDetails.bankAccountName || '')
+      setBankAccountNumber(bankDetails.bankAccountNumber || '')
+      setBankBranch(bankDetails.bankBranch || '')
+    } catch (error) {
+      console.error('Failed to load bank details:', error)
+      // Non-fatal: seller may just not have saved bank details yet.
+    } finally {
+      setBankLoading(false)
+    }
+  }
+
+  const handleSaveBankDetails = async (e) => {
+    e.preventDefault()
+
+    if (!bankName.trim() || !bankAccountName.trim() || !bankAccountNumber.trim()) {
+      toast.error('Bank name, account holder name and account number are required.')
+      return
+    }
+
+    try {
+      setBankSaving(true)
+
+      const response = await sellerApi.updateBankDetails({
+        bankName: bankName.trim(),
+        bankAccountName: bankAccountName.trim(),
+        bankAccountNumber: bankAccountNumber.trim(),
+        bankBranch: bankBranch.trim() || undefined,
+      })
+
+      const bankDetails = response.data?.bankDetails
+      if (bankDetails) {
+        setBankName(bankDetails.bankName || '')
+        setBankAccountName(bankDetails.bankAccountName || '')
+        setBankAccountNumber(bankDetails.bankAccountNumber || '')
+        setBankBranch(bankDetails.bankBranch || '')
+      }
+
+      toast.success('Bank details saved successfully!')
+    } catch (error) {
+      console.error('Failed to save bank details:', error)
+
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to save bank details.'
+
+      toast.error(message)
+    } finally {
+      setBankSaving(false)
+    }
+  }
 
   const handleRefresh = async () => {
     await loadSellerProfile({ showLoader: false })
@@ -495,6 +565,103 @@ export default function SellerProfile() {
           </div>
         </div>
       </div>
+
+      {/* =========================
+          PAYOUT / BANK DETAILS
+      ========================== */}
+      <form
+        onSubmit={handleSaveBankDetails}
+        className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">
+          <Landmark className="h-5 w-5 text-dcc-primary" />
+          Payout Bank Details
+        </h2>
+
+        <p className="text-xs text-slate-500">
+          These details are used to pay out your net earnings after commission. Keep them
+          accurate and up to date.
+        </p>
+
+        {bankLoading ? (
+          <div className="flex items-center gap-2 py-6 text-sm text-slate-500">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading bank details...
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Bank Name */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Bank Name
+              </label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="e.g. Commercial Bank of Ceylon"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm transition focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/10"
+                required
+              />
+            </div>
+
+            {/* Branch */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Branch (optional)
+              </label>
+              <input
+                type="text"
+                value={bankBranch}
+                onChange={(e) => setBankBranch(e.target.value)}
+                placeholder="e.g. Colombo 03"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm transition focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/10"
+              />
+            </div>
+
+            {/* Account Holder Name */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Account Holder Name
+              </label>
+              <input
+                type="text"
+                value={bankAccountName}
+                onChange={(e) => setBankAccountName(e.target.value)}
+                placeholder="Name as it appears on the bank account"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm transition focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/10"
+                required
+              />
+            </div>
+
+            {/* Account Number */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Account Number
+              </label>
+              <input
+                type="text"
+                value={bankAccountNumber}
+                onChange={(e) => setBankAccountNumber(e.target.value)}
+                placeholder="e.g. 8001234567"
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm transition focus:border-dcc-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-dcc-primary/10"
+                required
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={bankSaving}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-dcc-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                <Save className={`h-4 w-4 ${bankSaving ? 'animate-spin' : ''}`} />
+                {bankSaving ? 'Saving...' : 'Save Bank Details'}
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
     </div>
   )
 }
