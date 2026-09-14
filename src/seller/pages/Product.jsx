@@ -23,9 +23,20 @@ export default function Product() {
     setLoading(true)
     try {
       const res = await axios.get(`${apiBase}/products`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      setProducts(res.data || [])
+  headers: token ? { Authorization: `Bearer ${token}` } : {},
+})
+
+const responseData = res.data
+
+const productList = Array.isArray(responseData)
+  ? responseData
+  : Array.isArray(responseData?.products)
+    ? responseData.products
+    : Array.isArray(responseData?.data)
+      ? responseData.data
+      : []
+
+setProducts(productList)
     } catch (err) {
       console.warn('API error fetching products, falling back to local storage', err)
       // Fallback
@@ -120,7 +131,8 @@ export default function Product() {
   }
 
   // Filter listings based on search query and status filter
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(
+  (product) => {
     const matchesSearch =
       product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.productId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
