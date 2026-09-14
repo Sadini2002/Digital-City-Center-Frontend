@@ -6,7 +6,7 @@ import { useShop } from '../../buyer'
 import UtilityTopBar from './UtilityTopBar'
 import BrandLogo from './BrandLogo'
 import HeaderSearch from './HeaderSearch'
-//import NotificationBell from '../notifications/NotificationBell'
+import NotificationBell from '../notifications/NotificationBell'
 
 import {
   getAuthToken,
