@@ -1,135 +1,101 @@
-import React, { useState, useEffect } from 'react'
-import toast from 'react-hot-toast'
-import { getOrders } from '../../buyer'
-import DashboardCard from '../components/DashboardCard'
-import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send, Calendar } from 'lucide-react'
-import { addSellerNotification } from '../../utils/notificationStorage'
+import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import DashboardCard from '../components/DashboardCard';
+import { Wallet, Landmark, ArrowUpRight, ArrowDownLeft, FileText, Send, Calendar } from 'lucide-react';
+import { addSellerNotification } from '../../utils/notificationStorage';
+import { api } from '../../services/api';
 
 export default function Earnings() {
-  const [orders, setOrders] = useState([])
-  const [payouts, setPayouts] = useState([])
-  const [requestingPayout, setRequestingPayout] = useState(false)
+  const [summary, setSummary] = useState({
+    netEarnings: 0,
+    platformCommission: 0,
+    pendingPayouts: 0,
+    totalPaidOut: 0,
+    availableBalance: 0,
+  });
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [requestingPayout, setRequestingPayout] = useState(false);
+
+  // Fetch earnings breakdown from server
+  const fetchEarningsData = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/seller/earnings');
+      const data = response.data;
+
+      setSummary(data.summary);
+      setMonthlyData(data.monthlyData || []);
+      setPayouts(data.payouts || []);
+    } catch (err) {
+      console.error('Failed to load seller earnings:', err);
+      toast.error('Could not fetch seller earnings.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const existing = getOrders()
-    setOrders(existing || [])
+    fetchEarningsData();
+  }, []);
 
-    const storedPayouts = JSON.parse(localStorage.getItem('dcc_seller_payouts') || '[]')
-    if (storedPayouts.length > 0) {
-      setPayouts(storedPayouts)
-    } else {
-      const defaultPayouts = [
-        {
-          id: 'PAY-882910',
-          date: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
-          amount: 150000,
-          account: 'HNB Bank - *4829',
-          status: 'cleared',
-        },
-        {
-          id: 'PAY-773820',
-          date: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
-          amount: 85000,
-          account: 'HNB Bank - *4829',
-          status: 'cleared',
-        },
-      ]
-      localStorage.setItem('dcc_seller_payouts', JSON.stringify(defaultPayouts))
-      setPayouts(defaultPayouts)
-    }
-  }, [])
-
-  const paidOrders = orders.filter(
-    (o) =>
-      o.status === 'confirmed' ||
-      o.status === 'processing' ||
-      o.status === 'shipped' ||
-      o.status === 'delivered'
-  )
-
-  const grossSales = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
-  const platformFeeRate = 0.1
-  const platformFee = grossSales * platformFeeRate
-  const netEarnings = grossSales - platformFee
-
-  const totalPaidOut = payouts
-    .filter((p) => p.status === 'cleared')
-    .reduce((sum, p) => sum + p.amount, 0)
-
-  const pendingPaidOut = payouts
-    .filter((p) => p.status === 'pending')
-    .reduce((sum, p) => sum + p.amount, 0)
-
-  const availableBalance = Math.max(0, netEarnings - totalPaidOut - pendingPaidOut)
-
-  const handleRequestPayout = () => {
-    if (availableBalance <= 0) {
-      toast.error('No available balance to withdraw.')
-      return
+  // Submit express payout request
+  const handleRequestPayout = async () => {
+    if (summary.availableBalance <= 0) {
+      toast.error('No available balance to withdraw.');
+      return;
     }
 
-    setRequestingPayout(true)
-    setTimeout(() => {
-      const newPayout = {
-        id: `PAY-${Math.floor(100000 + Math.random() * 900000)}`,
-        date: new Date().toISOString(),
-        amount: availableBalance,
-        account: 'HNB Bank - *4829',
-        status: 'pending',
-      }
+    setRequestingPayout(true);
+    try {
+      const response = await api.post('/seller/payouts/request');
+      const newPayout = response.data.payout;
 
-      const nextPayouts = [newPayout, ...payouts]
-      localStorage.setItem('dcc_seller_payouts', JSON.stringify(nextPayouts))
-      setPayouts(nextPayouts)
-      setRequestingPayout(false)
-
-      // Add Seller notifications for payout initiation and automatic mock clearing
       addSellerNotification(
         'Payout Initiated',
         `Payout request of LKR ${newPayout.amount.toLocaleString()} (ID: ${newPayout.id}) has been submitted.`,
         'info'
-      )
-      addSellerNotification(
-        'Payout Cleared',
-        `Your payout of LKR ${newPayout.amount.toLocaleString()} (ID: ${newPayout.id}) has been cleared to ${newPayout.account}.`,
-        'success'
-      )
+      );
 
-      toast.success('Payout request submitted successfully! Funds will clear in 24 hours.')
-    }, 1200)
+      toast.success('Payout request submitted successfully!');
+      fetchEarningsData();
+    } catch (err) {
+      console.error('Payout request error:', err);
+      toast.error(err?.response?.data?.error || 'Failed to submit payout request.');
+    } finally {
+      setRequestingPayout(false);
+    }
+  };
+
+  // Download CSV file from server
+  const handleExportCSV = async () => {
+    try {
+      const response = await api.get('/seller/earnings/export-csv', {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `earnings_history_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success('CSV Export downloaded successfully!');
+    } catch (err) {
+      console.error('Export CSV error:', err);
+      toast.error('Failed to download CSV export.');
+    }
+  };
+
+  const maxAmount = monthlyData.length > 0 ? Math.max(...monthlyData.map((d) => d.amount)) : 0;
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Loading seller earnings dashboard...</div>;
   }
-
-  const handleExportCSV = () => {
-    let csvContent =
-      'data:text/csv;charset=utf-8,' +
-      'Transaction ID,Date,Account,Amount (LKR),Status\n' +
-      payouts
-        .map(
-          (p) =>
-            `${p.id},${new Date(p.date).toLocaleDateString()},${p.account},${p.amount},${p.status}`
-        )
-        .join('\n')
-
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement('a')
-    link.setAttribute('href', encodedUri)
-    link.setAttribute('download', `earnings_history_${Date.now()}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    toast.success('CSV Export downloaded successfully!')
-  }
-
-  const monthlyData = [
-    { month: 'Jan', amount: 45000 },
-    { month: 'Feb', amount: 62000 },
-    { month: 'Mar', amount: 55000 },
-    { month: 'Apr', amount: 90000 },
-    { month: 'May', amount: 110000 },
-    { month: 'Jun', amount: grossSales > 0 ? grossSales : 125000 },
-  ]
-  const maxAmount = Math.max(...monthlyData.map((d) => d.amount))
 
   return (
     <div className="space-y-6">
@@ -145,26 +111,26 @@ export default function Earnings() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
           title="Total Earnings"
-          value={`Rs. ${Number(netEarnings).toLocaleString('en-LK')}`}
+          value={`Rs. ${Number(summary.netEarnings).toLocaleString('en-LK')}`}
           hint="Calculated net income"
           icon={Wallet}
         />
         <DashboardCard
           title="Pending Payout"
-          value={`Rs. ${Number(pendingPaidOut + availableBalance).toLocaleString('en-LK')}`}
+          value={`Rs. ${Number(summary.pendingPayouts + summary.availableBalance).toLocaleString('en-LK')}`}
           hint="Awaiting weekly dispatch"
           icon={Landmark}
         />
         <DashboardCard
           title="Commission Deducted"
-          value={`Rs. ${Number(platformFee).toLocaleString('en-LK')}`}
+          value={`Rs. ${Number(summary.platformCommission).toLocaleString('en-LK')}`}
           hint="10% DCC commission fee"
           icon={ArrowDownLeft}
         />
         <DashboardCard
           title="Withdrawn Cleared"
-          value={`Rs. ${Number(totalPaidOut).toLocaleString('en-LK')}`}
-          hint="Transferred to HNB"
+          value={`Rs. ${Number(summary.totalPaidOut).toLocaleString('en-LK')}`}
+          hint="Transferred to bank account"
           icon={ArrowUpRight}
         />
       </section>
@@ -184,12 +150,12 @@ export default function Earnings() {
           </div>
           <div className="flex justify-between border-b border-dashed border-slate-200 pb-2 text-xs font-semibold text-slate-600">
             <span>Available express:</span>
-            <span className="text-slate-900">Rs. {Number(availableBalance).toLocaleString('en-LK')}</span>
+            <span className="text-slate-900">Rs. {Number(summary.availableBalance).toLocaleString('en-LK')}</span>
           </div>
           <button
             type="button"
             onClick={handleRequestPayout}
-            disabled={requestingPayout || availableBalance <= 0}
+            disabled={requestingPayout || summary.availableBalance <= 0}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-dcc-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-dcc-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
@@ -215,7 +181,7 @@ export default function Earnings() {
 
           <div className="flex h-40 items-end justify-between gap-2 border-b border-slate-100 pt-4">
             {monthlyData.map((d, index) => {
-              const heightPct = maxAmount > 0 ? (d.amount / maxAmount) * 100 : 0
+              const heightPct = maxAmount > 0 ? (d.amount / maxAmount) * 100 : 0;
               return (
                 <div key={index} className="group relative flex flex-1 flex-col items-center">
                   <div className="pointer-events-none absolute -top-8 z-10 whitespace-nowrap rounded bg-slate-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 shadow transition-opacity group-hover:opacity-100">
@@ -227,7 +193,7 @@ export default function Earnings() {
                   />
                   <span className="mt-2 block text-[10px] font-semibold text-slate-500">{d.month}</span>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
@@ -254,7 +220,7 @@ export default function Earnings() {
                   day: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit',
-                })
+                });
                 return (
                   <tr key={p.id} className="text-slate-700 hover:bg-slate-50/50">
                     <td className="py-3 font-semibold text-slate-900">{p.id}</td>
@@ -275,12 +241,12 @@ export default function Earnings() {
                       </span>
                     </td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
         </div>
       </section>
     </div>
-  )
+  );
 }
