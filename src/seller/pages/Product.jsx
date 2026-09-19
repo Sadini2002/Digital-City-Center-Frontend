@@ -48,6 +48,7 @@ export default function Product() {
           : item.image
             ? [item.image]
             : [],
+            allVariants: item.allVariants || item.variants || [],
       }));
 
       setProducts(normalizedList);
