@@ -11,6 +11,7 @@ export default function Product() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const token = getAuthToken();
   const apiBase = (
@@ -37,6 +38,7 @@ export default function Product() {
         _id: item._id || String(item.id),
         productId: item.productId || item.sku || `PRD-${item.id || item._id}`,
         name: item.name || item.title,
+        status: item.status?.toLowerCase() || "active",
         isAvailable:
           item.isAvailable !== undefined
             ? item.isAvailable
@@ -51,7 +53,6 @@ export default function Product() {
       setProducts(normalizedList);
     } catch (err) {
       console.error("API error fetching products:", err);
-      // DO NOT load global mock items on error
       setProducts([]);
     } finally {
       setLoading(false);
@@ -62,29 +63,100 @@ export default function Product() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this listing?"))
-      return;
+  const handleDelete = (id) => {
+    // 1. Lock the background interaction
+    setIsDeleting(true);
 
-    try {
-      await axios.delete(`${apiBase}/products/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3 p-1">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">
+              Delete Listing?
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              This action cannot be undone. Are you sure?
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1">
+            {/* Cancel Button */}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                setIsDeleting(false); // Unlock screen on cancel
+              }}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+
+            {/* Confirm Delete Button */}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                executeDelete(id); // Execute deletion
+              }}
+              className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700 transition"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity,
+        position: "top-center",
+        style: {
+          borderRadius: "12px",
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          padding: "12px 16px",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+          zIndex: 9999, // Ensure toast renders above backdrop overlay
+        },
+      },
+    );
+  };
+
+  const executeDelete = async (id) => {
+    toast
+      .promise(
+        axios.delete(`${apiBase}/products/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        {
+          loading: "Deleting listing...",
+          success: "Listing deleted successfully! 🗑️",
+          error: "Failed to delete listing from server.",
+        },
+      )
+      .then(() => {
+        setProducts((prev) =>
+          prev.filter((p) => (p._id || String(p.id)) !== String(id)),
+        );
+      })
+      .catch((err) => {
+        console.warn("API error deleting product, running fallback...", err);
+
+        const local = JSON.parse(
+          localStorage.getItem("dcc_seller_products") || "[]",
+        );
+        const updated = local.filter(
+          (p) => (p._id || String(p.id)) !== String(id),
+        );
+        localStorage.setItem("dcc_seller_products", JSON.stringify(updated));
+
+        setProducts((prev) =>
+          prev.filter((p) => (p._id || String(p.id)) !== String(id)),
+        );
+        toast.success("Listing removed from local storage");
+      })
+      .finally(() => {
+        // 2. Unlock the background interaction once completed
+        setIsDeleting(false);
       });
-      toast.success("Product deleted successfully");
-      fetchProducts();
-    } catch (err) {
-      console.warn(
-        "API error deleting product, falling back to local storage",
-        err,
-      );
-      const local = JSON.parse(
-        localStorage.getItem("dcc_seller_products") || "[]",
-      );
-      const updated = local.filter((p) => (p._id || p.id) !== id);
-      localStorage.setItem("dcc_seller_products", JSON.stringify(updated));
-      toast.success("Product deleted successfully (local)");
-      fetchProducts();
-    }
   };
 
   const filteredProducts = (Array.isArray(products) ? products : []).filter(
@@ -121,14 +193,20 @@ export default function Product() {
           currentStatus === "active"
         );
       }
-
       // Direct status matches ("active", "paused", "draft")
       return currentStatus === statusFilter;
     },
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Screen Overlay Backdrop to block background clicks */}
+      {isDeleting && (
+        <div
+          className="fixed inset-0 z-[9990] bg-slate-900/20 backdrop-blur-[1px] transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -156,6 +234,9 @@ export default function Product() {
             <option value="all">All Listings</option>
             <option value="available">Available</option>
             <option value="outofstock">Out of Stock</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="draft">Draft</option>
           </select>
 
           <Link
