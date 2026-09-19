@@ -36,7 +36,14 @@ export default function ProductTable({ products, onDelete }) {
             const imageUrl = Array.isArray(product.image)
               ? product.image[0]
               : product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&auto=format&fit=crop&q=60'
-            const isAvailable = product.isAvailable && product.stock > 0
+
+            // Check if item is a SERVICE or a PRODUCT
+            const isService = product.type === 'SERVICE'
+            
+            // Availability check: Always true for services, checks stock for products
+            const isAvailable = isService 
+              ? true 
+              : (product.isAvailable !== undefined ? product.isAvailable : product.stock > 0)
 
             return (
               <tr key={id} className="hover:bg-slate-50/70 transition">
@@ -54,19 +61,26 @@ export default function ProductTable({ products, onDelete }) {
                   {product.productId || id}
                 </td>
                 <td className="px-5 py-3.5">
-                  <div className="font-semibold text-slate-900">{product.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900">{product.name}</span>
+                    {isService && (
+                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-600">
+                        SERVICE
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Display Variants */}
                   {((product.variants?.sizes && product.variants.sizes.length > 0) || 
                     (product.variants?.colors && product.variants.colors.length > 0)) && (
                     <div className="mt-1 flex flex-wrap gap-1 items-center">
                       <span className="text-[10px] uppercase font-bold text-slate-400 mr-0.5">Variants:</span>
-                      {product.variants?.sizes?.map(size => (
+                      {product.variants?.sizes?.map((size) => (
                         <span key={size} className="rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold text-slate-600">
                           {size}
                         </span>
                       ))}
-                      {product.variants?.colors?.map(color => (
+                      {product.variants?.colors?.map((color) => (
                         <span key={color} className="rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold text-slate-600 flex items-center gap-1">
                           <span className="h-1.5 w-1.5 rounded-full border border-slate-300" style={{ backgroundColor: color }} />
                           {color}
@@ -106,7 +120,7 @@ export default function ProductTable({ products, onDelete }) {
                   )}
                 </td>
                 <td className="px-5 py-3.5 text-slate-700">
-                  {product.stock}
+                  {isService ? <span className="text-slate-400 italic">N/A</span> : product.stock}
                 </td>
                 <td className="px-5 py-3.5">
                   <span
