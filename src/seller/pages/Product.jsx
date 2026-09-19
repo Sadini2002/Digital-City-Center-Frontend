@@ -20,43 +20,43 @@ export default function Product() {
   ).replace(/\/+$/, "");
 
   const fetchProducts = async () => {
-  setLoading(true);
-  try {
-    // Token comes from authStorage (dcc_token, local or session storage)
-    const authToken = getAuthToken();
+    setLoading(true);
+    try {
+      // Token comes from authStorage (dcc_token, local or session storage)
+      const authToken = getAuthToken();
 
-    // The seller is identified by the token, so no sellerId is sent from the client
-    const res = await axios.get(`${apiBase}/products/my-listings`, {
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-    });
+      // The seller is identified by the token, so no sellerId is sent from the client
+      const res = await axios.get(`${apiBase}/products/my-listings`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
 
-    const rawData = res.data?.data || [];
+      const rawData = res.data?.data || [];
 
-    const normalizedList = rawData.map((item) => ({
-      ...item,
-      _id: item._id || String(item.id),
-      productId: item.productId || item.sku || `PRD-${item.id || item._id}`,
-      name: item.name || item.title,
-      isAvailable:
-        item.isAvailable !== undefined
-          ? item.isAvailable
-          : item.type === "SERVICE" || item.stock > 0,
-      image: Array.isArray(item.image)
-        ? item.image
-        : item.image
-          ? [item.image]
-          : [],
-    }));
+      const normalizedList = rawData.map((item) => ({
+        ...item,
+        _id: item._id || String(item.id),
+        productId: item.productId || item.sku || `PRD-${item.id || item._id}`,
+        name: item.name || item.title,
+        isAvailable:
+          item.isAvailable !== undefined
+            ? item.isAvailable
+            : item.type === "SERVICE" || item.stock > 0,
+        image: Array.isArray(item.image)
+          ? item.image
+          : item.image
+            ? [item.image]
+            : [],
+      }));
 
-    setProducts(normalizedList);
-  } catch (err) {
-    console.error("API error fetching products:", err);
-    // DO NOT load global mock items on error
-    setProducts([]);
-  } finally {
-    setLoading(false);
-  }
-};
+      setProducts(normalizedList);
+    } catch (err) {
+      console.error("API error fetching products:", err);
+      // DO NOT load global mock items on error
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -89,21 +89,41 @@ export default function Product() {
 
   const filteredProducts = (Array.isArray(products) ? products : []).filter(
     (product) => {
+      // 1. Search Query Matching
       const matchesSearch =
         product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.productId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product._id?.toLowerCase().includes(searchQuery.toLowerCase());
 
+      if (!matchesSearch) return false;
+
+      // 2. Availability Calculation
       const isAvailable =
         product.type === "SERVICE"
-          ? true
-          : product.isAvailable && product.stock > 0;
-      if (statusFilter === "available") {
-        return matchesSearch && isAvailable;
-      } else if (statusFilter === "outofstock") {
-        return matchesSearch && !isAvailable;
+          ? product.status === "active"
+          : product.status === "active" && product.stock > 0;
+
+      const currentStatus = product.status?.toLowerCase() || "active";
+
+      // 3. Status Filter Matching
+      if (statusFilter === "all" || !statusFilter) {
+        return true;
       }
-      return matchesSearch;
+
+      if (statusFilter === "available") {
+        return isAvailable;
+      }
+
+      if (statusFilter === "outofstock") {
+        return (
+          product.type !== "SERVICE" &&
+          product.stock <= 0 &&
+          currentStatus === "active"
+        );
+      }
+
+      // Direct status matches ("active", "paused", "draft")
+      return currentStatus === statusFilter;
     },
   );
 
