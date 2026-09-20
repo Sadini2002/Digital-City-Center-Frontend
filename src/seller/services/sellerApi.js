@@ -15,10 +15,46 @@ export const sellerApi = {
     api.get('/seller/dashboard', {
       params: options.refresh
         ? {
-            _t: Date.now(),
-          }
+          _t: Date.now(),
+        }
         : undefined,
     }),
+
+  // =========================
+  // SHOP SETTINGS
+  // =========================
+
+  getShopSettings: () =>
+    api.get('/seller/settings'),
+
+  updateShopSettings: (data) =>
+    api.put('/seller/settings', data),
+
+  uploadShopLogo: (file) => {
+    const formData = new FormData()
+    formData.append('logo', file)
+
+    return api.post(
+      '/seller/settings/images/logo',
+      formData
+    )
+  },
+
+  uploadShopBanner: (file) => {
+    const formData = new FormData()
+    formData.append('banner', file)
+
+    return api.post(
+      '/seller/settings/images/banner',
+      formData
+    )
+  },
+
+  removeShopLogo: () =>
+    api.delete('/seller/settings/images/logo'),
+
+  removeShopBanner: () =>
+    api.delete('/seller/settings/images/banner'),
 
   // =========================
   // NOTIFICATIONS
