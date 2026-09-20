@@ -1,16 +1,10 @@
 import { api } from '../../services/api/client'
 
 export const sellerApi = {
-  // =========================
-  // SELLER
-  // =========================
-
   getMe: () =>
     api.get('/seller/me'),
-
   getStatus: () =>
     api.get('/seller/status'),
-
   getDashboard: (options = {}) =>
     api.get('/seller/dashboard', {
       params: options.refresh

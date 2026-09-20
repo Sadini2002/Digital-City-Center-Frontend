@@ -1,17 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
-  User,
-  Mail,
-  Phone,
-  Shield,
-  FileText,
-  CheckCircle,
-  Clock,
-  XCircle,
-  RefreshCw,
-  Landmark,
-  Save,
-} from 'lucide-react'
+import {User,Mail,Phone,Shield,FileText,CheckCircle,Clock,XCircle,RefreshCw,Landmark,Save,} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { sellerApi } from '../services/sellerApi'
 
