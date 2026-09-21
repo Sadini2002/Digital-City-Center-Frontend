@@ -1,89 +1,62 @@
 import { api } from '../../services/api/client'
 
 export const sellerApi = {
-  // =========================
-  // SELLER
-  // =========================
-
-  getMe: () =>
-    api.get('/seller/me'),
-
-  getStatus: () =>
-    api.get('/seller/status'),
-
+  getMe: () => api.get('/seller/me'),
+  getStatus: () => api.get('/seller/status'),
   getDashboard: (options = {}) =>
     api.get('/seller/dashboard', {
-      params: options.refresh
-        ? {
-          _t: Date.now(),
-        }
-        : undefined,
+      params: options.refresh ? { _t: Date.now() } : undefined,
     }),
 
-  // =========================
-  // SHOP SETTINGS
-  // =========================
+  // =========================FINANCIALS & PAYOUTS=================================
+  
+  getEarnings: (params = {}) => api.get('/seller/earnings', { params }),
+  requestPayout: () => api.post('/seller/payouts/request'),
+ exportEarningsCSV: (params = {}) =>
+    api.get('/seller/earnings/export-csv', { params, responseType: 'blob' }),
 
-  getShopSettings: () =>
-    api.get('/seller/settings'),
+  //=============== SHOP SETTINGS============
 
-  updateShopSettings: (data) =>
-    api.put('/seller/settings', data),
+  getShopSettings: () => api.get('/seller/settings'),
+  updateShopSettings: (data) => api.put('/seller/settings', data),
 
   uploadShopLogo: (file) => {
     const formData = new FormData()
     formData.append('logo', file)
-
-    return api.post(
-      '/seller/settings/images/logo',
-      formData
-    )
+    return api.post('/seller/settings/images/logo', formData)
   },
 
   uploadShopBanner: (file) => {
     const formData = new FormData()
     formData.append('banner', file)
-
-    return api.post(
-      '/seller/settings/images/banner',
-      formData
-    )
+    return api.post('/seller/settings/images/banner', formData)
   },
 
-  removeShopLogo: () =>
-    api.delete('/seller/settings/images/logo'),
+  removeShopLogo: () => api.delete('/seller/settings/images/logo'),
 
-  removeShopBanner: () =>
-    api.delete('/seller/settings/images/banner'),
+  removeShopBanner: () => api.delete('/seller/settings/images/banner'),
 
   // =========================
   // NOTIFICATIONS
   // =========================
 
-  getNotifications: () =>
-    api.get('/seller/notifications'),
+  getNotifications: () => api.get('/seller/notifications'),
 
   getUnreadNotificationCount: () =>
     api.get('/seller/notifications/unread-count'),
 
   markNotificationAsRead: (notificationId) =>
-    api.patch(
-      `/seller/notifications/${notificationId}/read`
-    ),
+    api.patch(`/seller/notifications/${notificationId}/read`),
 
-  markAllNotificationsAsRead: () =>
-    api.patch('/seller/notifications/read-all'),
+  markAllNotificationsAsRead: () => api.patch('/seller/notifications/read-all'),
 
   // =========================
   // ORDERS
   // =========================
 
-  // params: { status, search, page, limit }
-  getOrders: (params = {}) =>
-    api.get('/orders/seller-orders', { params }),
+  getOrders: (params = {}) => api.get('/orders/seller-orders', { params }),
 
-  getOrderById: (orderId) =>
-    api.get(`/orders/seller-orders/${orderId}`),
+  getOrderById: (orderId) => api.get(`/orders/seller-orders/${orderId}`),
 
   updateOrderStatus: (orderId, status) =>
     api.patch(`/orders/${orderId}/status`, { status }),
@@ -92,9 +65,7 @@ export const sellerApi = {
   // BANK / PAYOUT DETAILS
   // =========================
 
-  getBankDetails: () =>
-    api.get('/seller/bank-details'),
+  getBankDetails: () => api.get('/seller/bank-details'),
 
-  updateBankDetails: (data) =>
-    api.put('/seller/bank-details', data),
+  updateBankDetails: (data) => api.put('/seller/bank-details', data),
 }

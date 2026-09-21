@@ -1,155 +1,213 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import axios from 'axios'
-import { getAuthToken } from '../../utils/authStorage'
-import { Plus, Search, SlidersHorizontal } from 'lucide-react'
-import ProductTable from '../components/ProductTable'
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import axios from "axios";
+import { getAuthToken } from "../../utils/authStorage";
+import { Plus, Search, SlidersHorizontal } from "lucide-react";
+import ProductTable from "../components/ProductTable";
 
 export default function Product() {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const token = getAuthToken()
+  const token = getAuthToken();
   const apiBase = (
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||
-    'http://localhost:5000/api'
-  ).replace(/\/+$/, '')
+    "http://localhost:5000/api/v1"
+  ).replace(/\/+$/, "");
 
   const fetchProducts = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await axios.get(`${apiBase}/products`, {
-  headers: token ? { Authorization: `Bearer ${token}` } : {},
-})
+      // Token comes from authStorage (dcc_token, local or session storage)
+      const authToken = getAuthToken();
 
-const responseData = res.data
+      // The seller is identified by the token, so no sellerId is sent from the client
+      const res = await axios.get(`${apiBase}/products/my-listings`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
 
-const productList = Array.isArray(responseData)
-  ? responseData
-  : Array.isArray(responseData?.products)
-    ? responseData.products
-    : Array.isArray(responseData?.data)
-      ? responseData.data
-      : []
+      const rawData = res.data?.data || [];
 
-setProducts(productList)
+      const normalizedList = rawData.map((item) => ({
+        ...item,
+        _id: item._id || String(item.id),
+        productId: item.productId || item.sku || `PRD-${item.id || item._id}`,
+        name: item.name || item.title,
+        status: item.status?.toLowerCase() || "active",
+        isAvailable:
+          item.isAvailable !== undefined
+            ? item.isAvailable
+            : item.type === "SERVICE" || item.stock > 0,
+        image: Array.isArray(item.image)
+          ? item.image
+          : item.image
+            ? [item.image]
+            : [],
+            allVariants: item.allVariants || item.variants || [],
+      }));
+
+      setProducts(normalizedList);
     } catch (err) {
-      console.warn('API error fetching products, falling back to local storage', err)
-      // Fallback
-      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-      if (local.length > 0) {
-        setProducts(local)
-      } else {
-        const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
-        const currentShopName = savedSettings.shopName || 'Tech World LK';
-        const currentShopSlug = currentShopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-        // Prepopulate some default listings matching catalog
-        const initial = [
-          {
-            _id: 'sony-wh-1000xm5',
-            productId: 'sony-wh-1000xm5',
-            name: 'Sony WH-1000XM5 Headphones',
-            price: 85000,
-            labelPrice: 95000,
-            stock: 24,
-            isAvailable: true,
-            image: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60'],
-            description: 'Industry-leading noise canceling with Auto NC Optimizer, crystal-clear hands-free calling, and up to 30 hours of battery life.',
-            shopId: currentShopSlug,
-          },
-          {
-            _id: 'apple-airpods-pro',
-            productId: 'apple-airpods-pro',
-            name: 'Apple AirPods Pro (2nd Gen)',
-            price: 65000,
-            labelPrice: 70000,
-            stock: 40,
-            isAvailable: true,
-            image: ['https://images.unsplash.com/photo-1588449668338-d151688ab3a8?w=500&auto=format&fit=crop&q=60'],
-            description: 'AirPods Pro (2nd generation) with Active Noise Cancellation, Adaptive Transparency, and personalized Spatial Audio.',
-            shopId: currentShopSlug,
-          },
-          {
-            _id: 'macbook-air-m3',
-            productId: 'macbook-air-m3',
-            name: 'MacBook Air 13" M3 Laptop',
-            price: 350000,
-            labelPrice: 380000,
-            stock: 8,
-            isAvailable: true,
-            image: ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=60'],
-            description: 'MacBook Air 13" with the Apple M3 chip, stunning Liquid Retina display, and all-day battery life.',
-            shopId: currentShopSlug,
-          },
-          {
-            _id: 'logitech-mx-master',
-            productId: 'logitech-mx-master',
-            name: 'Logitech MX Master 3S Mouse',
-            price: 28000,
-            labelPrice: 32000,
-            stock: 0,
-            isAvailable: false,
-            image: ['https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&auto=format&fit=crop&q=60'],
-            description: 'MX Master 3S is a precision wireless mouse with quiet clicks, an 8K DPI sensor, and ergonomic sculpting.',
-            shopId: currentShopSlug,
-          }
-        ]
-        setProducts(initial)
-        localStorage.setItem('dcc_seller_products', JSON.stringify(initial))
-      }
+      console.error("API error fetching products:", err);
+      setProducts([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    fetchProducts();
+  }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this listing?')) return
+  const handleDelete = (id) => {
+    // 1. Lock the background interaction
+    setIsDeleting(true);
 
-    try {
-      await axios.delete(`${apiBase}/products/${id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3 p-1">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">
+              Delete Listing?
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              This action cannot be undone. Are you sure?
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1">
+            {/* Cancel Button */}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                setIsDeleting(false); // Unlock screen on cancel
+              }}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+
+            {/* Confirm Delete Button */}
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                executeDelete(id); // Execute deletion
+              }}
+              className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700 transition"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity,
+        position: "top-center",
+        style: {
+          borderRadius: "12px",
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          padding: "12px 16px",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+          zIndex: 9999, // Ensure toast renders above backdrop overlay
+        },
+      },
+    );
+  };
+
+  const executeDelete = async (id) => {
+    toast
+      .promise(
+        axios.delete(`${apiBase}/products/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        {
+          loading: "Deleting listing...",
+          success: "Listing deleted successfully! 🗑️",
+          error: "Failed to delete listing from server.",
+        },
+      )
+      .then(() => {
+        setProducts((prev) =>
+          prev.filter((p) => (p._id || String(p.id)) !== String(id)),
+        );
       })
-      toast.success('Product deleted successfully')
-      fetchProducts()
-    } catch (err) {
-      console.warn('API error deleting product, falling back to local storage', err)
-      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]')
-      const updated = local.filter((p) => (p._id || p.id) !== id)
-      localStorage.setItem('dcc_seller_products', JSON.stringify(updated))
-      toast.success('Product deleted successfully (local)')
-      fetchProducts()
-    }
-  }
+      .catch((err) => {
+        console.warn("API error deleting product, running fallback...", err);
 
-  // Filter listings based on search query and status filter
+        const local = JSON.parse(
+          localStorage.getItem("dcc_seller_products") || "[]",
+        );
+        const updated = local.filter(
+          (p) => (p._id || String(p.id)) !== String(id),
+        );
+        localStorage.setItem("dcc_seller_products", JSON.stringify(updated));
+
+        setProducts((prev) =>
+          prev.filter((p) => (p._id || String(p.id)) !== String(id)),
+        );
+        toast.success("Listing removed from local storage");
+      })
+      .finally(() => {
+        // 2. Unlock the background interaction once completed
+        setIsDeleting(false);
+      });
+  };
+
   const filteredProducts = (Array.isArray(products) ? products : []).filter(
-  (product) => {
-    const matchesSearch =
-      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.productId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product._id?.toLowerCase().includes(searchQuery.toLowerCase())
+    (product) => {
+      // 1. Search Query Matching
+      const matchesSearch =
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.productId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product._id?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const isAvailable = product.isAvailable && product.stock > 0
-    if (statusFilter === 'available') {
-      return matchesSearch && isAvailable
-    } else if (statusFilter === 'outofstock') {
-      return matchesSearch && !isAvailable
-    }
-    return matchesSearch
-  })
+      if (!matchesSearch) return false;
+
+      // 2. Availability Calculation
+      const isAvailable =
+        product.type === "SERVICE"
+          ? product.status === "active"
+          : product.status === "active" && product.stock > 0;
+
+      const currentStatus = product.status?.toLowerCase() || "active";
+
+      // 3. Status Filter Matching
+      if (statusFilter === "all" || !statusFilter) {
+        return true;
+      }
+
+      if (statusFilter === "available") {
+        return isAvailable;
+      }
+
+      if (statusFilter === "outofstock") {
+        return (
+          product.type !== "SERVICE" &&
+          product.stock <= 0 &&
+          currentStatus === "active"
+        );
+      }
+      // Direct status matches ("active", "paused", "draft")
+      return currentStatus === statusFilter;
+    },
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Search and Filters panel */}
+    <div className="space-y-6 relative">
+      {/* Screen Overlay Backdrop to block background clicks */}
+      {isDeleting && (
+        <div
+          className="fixed inset-0 z-[9990] bg-slate-900/20 backdrop-blur-[1px] transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -165,7 +223,9 @@ setProducts(productList)
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Status:
+            </span>
           </div>
           <select
             value={statusFilter}
@@ -175,6 +235,9 @@ setProducts(productList)
             <option value="all">All Listings</option>
             <option value="available">Available</option>
             <option value="outofstock">Out of Stock</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="draft">Draft</option>
           </select>
 
           <Link
@@ -195,5 +258,5 @@ setProducts(productList)
         <ProductTable products={filteredProducts} onDelete={handleDelete} />
       )}
     </div>
-  )
+  );
 }
