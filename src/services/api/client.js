@@ -22,7 +22,6 @@ export const api = axios.create({
 
 // Frontend GET Request Cache (10 seconds TTL)
 const getCache = new Map()
-const defaultAdapter = axios.getAdapter(api.defaults.adapter || axios.defaults.adapter)
 const resolvedAdapter = axios.getAdapter
   ? axios.getAdapter(api.defaults.adapter ?? axios.defaults.adapter)
   : api.defaults.adapter || axios.defaults.adapter
@@ -71,6 +70,11 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   config.withCredentials = true
+
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   return config
 })
 

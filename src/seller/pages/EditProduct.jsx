@@ -1,432 +1,582 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
-import mediaUpload from "../../utils/media";
-import { getAuthToken } from "../../utils/authStorage";
-import { validateUploadFiles } from "../../utils/fileUploadValidation";
-import { Sparkles } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { api } from "../../services/api/client";
 
 export default function EditProduct() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const product = location.state;
 
-  const [productId, setProductId] = useState(product?.productId || "");
-  const [name, setName] = useState(product?.name || "");
-  const [altName, setAltName] = useState(product?.altName || [","]);
-  const [price, setPrice] = useState(product?.price || 0);
-  const [description, setDescription] = useState(product?.description || "");
-  const [existingImages, setExistingImages] = useState(product?.image || []);
-  const [newImages, setNewImages] = useState([]);
-  const [uploadError, setUploadError] = useState('');
-  const [labelPrice, setLabelPrice] = useState(product?.labelPrice || 0);
-  const [stock, setStock] = useState(product?.stock || 0);
-  const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
-
-  // Requirement parameters
-  const [itemType, setItemType] = useState(product?.itemType || "physical")
-  const [sizes, setSizes] = useState(product?.variants?.sizes?.join(",") || "")
-  const [colors, setColors] = useState(product?.variants?.colors?.join(",") || "")
-  const [discountPercent, setDiscountPercent] = useState(product?.discount?.percent || 0)
-  const [discountStart, setDiscountStart] = useState(product?.discount?.startDate || "")
-  const [discountEnd, setDiscountEnd] = useState(product?.discount?.endDate || "")
+  const [sellerId, setSellerId] = useState(null);
+  const [categories, setCategories] = useState([]);
+  // Basic Info
+  const [type, setType] = useState("PRODUCT");
+  const [status, setStatus] = useState("active");
+  const [categoryId, setCategoryId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState(0);
+  // Discount
+  const [discountPrice, setDiscountPrice] = useState("");
+  const [discountStart, setDiscountStart] = useState("");
+  const [discountEnd, setDiscountEnd] = useState("");
+  // Existing uploaded URLs vs. New files to upload
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImageFiles, setNewImageFiles] = useState([]);
+  // Dynamic Variants
+  const [variants, setVariants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!product) {
-      toast.error("No product data found");
-      navigate("/seller/listings");
-    }
-  }, [product, navigate]);
+    async function loadData() {
+      try {
+        const [meRes, catRes, productRes] = await Promise.all([
+          api.get("/seller/me"),
+          api.get("/categories"),
+          api.get(`/products/${id}`),
+        ]);
 
-  if (!product) {
-    return null;
-  }
+        const seller = meRes.data?.seller;
+        if (!seller?.id) {
+          toast.error("Could not find seller profile.");
+          navigate("/seller/dashboard");
+          return;
+        }
+        setSellerId(seller.id);
 
-  const handleImageChange = (e) => {
-    const validation = validateUploadFiles(e.target.files, { label: 'Image' })
-    if (!validation.valid) {
-      setUploadError(validation.error)
-      setNewImages([])
-      toast.error(validation.error)
-      e.target.value = ''
-      return
+        const cats = catRes.data?.data || [];
+        setCategories(cats);
+
+        // Populate existing listing data
+        const listing = productRes.data?.data;
+        if (!listing) {
+          toast.error("Listing not found.");
+          navigate("/seller/listings");
+          return;
+        }
+
+        setType(listing.type || "PRODUCT");
+        setStatus(listing.status || "active");
+        setCategoryId(String(listing.categoryId));
+        setTitle(listing.title || "");
+        setDescription(listing.description || "");
+
+        // Main Variant data
+        const mainVariant = listing.variants?.[0] || {};
+        setPrice(String(mainVariant.price || ""));
+        setStock(mainVariant.stock || 0);
+
+        // Extract image URLs
+        const imagesList = mainVariant.images?.map((img) => img.url) || [];
+        setExistingImages(imagesList);
+
+        // Sub-variants (excluding main)
+        const subVariants = (listing.variants || []).slice(1).map((v) => ({
+          color: v.attributes?.Color || "",
+          size: v.attributes?.Size || "",
+          price: String(v.price || ""),
+          stock: v.stock || 0,
+        }));
+        setVariants(subVariants);
+
+        // Discount
+        if (listing.discountPrice) {
+          setDiscountPrice(String(listing.discountPrice));
+          setDiscountStart(
+            listing.discountStart
+              ? new Date(listing.discountStart).toISOString().split("T")[0]
+              : "",
+          );
+          setDiscountEnd(
+            listing.discountEnd
+              ? new Date(listing.discountEnd).toISOString().split("T")[0]
+              : "",
+          );
+        }
+      } catch (err) {
+        toast.error(
+          err.response?.data?.message || "Failed to load listing data.",
+        );
+        navigate("/seller/listings");
+      } finally {
+        setLoading(false);
+      }
     }
 
-    const files = validation.files
-    if (existingImages.length + files.length > 8) {
-      const message = 'You can upload a maximum of 8 images.'
-      setUploadError(message)
-      setNewImages([])
-      toast.error(message)
-      e.target.value = ''
-      return
+    loadData();
+  }, [id, navigate]);
+
+  // Image Selection Handlers
+  const handleImageSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    const totalCount =
+      existingImages.length + newImageFiles.length + selectedFiles.length;
+
+    if (totalCount > 8) {
+      return toast.error("You can upload a maximum of 8 images.");
     }
-    setUploadError('')
-    setNewImages(files)
-  }
+
+    const newEntries = selectedFiles
+      .map((file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 5MB`);
+          return null;
+        }
+        return {
+          file,
+          previewUrl: URL.createObjectURL(file),
+        };
+      })
+      .filter(Boolean);
+
+    setNewImageFiles((prev) => [...prev, ...newEntries]);
+  };
+
+  const removeExistingImage = (index) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index) => {
+    setNewImageFiles((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Variant Handlers
+  const handleVariantChange = (index, field, value) => {
+    const updated = [...variants];
+    updated[index][field] = value;
+    setVariants(updated);
+  };
+
+  const addVariant = () => {
+    setVariants([
+      ...variants,
+      { color: "", size: "", price: price || "", stock: stock || 0 },
+    ]);
+  };
+
+  const removeVariant = (index) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const token = getAuthToken();
-    if (!token) return toast.error("Please sign in as a seller");
+    if (!sellerId) return toast.error("Seller profile not loaded.");
+    if (!categoryId) return toast.error("Please select a category.");
+    if (!title.trim()) return toast.error("Title name is required.");
 
-    if (!productId || !name) {
-      return toast.error("Product ID and Name are required");
+    const totalImages = existingImages.length + newImageFiles.length;
+    if (totalImages === 0) {
+      return toast.error("Please provide at least 1 image.");
     }
 
-    if (Number(price) <= 0) {
-      return toast.error("Price must be a positive number greater than 0");
+    const numericPrice = Number(price);
+    if (!numericPrice || numericPrice <= 0) {
+      return toast.error("Price must be a positive number.");
     }
 
-    if (itemType === 'physical' && Number(stock) < 0) {
-      return toast.error("Stock quantity cannot be negative");
-    }
-
-    // Duplicate variant checks
-    const sizeArray = sizes.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-    if (sizeArray.some((val, i) => sizeArray.indexOf(val) !== i)) {
-      return toast.error("Duplicate size variants are not allowed.");
-    }
-
-    const colorArray = colors.split(",").map(c => c.trim().toLowerCase()).filter(Boolean);
-    if (colorArray.some((val, i) => colorArray.indexOf(val) !== i)) {
-      return toast.error("Duplicate color variants are not allowed.");
-    }
-
-    let uploadedNewImages = [];
-    if (newImages.length) {
-      try {
-        uploadedNewImages = await Promise.all(newImages.map((file) => mediaUpload(file)));
-      } catch {
-        return toast.error("Image upload failed");
-      }
-    }
-
-    const apiBase = (
-      import.meta.env.VITE_API_BASE_URL ||
-      import.meta.env.VITE_BACKEND_URL ||
-      'http://localhost:5000/api'
-    ).replace(/\/+$/, '');
-
+    setSubmitting(true);
     try {
-      await axios.put(
-        `${apiBase}/products/${product._id}`,
-        {
-          productId,
-          name,
-          altName,
-          price: Number(price),
-          description,
-          image: [...existingImages, ...uploadedNewImages],
-          labelPrice: Number(labelPrice),
-          stock: itemType === 'service' ? 9999 : Number(stock),
-          isAvailable,
-          itemType,
-          variants: {
-            sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-            colors: colors.split(",").map(c => c.trim()).filter(Boolean),
-          },
-          discount: {
-            percent: Number(discountPercent),
-            startDate: discountStart,
-            endDate: discountEnd,
-          }
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // 1. Upload newly added image files
+      let uploadedUrls = [];
+      if (newImageFiles.length > 0) {
+        const formData = new FormData();
+        newImageFiles.forEach((item) => formData.append("images", item.file));
 
-      toast.success("Product updated successfully");
+        const uploadRes = await api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        uploadedUrls = uploadRes.data?.urls || [];
+      }
+
+      // Combine retained existing URLs + newly uploaded URLs
+      const finalImageUrls = [...existingImages, ...uploadedUrls];
+
+      // Format Variants
+      const formattedVariants = variants
+        .filter((v) => v.color || v.size)
+        .map((v) => ({
+          price: v.price ? Number(v.price) : numericPrice,
+          stock: type === "SERVICE" ? 0 : Number(v.stock),
+          attributes: {
+            ...(v.color && { Color: v.color }),
+            ...(v.size && { Size: v.size }),
+          },
+        }));
+
+      const payload = {
+        sellerId: Number(sellerId),
+        categoryId: Number(categoryId),
+        title: title.trim(),
+        description,
+        type,
+        status,
+        price: numericPrice,
+        stock: type === "SERVICE" ? 0 : Number(stock),
+        images: finalImageUrls,
+        variants: formattedVariants,
+        discount: discountPrice
+          ? {
+              price: Number(discountPrice),
+              startDate: discountStart || null,
+              endDate: discountEnd || null,
+            }
+          : null,
+      };
+
+      await api.put(`/products/${id}`, payload);
+      toast.success("Listing updated successfully");
       navigate("/seller/listings");
     } catch (err) {
-      console.warn("API update product failed, updating local storage fallback", err);
-      
-      const savedSettings = JSON.parse(localStorage.getItem('dcc_shop_settings') || '{}');
-      const currentShopName = savedSettings.shopName || 'Tech World LK';
-      const currentShopSlug = currentShopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-      const local = JSON.parse(localStorage.getItem('dcc_seller_products') || '[]');
-      const updated = local.map((p) => {
-        if ((p._id || p.id) === (product._id || product.id)) {
-          return {
-            ...p,
-            productId,
-            name,
-            altName,
-            price: Number(price),
-            description,
-            image: [...existingImages, ...newImages.map(f => typeof f === 'string' ? f : URL.createObjectURL(f))],
-            labelPrice: Number(labelPrice),
-            stock: itemType === 'service' ? 9999 : Number(stock),
-            isAvailable,
-            itemType,
-            variants: {
-              sizes: sizes.split(",").map(s => s.trim()).filter(Boolean),
-              colors: colors.split(",").map(c => c.trim()).filter(Boolean),
-            },
-            discount: {
-              percent: Number(discountPercent),
-              startDate: discountStart,
-              endDate: discountEnd,
-            },
-            shopId: p.shopId || currentShopSlug,
-          };
-        }
-        return p;
-      });
-      localStorage.setItem('dcc_seller_products', JSON.stringify(updated));
-
-      toast.success("Product updated successfully (local storage)");
-      navigate("/seller/listings");
+      toast.error(err.response?.data?.message || "Failed to update listing.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-dcc-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-xl bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 animate-fadeIn">
-        <h2 className="text-2xl font-bold text-slate-900 text-center mb-1">
-          Edit Listing
-        </h2>
-        <p className="text-sm text-slate-500 text-center mb-8">
-          Update your product or service details carefully
-        </p>
+    <div className="mx-auto max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 my-8">
+      <h2 className="text-2xl font-bold text-slate-900 text-center mb-1">
+        Edit Listing
+      </h2>
+      <p className="text-sm text-slate-500 text-center mb-6">
+        Update details for "{title}"
+      </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Listing Type Selection */}
-          <div className="flex gap-4 p-1 rounded-xl bg-slate-100">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Listing Type */}
+        <div>
+          <label className="text-sm text-gray-600 font-medium block mb-2">
+            Listing Type
+          </label>
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setItemType("physical")}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                itemType === 'physical' ? 'bg-white text-dcc-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              onClick={() => setType("PRODUCT")}
+              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                type === "PRODUCT"
+                  ? "border-dcc-primary bg-dcc-primary/5 ring-2 ring-dcc-primary/20"
+                  : "border-gray-200 hover:border-gray-300 bg-white"
               }`}
             >
-              Physical Product
+              <span
+                className={`font-semibold text-sm ${type === "PRODUCT" ? "text-dcc-primary" : "text-slate-800"}`}
+              >
+                Physical Product
+              </span>
+              <p className="text-xs text-slate-500 mt-1">
+                Items requiring inventory, physical stock, or shipping
+              </p>
             </button>
+
             <button
               type="button"
-              onClick={() => setItemType("service")}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                itemType === 'service' ? 'bg-white text-dcc-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              onClick={() => setType("SERVICE")}
+              className={`flex flex-col items-start p-4 rounded-xl border text-left transition-all ${
+                type === "SERVICE"
+                  ? "border-dcc-primary bg-dcc-primary/5 ring-2 ring-dcc-primary/20"
+                  : "border-gray-200 hover:border-gray-300 bg-white"
               }`}
             >
-              Service (Non-physical)
+              <span
+                className={`font-semibold text-sm ${type === "SERVICE" ? "text-dcc-primary" : "text-slate-800"}`}
+              >
+                Service
+              </span>
+              <p className="text-xs text-slate-500 mt-1">
+                Non-physical offerings like tutoring, repairs, or delivery
+              </p>
             </button>
           </div>
+        </div>
 
-          {/* Product ID and Name */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-600 font-medium">Listing ID</label>
-              <input
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 font-medium">Listing Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
-              />
-            </div>
-          </div>
+        {/* Title */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">Title</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm"
+            required
+          />
+        </div>
 
-          {/* Alt Names */}
+        {/* Listing Status */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1">
+            Listing Status
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm bg-white"
+          >
+            <option value="active">Active (Visible in store)</option>
+            <option value="paused">Paused (Hidden / Inactive)</option>
+            <option value="draft">Draft (Unpublished)</option>
+          </select>
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">Category</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm"
+            required
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Price & Stock */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600 font-medium">Alternative Names</label>
+            <label className="text-sm font-medium text-gray-700">
+              Price (Rs.)
+            </label>
             <input
-              value={altName.join(",")}
-              onChange={(e) =>
-                setAltName(
-                  e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                )
-              }
-              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm"
+              required
             />
           </div>
-
-          {/* Price Row */}
-          <div className="grid grid-cols-2 gap-4">
+          {type === "PRODUCT" && (
             <div>
-              <label className="text-sm text-gray-600 font-medium">Price (Rs.)</label>
+              <label className="text-sm font-medium text-gray-700">
+                Stock Quantity
+              </label>
               <input
                 type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm"
+                required
               />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 font-medium">Label Price</label>
-              <input
-                type="number"
-                value={labelPrice}
-                onChange={(e) => setLabelPrice(e.target.value)}
-                className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
-              />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium">Description</label>
-            <textarea
-              rows="3"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
-            />
-          </div>
-
-          {/* Existing Images */}
-          {existingImages.length > 0 && (
-            <div>
-              <label className="text-xs font-semibold text-slate-500 block mb-2">Existing Images</label>
-              <div className="flex gap-3 flex-wrap">
-                {existingImages.map((img, i) => (
-                  <div key={i} className="relative group w-16 h-16 rounded-xl overflow-hidden shadow">
-                    <img src={img} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))}
-                      className="absolute inset-0 bg-red-600/70 text-white font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px]"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
+        </div>
 
-          {/* New Image Upload */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium block">Upload New Images (Max 8 Total)</label>
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
-              className="w-full mt-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200 transition"
-              onChange={handleImageChange}
-            />
-            <p className="mt-1 text-xs text-slate-500">JPG, PNG, WebP, or GIF only. Max 5MB per file.</p>
-            {uploadError && (
-              <p className="mt-2 text-sm font-medium text-red-600" role="alert">
-                {uploadError}
-              </p>
+        {/* Description */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">
+            Description
+          </label>
+          <textarea
+            rows="3"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-dcc-primary text-sm"
+          />
+        </div>
+
+        {/* Image Grid (Existing + New) */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1">
+            Images ({existingImages.length + newImageFiles.length}/8)
+          </label>
+
+          <div className="grid grid-cols-4 gap-3 mt-2">
+            {/* Existing Uploaded Images */}
+            {existingImages.map((url, idx) => (
+              <div
+                key={`existing-${idx}`}
+                className="relative aspect-square rounded-xl overflow-hidden border border-slate-200"
+              >
+                <img
+                  src={url}
+                  alt={`Existing ${idx}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeExistingImage(idx)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm hover:bg-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {/* New Local Images */}
+            {newImageFiles.map((item, idx) => (
+              <div
+                key={`new-${idx}`}
+                className="relative aspect-square rounded-xl overflow-hidden border border-dcc-primary"
+              >
+                <img
+                  src={item.previewUrl}
+                  alt={`New ${idx}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeNewImage(idx)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm hover:bg-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {/* Upload Button */}
+            {existingImages.length + newImageFiles.length < 8 && (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl aspect-square cursor-pointer hover:border-dcc-primary hover:bg-dcc-primary/5 transition-all">
+                <span className="text-2xl text-gray-400">+</span>
+                <span className="text-xs text-gray-500 mt-1">Upload</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </label>
             )}
           </div>
+        </div>
 
-          {/* Variants */}
-          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-dcc-primary" /> Listing Variants
-            </span>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-600 font-medium">Sizes</label>
-                <input
-                  value={sizes}
-                  onChange={(e) => setSizes(e.target.value)}
-                  placeholder="e.g. S, M, L"
-                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 font-medium">Colors</label>
-                <input
-                  value={colors}
-                  onChange={(e) => setColors(e.target.value)}
-                  placeholder="e.g. Red, Blue"
-                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Discounts */}
-          <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 space-y-3">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-              Discounts & Promotion
-            </span>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs text-gray-600 font-medium">Discount (%)</label>
-                <input
-                  type="number"
-                  value={discountPercent}
-                  onChange={(e) => setDiscountPercent(e.target.value)}
-                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 font-medium">Start Date</label>
-                <input
-                  type="date"
-                  value={discountStart}
-                  onChange={(e) => setDiscountStart(e.target.value)}
-                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 font-medium">End Date</label>
-                <input
-                  type="date"
-                  value={discountEnd}
-                  onChange={(e) => setDiscountEnd(e.target.value)}
-                  className="w-full mt-1 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-xs transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Stock + Toggle */}
-          <div className="flex items-center justify-between pt-2">
-            {itemType === 'physical' ? (
-              <div>
-                <label className="text-sm text-gray-600 font-medium">Stock</label>
-                <input
-                  type="number"
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                  className="w-32 mt-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-dcc-primary/20 focus:border-dcc-primary focus:outline-none text-sm transition"
-                />
-              </div>
-            ) : (
-              <span className="text-xs text-slate-500 italic">No stock tracking needed for Services</span>
-            )}
-
-            <label className="flex items-center gap-3 text-sm font-medium">
-              Available
-              <input
-                type="checkbox"
-                checked={isAvailable}
-                onChange={(e) => setIsAvailable(e.target.checked)}
-                className="toggle toggle-success"
-              />
+        {/* Dynamic Product Variants */}
+        {type === "PRODUCT" && (
+          <div className="border-t pt-4">
+            <label className="text-sm font-semibold text-gray-800 block mb-2">
+              Variants (Optional)
             </label>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex justify-between pt-6 border-t border-slate-100">
-            <Link
-              to="/seller/listings"
-              className="px-6 py-3 rounded-xl text-gray-700 bg-gray-200 hover:bg-gray-300 transition"
-            >
-              Cancel
-            </Link>
-
+            {variants.map((v, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-4 gap-2 mb-2 items-center"
+              >
+                <input
+                  placeholder="Color (e.g. Red)"
+                  value={v.color}
+                  onChange={(e) =>
+                    handleVariantChange(idx, "color", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded-xl text-sm"
+                />
+                <input
+                  placeholder="Size (e.g. M)"
+                  value={v.size}
+                  onChange={(e) =>
+                    handleVariantChange(idx, "size", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded-xl text-sm"
+                />
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={v.price}
+                  onChange={(e) =>
+                    handleVariantChange(idx, "price", e.target.value)
+                  }
+                  className="px-3 py-2 border rounded-xl text-sm"
+                />
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    placeholder="Stock"
+                    value={v.stock}
+                    onChange={(e) =>
+                      handleVariantChange(idx, "stock", e.target.value)
+                    }
+                    className="px-3 py-2 border rounded-xl text-sm w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(idx)}
+                    className="text-red-500 text-xs px-2"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
             <button
-              type="submit"
-              className="px-8 py-3 rounded-xl bg-dcc-primary text-white hover:bg-dcc-primary-hover transition"
+              type="button"
+              onClick={addVariant}
+              className="text-xs text-dcc-primary font-medium hover:underline mt-1"
             >
-              Update Listing
+              + Add Product Variant
             </button>
           </div>
-        </form>
-      </div>
+        )}
+
+        {/* Discount Settings */}
+        <div className="border-t pt-4">
+          <label className="text-sm font-semibold text-gray-800 block mb-2">
+            Discount Settings (Optional)
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-gray-500">Discounted Price</label>
+              <input
+                type="number"
+                value={discountPrice}
+                onChange={(e) => setDiscountPrice(e.target.value)}
+                className="w-full mt-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Start Date</label>
+              <input
+                type="date"
+                value={discountStart}
+                onChange={(e) => setDiscountStart(e.target.value)}
+                className="w-full mt-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">End Date</label>
+              <input
+                type="date"
+                value={discountEnd}
+                onChange={(e) => setDiscountEnd(e.target.value)}
+                className="w-full mt-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between pt-6 border-t border-slate-100">
+          <Link
+            to="/seller/listings"
+            className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-8 py-3 rounded-xl bg-dcc-primary text-white hover:bg-dcc-primary-hover disabled:opacity-60 text-sm font-semibold"
+          >
+            {submitting ? "Saving..." : "Update Listing"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
