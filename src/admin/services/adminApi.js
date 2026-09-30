@@ -1,35 +1,47 @@
 import { api } from '../../services/api/client'
 
 export const adminApi = {
-  /**
-   * Get pending seller applications.
-   */
-  getPendingSellers: () =>
-    api.get(
-      '/admin/sellers/pending'
-    ),
+  /* ---------------- Dashboard ---------------- */
 
   /**
-   * Approve seller.
+   * KPI numbers + recent pending applications.
    */
-  approveSeller: (
-    sellerId
-  ) =>
-    api.patch(
-      `/admin/sellers/${sellerId}/approve`
-    ),
+  getDashboard: () => api.get('/admin/dashboard'),
+
+  /* ---------------- Seller management ---------------- */
 
   /**
-   * Reject seller.
+   * List sellers.
+   * params: { status, search, page, limit, sort }
+   * status: all | pending | approved | rejected | suspended | removed
    */
-  rejectSeller: (
-    sellerId,
-    reason
-  ) =>
-    api.patch(
-      `/admin/sellers/${sellerId}/reject`,
-      {
-        reason,
-      }
-    ),
+  getSellers: (params = {}) => api.get('/admin/sellers', { params }),
+
+  /**
+   * Full details of one seller (stats, masked bank info).
+   */
+  getSellerById: (sellerId) => api.get(`/admin/sellers/${sellerId}`),
+
+  /**
+   * Change a seller's status.
+   * status: approved | rejected | suspended | removed
+   * reason is required for rejected and suspended.
+   */
+  updateSellerStatus: (sellerId, status, reason) =>
+    api.patch(`/admin/sellers/${sellerId}/status`, {
+      status,
+      ...(reason ? { reason } : {}),
+    }),
+
+  /* Kept for existing callers */
+  getPendingSellers: () => api.get('/admin/sellers/pending'),
+
+  approveSeller: (sellerId) =>
+    api.patch(`/admin/sellers/${sellerId}/status`, { status: 'approved' }),
+
+  rejectSeller: (sellerId, reason) =>
+    api.patch(`/admin/sellers/${sellerId}/status`, {
+      status: 'rejected',
+      reason,
+    }),
 }
