@@ -117,4 +117,37 @@ export const adminApi = {
    *            note, refundAmount? }
    */
   resolveDispute: (disputeId, payload) => api.post(`/admin/disputes/${disputeId}/resolve`, payload),
+
+  // ---------------- Platform Settings ----------------
+
+getPlatformSettings: () =>
+  api.get('/admin/settings'),
+
+updatePlatformSettings: (payload) =>
+  api.put('/admin/settings', payload),
+
+getCategoryCommissions: () =>
+  api.get('/admin/settings/commissions'),
+
+updateCategoryCommission: (categoryId, commissionRate) =>
+  api.put(`/admin/settings/commissions/${categoryId}`, {
+    commissionRate,
+  }),
+
+deleteCategoryCommission: (categoryId) =>
+  api.delete(`/admin/settings/commissions/${categoryId}`),
+
+// ---------------- Announcements ----------------
+
+getAnnouncements: () =>
+  api.get('/admin/announcements'),
+
+createAnnouncement: (formData) =>
+  api.post('/admin/announcements', formData),
+
+updateAnnouncement: (id, formData) =>
+  api.patch(`/admin/announcements/${id}`, formData),
+
+deleteAnnouncement: (id) =>
+  api.delete(`/admin/announcements/${id}`),
 }

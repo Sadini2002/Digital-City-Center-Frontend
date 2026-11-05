@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { getPlatformSettings, savePlatformSettings } from '../utils/adminStorage'
 import { validatePlatformSettings } from '../utils/platformSettingsValidation'
 import { DISTRICTS } from '../../delivery/data/constants'
+import PlatformCommercialSettings from '../components/PlatformCommercialSettings'
 
 export default function PlatformSettingsPage() {
   const [settings, setSettings] = useState(() => getPlatformSettings())
@@ -87,6 +88,11 @@ export default function PlatformSettingsPage() {
             </ul>
           </div>
         )}
+        <PlatformCommercialSettings
+          settings={settings}
+          errors={errors}
+          onChange={handleChange}
+        />
         <section className="rounded-2xl border border-dcc-primary/20 bg-white p-6 shadow-sm shadow-dcc-primary/10">
           <h2 className="text-lg font-bold text-slate-900">General</h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
