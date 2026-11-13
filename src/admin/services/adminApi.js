@@ -150,4 +150,21 @@ updateAnnouncement: (id, formData) =>
 
 deleteAnnouncement: (id) =>
   api.delete(`/admin/announcements/${id}`),
+
+  /* ---------------- Reports & Analytics ---------------- */
+
+  getReportsAnalytics: (params = {}) =>
+    api.get('/admin/reports/analytics', { params }),
+
+  getTopProducts: (params = {}) =>
+    api.get('/admin/reports/top-products', { params }),
+
+  getTopSellers: (params = {}) =>
+    api.get('/admin/reports/top-sellers', { params }),
+
+  exportReportsCSV: (params = {}) =>
+    api.get('/admin/reports/export.csv', {
+      params,
+      responseType: 'blob',
+    }),
 }
