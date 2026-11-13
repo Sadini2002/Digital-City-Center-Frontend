@@ -57,26 +57,44 @@ api.defaults.adapter = async function (config) {
 }
 
 // BACKEND: Attach JWT from login (`POST /auth/login`) on every authenticated request.
+
 api.interceptors.request.use((config) => {
-  // Share one axios client across buyer/seller/admin portals.
-  // Admin pages store auth in `dcc_admin_token`, while marketplace uses `dcc_token`.
-  const token = getAuthToken() || getAdminToken()
+  const requestUrl = config.url || ''
+
+  // Admin API requests should use the administrator's token first.
+  const isAdminRequest =
+    requestUrl.startsWith('/admin/') ||
+    requestUrl === '/admin'
+
+  const token = isAdminRequest
+    ? getAdminToken() || getAuthToken()
+    : getAuthToken() || getAdminToken()
+
   if (token) {
     if (!isJwtStructurallyValid(token)) {
       clearAuthToken()
       clearAdminToken()
-      return Promise.reject(new Error('Session expired or invalid. Please sign in again.'))
+
+      return Promise.reject(
+        new Error('Session expired or invalid. Please sign in again.')
+      )
     }
+
     config.headers.Authorization = `Bearer ${token}`
   }
+
   config.withCredentials = true
 
-  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+  if (
+    typeof FormData !== 'undefined' &&
+    config.data instanceof FormData
+  ) {
     delete config.headers['Content-Type']
   }
 
   return config
 })
+
 
 api.interceptors.response.use(
   (response) => response,
