@@ -81,6 +81,10 @@ export default function DeliveryProvidersPage() {
 
   const [loading, setLoading] = useState(true)
   const [ordersLoading, setOrdersLoading] = useState(true)
+
+  const [providersError, setProvidersError] = useState(false)
+  const [ordersError, setOrdersError] = useState(false)
+
   const [refreshing, setRefreshing] = useState(false)
 
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -95,52 +99,58 @@ export default function DeliveryProvidersPage() {
   // ----------------------------------------------------
 
   const loadProviders = useCallback(async () => {
-    try {
-      const result = await adminDeliveryApi.listProviders({
-        status,
-        search,
-        page: 1,
-        limit: 100,
-      })
+  try {
+    setProvidersError(false)
 
-      setProviders(result.data || [])
+    const result = await adminDeliveryApi.listProviders({
+      status,
+      search,
+      page: 1,
+      limit: 100,
+    })
 
-      setStats({
-        total: result.stats?.total || 0,
-        pending: result.stats?.pending || 0,
-        active: result.stats?.active || 0,
-        rejected: result.stats?.rejected || 0,
-        suspended: result.stats?.suspended || 0,
-      })
-    } catch (error) {
-      toast.error(
-        error.message || 'Failed to load delivery providers.'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [status, search])
+    setProviders(result.data || [])
+
+    setStats({
+      total: result.stats?.total || 0,
+      pending: result.stats?.pending || 0,
+      active: result.stats?.active || 0,
+      rejected: result.stats?.rejected || 0,
+      suspended: result.stats?.suspended || 0,
+    })
+  } catch (error) {
+    console.error('Failed to load delivery providers:', error)
+
+    setProvidersError(true)
+    setProviders([])
+  } finally {
+    setLoading(false)
+  }
+}, [status, search])
 
   // ----------------------------------------------------
   // LOAD UNASSIGNED ORDERS
   // ----------------------------------------------------
 
   const loadUnassignedOrders = useCallback(async () => {
-    try {
-      const result = await adminDeliveryApi.listDeliveries({
-        page: 1,
-        limit: 100,
-      })
+  try {
+    setOrdersError(false)
 
-      setOrders(result.data || [])
-    } catch (error) {
-      toast.error(
-        error.message || 'Failed to load unassigned orders.'
-      )
-    } finally {
-      setOrdersLoading(false)
-    }
-  }, [])
+    const result = await adminDeliveryApi.listDeliveries({
+      page: 1,
+      limit: 100,
+    })
+
+    setOrders(result.data || [])
+  } catch (error) {
+    console.error('Failed to load unassigned orders:', error)
+
+    setOrdersError(true)
+    setOrders([])
+  } finally {
+    setOrdersLoading(false)
+  }
+}, [])
 
   const refreshAll = async () => {
     setRefreshing(true)
@@ -367,16 +377,29 @@ export default function DeliveryProvidersPage() {
                 </tr>
               )}
 
-              {!loading && providers.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-5 py-12 text-center text-slate-500"
-                  >
-                    No delivery providers found.
-                  </td>
-                </tr>
-              )}
+              {!loading && providersError && (
+  <tr>
+    <td colSpan={6} className="px-5 py-12 text-center">
+      <p className="font-medium text-slate-700">
+        Unable to load delivery providers.
+      </p>
+      <p className="mt-1 text-sm text-slate-500">
+        Please try refreshing the page.
+      </p>
+    </td>
+  </tr>
+)}
+
+{!loading && !providersError && providers.length === 0 && (
+  <tr>
+    <td
+      colSpan={6}
+      className="px-5 py-12 text-center text-slate-500"
+    >
+      No delivery providers found.
+    </td>
+  </tr>
+)}
 
               {!loading && providers.map((provider) => (
                 <tr key={provider.id} className="hover:bg-slate-50">
@@ -538,14 +561,30 @@ export default function DeliveryProvidersPage() {
                 </tr>
               )}
 
-              {!ordersLoading && orders.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-slate-500">
-                    <Package className="mx-auto mb-2 h-7 w-7 text-slate-300" />
-                    All eligible orders have been assigned.
-                  </td>
-                </tr>
-              )}
+              {!ordersLoading && ordersError && (
+  <tr>
+    <td colSpan={6} className="px-5 py-12 text-center">
+      <p className="font-medium text-slate-700">
+        Unable to load unassigned orders.
+      </p>
+      <p className="mt-1 text-sm text-slate-500">
+        Please try refreshing the page.
+      </p>
+    </td>
+  </tr>
+)}
+
+{!ordersLoading && !ordersError && orders.length === 0 && (
+  <tr>
+    <td
+      colSpan={6}
+      className="px-5 py-12 text-center text-slate-500"
+    >
+      <Package className="mx-auto mb-2 h-7 w-7 text-slate-300" />
+      All eligible orders have been assigned.
+    </td>
+  </tr>
+)}
 
               {!ordersLoading && orders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50">
